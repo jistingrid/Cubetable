@@ -7,12 +7,20 @@ package dev.tacticalcombat.combat;
 public final class CombatConfig {
 	private CombatConfig() {}
 
-	/** A hostile that targets a player within this range starts combat. */
+	// "Vicinity" = close on the ground (horizontal distance) AND on roughly the same level (vertical limit),
+	// so mobs in caves far below, or high above, never count. Leave limits are larger than join limits so
+	// enemies hovering at the edge do not flip in and out of the fight.
+
+	/** A hostile that targets a player within this horizontal range starts combat. */
 	public static final double DETECT_RANGE = 16.0;
-	/** Hostiles and players within this range of the trigger join the fight. */
-	public static final double JOIN_RANGE = 24.0;
-	/** Combat ends if every enemy is farther than this from every player. */
-	public static final double LEAVE_RANGE = 48.0;
+	/** Hostiles and players within this horizontal range of the trigger / party join the fight. */
+	public static final double JOIN_RANGE = 16.0;
+	/** ... and must also be within this many blocks above or below. */
+	public static final double JOIN_VERTICAL = 6.0;
+	/** An enemy farther than this horizontally from every player is removed from the fight. */
+	public static final double LEAVE_RANGE = 24.0;
+	/** ... or farther than this many blocks above / below every player. */
+	public static final double LEAVE_VERTICAL = 10.0;
 
 	/** Grid squares a player may walk per turn (leftover movement can be spent in several moves). */
 	public static final double PLAYER_MOVEMENT = 8.0;

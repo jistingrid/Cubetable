@@ -253,7 +253,15 @@ public final class Combat {
 			if (p.isSpectator()) return false;
 			return world.getServer().getPlayerManager().getPlayerList().contains(p);
 		}
-		return true;
+		// an enemy that drifted (or was knocked) out of the players' vicinity leaves the fight
+		return isNearAnyPlayer(e, CombatConfig.LEAVE_RANGE, CombatConfig.LEAVE_VERTICAL);
+	}
+
+	private boolean isNearAnyPlayer(LivingEntity e, double horizontal, double vertical) {
+		for (Combatant c : order) {
+			if (c.isPlayer() && CombatManager.isNear(e, c.entity, horizontal, vertical)) return true;
+		}
+		return false;
 	}
 
 	/** Removes dead / gone combatants and keeps {@link #turn} pointing at the right entry. @return true if the current one was removed. */
@@ -293,15 +301,8 @@ public final class Combat {
 		for (Combatant c : order) {
 			(c.isPlayer() ? players : enemies).add(c);
 		}
-		if (players.isEmpty() || enemies.isEmpty()) return true;
-
-		double range2 = CombatConfig.LEAVE_RANGE * CombatConfig.LEAVE_RANGE;
-		for (Combatant enemy : enemies) {
-			for (Combatant player : players) {
-				if (enemy.entity.squaredDistanceTo(player.entity) <= range2) return false;
-			}
-		}
-		return true; // every enemy is far away from every player
+		// enemies that are out of range are already removed by prune(), so "no enemies left" covers that case
+		return players.isEmpty() || enemies.isEmpty();
 	}
 
 	/** Pulls newly aggroed hostiles and nearby players into the running fight. */
@@ -311,17 +312,19 @@ public final class Combat {
 			if (!c.isPlayer()) continue;
 			ServerPlayerEntity p = (ServerPlayerEntity) c.entity;
 
-			Box box = p.getBoundingBox().expand(CombatConfig.JOIN_RANGE);
+			Box box = p.getBoundingBox().expand(
+					CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL, CombatConfig.JOIN_RANGE);
 			joiners.addAll(world.getEntitiesByClass(MobEntity.class, box, m ->
 					CombatManager.isEligibleEnemy(m)
 							&& !CombatManager.isInCombat(m)
 							&& m.getTarget() instanceof ServerPlayerEntity t
-							&& contains(t)));
+							&& contains(t)
+							&& CombatManager.isNear(m, p, CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL)));
 
 			joiners.addAll(world.getPlayers(o ->
 					!o.isSpectator() && o.isAlive()
 							&& !CombatManager.isInCombat(o)
-							&& o.squaredDistanceTo(p) < 16.0 * 16.0));
+							&& CombatManager.isNear(o, p, CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL)));
 		}
 		for (LivingEntity e : joiners) {
 			addCombatant(e);

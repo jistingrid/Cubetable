@@ -70,14 +70,26 @@ public final class CombatManager {
 			for (ServerPlayerEntity player : new ArrayList<>(world.getPlayers())) {
 				if (!canFight(player) || isInCombat(player)) continue;
 
-				Box box = player.getBoundingBox().expand(CombatConfig.DETECT_RANGE);
+				Box box = player.getBoundingBox().expand(
+						CombatConfig.DETECT_RANGE, CombatConfig.JOIN_VERTICAL, CombatConfig.DETECT_RANGE);
 				boolean triggered = !world.getEntitiesByClass(MobEntity.class, box, m ->
-						isEligibleEnemy(m) && !isInCombat(m) && m.getTarget() == player).isEmpty();
+						isEligibleEnemy(m) && !isInCombat(m) && m.getTarget() == player
+								&& isNear(m, player, CombatConfig.DETECT_RANGE, CombatConfig.JOIN_VERTICAL)).isEmpty();
 				if (!triggered) continue;
 
 				startAround(world, player, true);
 			}
 		}
+	}
+
+	/**
+	 * True if {@code a} and {@code b} are in the same area: within {@code horizontal} blocks on the ground
+	 * and within {@code vertical} blocks of each other in height (so a cave far below does not count).
+	 */
+	public static boolean isNear(Entity a, Entity b, double horizontal, double vertical) {
+		double dx = a.getX() - b.getX();
+		double dz = a.getZ() - b.getZ();
+		return dx * dx + dz * dz <= horizontal * horizontal && Math.abs(a.getY() - b.getY()) <= vertical;
 	}
 
 	private static boolean canFight(ServerPlayerEntity p) {
@@ -90,16 +102,19 @@ public final class CombatManager {
 	 * @return the new combat, or null if there was nobody to fight
 	 */
 	public static Combat startAround(ServerWorld world, ServerPlayerEntity center, boolean onlyAggroed) {
-		Box area = center.getBoundingBox().expand(CombatConfig.JOIN_RANGE);
+		Box area = center.getBoundingBox().expand(
+				CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL, CombatConfig.JOIN_RANGE);
 
 		List<MobEntity> enemies = world.getEntitiesByClass(MobEntity.class, area, m ->
-				isEligibleEnemy(m) && !isInCombat(m) && (!onlyAggroed || m.getTarget() instanceof PlayerEntity));
+				isEligibleEnemy(m) && !isInCombat(m)
+						&& (!onlyAggroed || m.getTarget() instanceof PlayerEntity)
+						&& isNear(m, center, CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL));
 		if (enemies.isEmpty()) return null;
 
 		Set<ServerPlayerEntity> party = new LinkedHashSet<>();
 		party.add(center);
 		party.addAll(world.getPlayers(p -> canFight(p) && !isInCombat(p)
-				&& p.squaredDistanceTo(center) <= CombatConfig.JOIN_RANGE * CombatConfig.JOIN_RANGE));
+				&& isNear(p, center, CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL)));
 
 		Combat combat = Combat.start(world, party, enemies);
 		COMBATS.add(combat);
