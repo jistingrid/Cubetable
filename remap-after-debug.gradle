@@ -1,0 +1,15 @@
+gradle.projectsEvaluated {
+    rootProject.tasks.named("remapJar") {
+        doLast {
+            println "=== REMAP JAR AFTER ==="
+            println "archiveFile = " + archiveFile.get().asFile
+            println "archive exists = " + archiveFile.get().asFile.exists()
+            println "archive size = " + archiveFile.get().asFile.length()
+
+            println "archive entries:"
+            new java.util.zip.ZipFile(archiveFile.get().asFile).entries().each {
+                println "  " + it.name + " (" + it.size + " bytes)"
+            }
+        }
+    }
+}

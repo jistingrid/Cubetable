@@ -1,34 +1,48 @@
 # Tactical Combat (Fabric 1.21.1)
 
-Baldur's Gate 3 style turn-based combat for Minecraft. When a hostile mob locks onto a player, combat starts:
-the camera rises to show the battlefield, initiative is rolled, and everyone acts one at a time.
+Baldur's Gate 3 / Fire Emblem style turn-based combat for Minecraft. When a hostile mob locks onto a player,
+combat starts: the camera rises to show the battlefield, initiative is rolled, and everyone acts one at a time.
+Players move square by square on a grid.
 
 ## Build & run
 
-Requires JDK 21 and Gradle 8.10+ (no wrapper is included; run `gradle wrapper` once, or copy the `gradlew` files
-from the official Fabric example mod).
+Requires JDK 21 and Gradle 8.10.x (Loom 1.8 does not work reliably with Gradle 9).
 
 ```
-gradle build        # jar ends up in build/libs/tactical-combat-0.1.0.jar
-gradle runClient    # launch a dev client
+gradle wrapper --gradle-version 8.10.2   # once
+./gradlew build                          # mod jar: build/libs/tactical-combat-0.1.0.jar (NOT the -dev / -sources jars)
+./gradlew runClient                      # dev client
 ```
 
-Needs Fabric Loader and Fabric API on the client **and** the server (the mod syncs combat state with custom packets).
-If a version in `gradle.properties` is rejected, pick the current 1.21.1 values from https://fabricmc.net/develop/.
+Needs Fabric Loader and Fabric API on the client **and** the server.
 
-## What phase 1 does
+## Controls during combat
+
+| Input | Action |
+|---|---|
+| Mouse | free cursor (no mouse-look) |
+| Left click on a blue square | walk there (server validates and slides you along the path) |
+| Left click on a hostile | melee attack it (uses your action; must be within ~3 blocks, so move first) |
+| Enter (rebindable "End Turn") or `/tbc endturn` | end your turn |
+| W A S D | pan the camera away from the active unit |
+| Mouse wheel | zoom |
+| Middle mouse drag / Left-Right arrows | rotate (drag up/down also tilts) |
+| 1-9, E, T, / , Esc | hotbar, inventory, chat, command, pause menu still work |
+| `/tbc start`, `/tbc end` (op) | force a fight with nearby hostiles / end it |
+
+## What is implemented
 
 | System | Behaviour |
 |---|---|
-| Combat start | A hostile (`Monster`) mob targeting a player within 16 blocks starts a fight. Players within 24 blocks of the trigger and aggroed hostiles within 24 blocks join. Later arrivals are recruited every 0.5 s. |
-| Initiative | d20 per combatant, highest first, players win ties. Shown as a bar at the top of the screen (spawn-egg icons, initiative number, health bar; green = party, red = enemy, gold = active). |
-| Turns | One combatant acts at a time; everybody else is frozen in place (server snaps them back, the client also blocks input). |
-| Movement | 8 blocks per turn for players, 6 for mobs (horizontal distance). Blue bar in the HUD; you are stopped at the limit. |
-| Action | One attack per turn. Further attacks are cancelled. Mobs likewise get one hit, then their turn ends. Bonus action exists as a resource but nothing spends it yet. |
-| Ending a turn | **Enter** (rebindable: "End Turn") or `/tbc endturn`. Mob turns end automatically (attack done, movement spent, or 5 s cap). |
+| Combat start | A hostile (`Monster`) targeting a player within 16 blocks starts a fight. Players and aggroed hostiles within 24 blocks join, later arrivals are recruited every 0.5 s. |
+| Initiative | d20 per combatant, highest first, players win ties. Top bar with spawn-egg icons, initiative number and health bar. |
+| Turns | One combatant acts at a time; everyone else is held in place by the server. |
+| Grid | One square = one block position. 4-directional steps. Up 1 block per step, down up to 3. Blocked by solid blocks, water, lava, fire, cactus, magma, berry bushes, cobwebs, powder snow, and by enemies. Allies can be walked through but not stood on. |
+| Movement | 8 squares per turn for players. Leftover squares can be used in several clicks. Blue = reachable, white = your square, red = squares enemies can reach or hit next turn, cyan line = path preview, bright frame = hovered square. |
+| Camera | Rises when combat starts and follows whoever's turn it is (so you watch enemy turns too). Independent of where you look. Collides with blocks. |
+| Action | One melee attack per turn (click an enemy). Mobs get one hit, then their turn ends. |
+| Mobs | Still walk freely (6 blocks per turn), not yet square-by-square. |
 | Combat end | All enemies dead, all players dead, or every enemy farther than 48 blocks. |
-| Camera | Eases up to 16 blocks behind the player and tilts the view to ~50° down. It looks along your aim direction, so the crosshair still matches what you hit. Camera collides with blocks. |
-| Commands | `/tbc start` (op, forces a fight with nearby hostiles), `/tbc end` (op), `/tbc endturn`. |
 
 Tunables are in `combat/CombatConfig.java`.
 
@@ -37,25 +51,30 @@ Tunables are in `combat/CombatConfig.java`.
 ```
 src/main/java/dev/tacticalcombat/
   TacticalCombatMod.java        entry point: events, packets, commands
-  combat/Combat.java            one fight: initiative, turns, freezing, movement budget
+  grid/Grid.java                square rules, BFS reachable squares, surface height
+  combat/Combat.java            one fight: initiative, turns, freezing, grid moves, attacks
   combat/CombatManager.java     all fights, auto-start detection, rule hooks
-  combat/Combatant.java         per-participant turn resources
+  combat/Combatant.java         per-participant turn resources + current path
   combat/CombatConfig.java      constants
-  net/*Payload.java             S2C state snapshot, C2S end-turn
+  net/                          CombatState, Grid (S2C); EndTurn, MoveRequest, AttackRequest (C2S)
 src/client/java/dev/tacticalcombat/
-  client/TacticalCombatClient.java   keybind, packet receiver, HUD hook
-  client/ClientCombatState.java      mirrored state + camera blend
+  client/TacticalCombatClient.java   keybind, receivers, screen management, camera keys
+  client/TacticalScreen.java         invisible screen giving a free cursor; clicks, scroll, drag
+  client/MousePicker.java            mouse -> ray -> square / enemy
+  client/GridRenderer.java           ground highlights, path line, cursor
+  client/ClientGrid.java             received squares + hover state
+  client/ClientCombatState.java      mirrored fight state + camera state
   client/CombatHud.java              initiative bar + turn panel
   mixin/client/CameraMixin.java      tactical camera
   mixin/client/GameRendererMixin.java  hides floating hand
-  mixin/client/KeyboardInputMixin.java blocks walking out of turn
+  mixin/client/InGameHudMixin.java     hides the crosshair
+  mixin/client/KeyboardInputMixin.java blocks free walking
 ```
 
-## Known limitations / next phases
+## Known limitations / next steps
 
-- Written against Yarn 1.21.1 mappings but **not yet compiled or play-tested**. If something fails to compile, it will most likely be a mapping name in one of the three client mixins (`Camera`, `GameRenderer#renderHand`, `KeyboardInput#tick`).
-- The camera follows your aim; there is no free pan/zoom or click-to-move yet.
-- Waiting players rubber-band if the server has to snap them back (the client-side input lock avoids this in normal play).
-- Ranged attacks use the same one-hit-per-turn rule (extra arrows are fired but do no damage).
-
-Suggested next steps: click-to-move with a path preview and distance ring, click-to-target attacks with hit/damage rolls, a real bonus action / abilities bar, free camera pan, config file, per-turn timer.
+- Using items (bow, potions, food) is not possible from the combat screen yet. Only melee attacks via click.
+- The cursor ray uses the FOV setting; speed effects that change the FOV can shift the pick slightly.
+- Stairs count as full blocks, so highlights above stairs sit half a block high. Fences and walls are not walkable.
+- The walk is server-driven (one position update per tick), so it looks slightly steppy.
+- Mobs are not grid-locked yet; next: mob turns square by square, a bonus action / abilities bar, config file.

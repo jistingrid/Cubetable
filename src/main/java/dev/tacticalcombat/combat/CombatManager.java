@@ -12,6 +12,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 
 import java.util.ArrayList;
@@ -144,6 +145,18 @@ public final class CombatManager {
 		if (player instanceof ServerPlayerEntity p) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.not_your_turn"), true);
 		}
+	}
+
+	/** A player clicked a grid square to walk to. */
+	public static void requestMove(ServerPlayerEntity player, BlockPos target) {
+		Combat combat = get(player);
+		if (combat != null) combat.requestMove(player, target);
+	}
+
+	/** A player clicked an enemy to attack it. */
+	public static void requestAttack(ServerPlayerEntity player, int entityId) {
+		Combat combat = get(player);
+		if (combat != null) combat.requestAttack(player, entityId);
 	}
 
 	/** Called when a player presses the End Turn key or runs /tbc endturn. */
