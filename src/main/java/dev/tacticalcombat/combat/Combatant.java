@@ -4,14 +4,17 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.List;
+
 /** One participant of a {@link Combat}: a player or a hostile mob, plus its per-turn resources. */
 public final class Combatant {
 	public final LivingEntity entity;
 	public int initiative;
 
-	/** Where the combatant is frozen (waiting) or the last accepted position (during its turn). */
+	/** Where the combatant is held (waiting / standing still) or the last accepted position (mob turn). */
 	public Vec3d anchor;
 
+	/** Squares (players) or blocks (mobs) of movement. */
 	public double moveBudget;
 	public double moveUsed;
 	public boolean actionUsed;
@@ -21,6 +24,11 @@ public final class Combatant {
 	public int ticksSinceActionUsed;
 	public int ticksSinceMoveExhausted;
 	public boolean moveExhausted;
+
+	/** Waypoints (square centres) of the grid move the server is currently carrying out; null when standing. */
+	public List<Vec3d> path;
+	public int pathIdx;
+	public Vec3d pathPos;
 
 	public Combatant(LivingEntity entity, int initiative) {
 		this.entity = entity;
@@ -32,6 +40,10 @@ public final class Combatant {
 		return entity instanceof ServerPlayerEntity;
 	}
 
+	public boolean moving() {
+		return path != null;
+	}
+
 	public void resetTurnResources(double budget) {
 		this.moveBudget = budget;
 		this.moveUsed = 0;
@@ -41,6 +53,9 @@ public final class Combatant {
 		this.ticksSinceActionUsed = 0;
 		this.ticksSinceMoveExhausted = 0;
 		this.moveExhausted = false;
+		this.path = null;
+		this.pathIdx = 0;
+		this.pathPos = null;
 		this.anchor = entity.getPos();
 	}
 }

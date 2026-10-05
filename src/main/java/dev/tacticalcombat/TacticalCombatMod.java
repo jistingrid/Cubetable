@@ -4,7 +4,10 @@ import com.mojang.brigadier.CommandDispatcher;
 import dev.tacticalcombat.combat.Combat;
 import dev.tacticalcombat.combat.CombatManager;
 import dev.tacticalcombat.net.CombatStatePayload;
+import dev.tacticalcombat.net.AttackRequestPayload;
 import dev.tacticalcombat.net.EndTurnPayload;
+import dev.tacticalcombat.net.GridPayload;
+import dev.tacticalcombat.net.MoveRequestPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -32,9 +35,16 @@ public class TacticalCombatMod implements ModInitializer {
 	public void onInitialize() {
 		// Networking
 		PayloadTypeRegistry.playS2C().register(CombatStatePayload.ID, CombatStatePayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(GridPayload.ID, GridPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(EndTurnPayload.ID, EndTurnPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(MoveRequestPayload.ID, MoveRequestPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(AttackRequestPayload.ID, AttackRequestPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(EndTurnPayload.ID,
 				(payload, context) -> CombatManager.requestEndTurn(context.player()));
+		ServerPlayNetworking.registerGlobalReceiver(MoveRequestPayload.ID,
+				(payload, context) -> CombatManager.requestMove(context.player(), payload.target()));
+		ServerPlayNetworking.registerGlobalReceiver(AttackRequestPayload.ID,
+				(payload, context) -> CombatManager.requestAttack(context.player(), payload.entityId()));
 
 		// Combat loop
 		ServerTickEvents.END_SERVER_TICK.register(CombatManager::tick);

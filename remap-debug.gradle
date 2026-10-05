@@ -1,0 +1,27 @@
+gradle.projectsEvaluated {
+    def task = rootProject.tasks.named("remapJar").get()
+
+    task.doFirst {
+        println "=== REMAP JAR BEFORE ==="
+        println "Task class = " + task.class.name
+
+        if (task.hasProperty("input")) {
+            println "input = " + task.input
+        }
+
+        if (task.hasProperty("source")) {
+            println "source = " + task.source
+        }
+
+        println "Inputs:"
+        task.inputs.files.files.each {
+            println "  " + it + " (" + (it.exists() ? it.length() : "MISSING") + " bytes)"
+        }
+    }
+
+    task.doLast {
+        println "=== REMAP JAR AFTER ==="
+        println "Output = " + task.archiveFile.get().asFile
+        println "Output size = " + task.archiveFile.get().asFile.length()
+    }
+}
