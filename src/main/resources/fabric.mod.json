@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "tacticalcombat",
+  "version": "${version}",
+  "name": "Tactical Combat",
+  "description": "Baldur's Gate 3 style turn-based combat for Minecraft. When a fight starts the camera rises to show the battlefield and everyone acts in initiative order.",
+  "authors": ["drawminkye"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.tacticalcombat.TacticalCombatMod"],
+    "client": ["dev.tacticalcombat.client.TacticalCombatClient"]
+  },
+  "mixins": [
+    {
+      "config": "tacticalcombat.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

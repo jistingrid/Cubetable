@@ -1,0 +1,20 @@
+{
+  "key.tacticalcombat.end_turn": "End Turn",
+  "key.categories.tacticalcombat": "Tactical Combat",
+  "tacticalcombat.msg.combat_start": "Combat begins!",
+  "tacticalcombat.msg.combat_end": "Combat ended.",
+  "tacticalcombat.msg.your_turn": "Your turn!",
+  "tacticalcombat.msg.not_your_turn": "It is not your turn.",
+  "tacticalcombat.msg.no_action": "No action left this turn.",
+  "tacticalcombat.hud.round": "Round %s",
+  "tacticalcombat.hud.your_turn": "Your turn",
+  "tacticalcombat.hud.waiting": "%s's turn",
+  "tacticalcombat.hud.movement": "Movement",
+  "tacticalcombat.hud.action": "Action",
+  "tacticalcombat.hud.bonus": "Bonus",
+  "tacticalcombat.hud.end_turn": "End Turn [%s]",
+  "tacticalcombat.cmd.no_enemies": "No hostile creatures nearby to fight.",
+  "tacticalcombat.cmd.started": "Combat started.",
+  "tacticalcombat.cmd.ended": "Combat ended.",
+  "tacticalcombat.cmd.not_in_combat": "You are not in combat."
+}
