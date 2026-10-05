@@ -34,7 +34,8 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 
 | System | Behaviour |
 |---|---|
-| Combat start | A hostile (`Monster`) targeting a player within 16 blocks starts a fight. Players and aggroed hostiles within 24 blocks join, later arrivals are recruited every 0.5 s. |
+| Combat start | A hostile (`Monster`) targeting a player within 16 blocks (and within 6 blocks above/below) starts a fight. Players and aggroed hostiles within 16 blocks horizontally and 6 vertically join, later arrivals are recruited every 0.5 s. Enemies in caves far below (or high above) never join. |
+| Leaving | An enemy that ends up more than 24 blocks away horizontally, or more than 10 blocks above/below every player, is removed from the fight (larger than the join limits so it does not flip in and out). |
 | Initiative | d20 per combatant, highest first, players win ties. Top bar with spawn-egg icons, initiative number and health bar. |
 | Turns | One combatant acts at a time; everyone else is held in place by the server. |
 | Grid | One square = one block position. 4-directional steps. Up 1 block per step, down up to 3. Blocked by solid blocks, water, lava, fire, cactus, magma, berry bushes, cobwebs, powder snow, and by enemies. Allies can be walked through but not stood on. |
@@ -42,7 +43,7 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 | Camera | Rises when combat starts and follows whoever's turn it is (so you watch enemy turns too). Independent of where you look. Collides with blocks. |
 | Action | One melee attack per turn (click an enemy). Mobs get one hit, then their turn ends. |
 | Mobs | Still walk freely (6 blocks per turn), not yet square-by-square. |
-| Combat end | All enemies dead, all players dead, or every enemy farther than 48 blocks. |
+| Combat end | All enemies dead or out of range, or all players dead. |
 
 Tunables are in `combat/CombatConfig.java`.
 
