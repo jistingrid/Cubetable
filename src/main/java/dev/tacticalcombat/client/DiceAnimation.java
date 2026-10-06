@@ -5,7 +5,11 @@ import dev.tacticalcombat.dice.DiceType;
 import dev.tacticalcombat.net.DiceRollPayload;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import dev.tacticalcombat.mixin.client.ChatHudAccessor;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.hud.ChatHud;
+import net.minecraft.client.gui.hud.ChatHudLine;
+import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.BufferRenderer;
 import net.minecraft.client.render.GameRenderer;
@@ -19,6 +23,7 @@ import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix4f;
 
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -110,13 +115,16 @@ public final class DiceAnimation {
 		int rows = (slots + perRow - 1) / perRow;
 		int size = 34;
 		int spacing = size * 2 + 6;
-		int w = ctx.getScaledWindowWidth();
 		int h = ctx.getScaledWindowHeight();
-		float baseY = h * 0.38f - (rows - 1) * spacing / 2f;
 
-		Text title = Text.literal(roll.roller() + " rolls " + (roll.results().length > 1 ? roll.results().length : "")
-				+ roll.type().label).formatted(Formatting.WHITE);
-		ctx.drawCenteredTextWithShadow(tr, title, w / 2, (int) (baseY - size - 26), 0xFFFFFF);
+		// The dice live in a panel in the bottom-left corner, directly above the chat. The chat grows upwards
+		// when it is opened (or fills with lines), so the panel's bottom edge follows the top of the chat.
+		int gridW = perRow * spacing;
+		int gridH = rows * spacing;
+		int resultW = 70;
+		int left = 4;
+		int bottom = Math.round(chatTop(mc, h)) - 2;
+		int top = bottom - gridH;
 
 		int total = roll.modifier();
 		for (int slot = 0; slot < slots; slot++) {
@@ -124,9 +132,8 @@ public final class DiceAnimation {
 			boolean tens = percent && slot % 2 == 0;
 			int result = roll.results()[die];
 			int row = slot / perRow;
-			int inRow = Math.min(perRow, slots - row * perRow);
-			float cx = w / 2f + (slot % perRow - (inRow - 1) / 2f) * spacing;
-			float cy = baseY + row * spacing;
+			float cx = left + spacing / 2f + (slot % perRow) * spacing;
+			float cy = top + row * spacing + spacing / 2f;
 
 			// each die gets its own phase so they do not tumble in lockstep
 			float phase = slot * 1.7f;
@@ -153,12 +160,31 @@ public final class DiceAnimation {
 			String text = roll.results().length > 1 || roll.modifier() != 0
 					? "= " + total : String.valueOf(roll.results()[0]);
 			ctx.getMatrices().push();
-			float scale = 2.0f;
-			ctx.getMatrices().translate(w / 2f, baseY + rows * spacing / 2f + 10, 0);
+			float scale = 1.6f;
+			ctx.getMatrices().translate(left + gridW + resultW / 2f, top + gridH / 2f - 8, 0);
 			ctx.getMatrices().scale(scale, scale, 1);
 			ctx.drawCenteredTextWithShadow(tr, Text.literal(text).formatted(Formatting.GOLD, Formatting.BOLD), 0, 0, 0xFFFFFF);
 			ctx.getMatrices().pop();
 		}
+	}
+
+	/** Y of the top edge of the chat as it is drawn right now (open chat = full height, closed = only fresh lines). */
+	private static float chatTop(MinecraftClient mc, int screenHeight) {
+		ChatHud chat = mc.inGameHud.getChatHud();
+		boolean open = mc.currentScreen instanceof ChatScreen;
+		List<ChatHudLine.Visible> lines = ((ChatHudAccessor) chat).tacticalcombat$getVisibleMessages();
+		double scale = mc.options.getChatScale().getValue();
+		int lineH = Math.max(1, (int) (9.0 * (mc.options.getChatLineSpacing().getValue() + 1.0)));
+		double heightOption = open ? mc.options.getChatHeightFocused().getValue() : mc.options.getChatHeightUnfocused().getValue();
+		int maxLines = ChatHud.getHeight(heightOption) / lineH;
+		int now = mc.inGameHud.getTicks();
+		int count = 0;
+		for (ChatHudLine.Visible line : lines) {
+			if (count >= maxLines) break;
+			if (!open && now - line.addedTime() >= 200) break; // closed chat hides lines after 10 seconds
+			count++;
+		}
+		return (screenHeight - 40) - count * lineH * (float) scale - 4;
 	}
 
 	private static String faceLabel(DiceType type, int value, boolean tens) {
