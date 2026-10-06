@@ -23,6 +23,10 @@ import java.util.List;
 /**
  * Draws the tactical overlay on the ground: blue = squares you can walk to, red = squares enemies can reach
  * or hit, a white start square, a bright cursor square and a line previewing the path to the hovered square.
+ *
+ * <p>Drawn in two passes: normally (depth tested), and then once more for squares that are only hidden by
+ * faded (semi-transparent) blocks, without depth test, because faded blocks still write depth and would
+ * otherwise hide the squares behind them.
  */
 public final class GridRenderer {
 	private static final float LIFT = 0.03f;
@@ -48,21 +52,36 @@ public final class GridRenderer {
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
 		RenderSystem.disableCull();
-		RenderSystem.enableDepthTest();
 		RenderSystem.depthMask(false);
 		RenderSystem.setShader(GameRenderer::getPositionColorProgram);
 
+		RenderSystem.enableDepthTest();
+		pass(m, world, cells, false);
+
+		RenderSystem.disableDepthTest();
+		pass(m, world, cells, true);
+
+		RenderSystem.enableDepthTest();
+		RenderSystem.depthMask(true);
+		RenderSystem.enableCull();
+		RenderSystem.disableBlend();
+		ms.pop();
+	}
+
+	/** One draw call of everything whose "see-through" state equals {@code seeThrough}. */
+	private static void pass(Matrix4f m, ClientWorld world, List<GridPayload.Cell> cells, boolean seeThrough) {
 		BufferBuilder b = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
 		quads = 0;
 
 		// enemy threat (red); squares you can walk to are drawn blue on top
 		for (long key : ClientGrid.threat) {
-			if (ClientGrid.indexOf(key) != null) continue;
+			if (ClientGrid.indexOf(key) != null || BlockFade.isSeeThrough(key) != seeThrough) continue;
 			tile(b, m, world, key, 0.04f, 1.00f, 0.35f, 0.10f, shade(key, 0.36f));
 		}
 
 		// walkable squares (blue, slightly checkered like the reference)
 		for (GridPayload.Cell c : cells) {
+			if (BlockFade.isSeeThrough(c.pos()) != seeThrough) continue;
 			if (c.cost() == 0) {
 				tile(b, m, world, c.pos(), 0.04f, 1.0f, 1.0f, 1.0f, 0.32f); // start square
 			} else if (c.endable()) {
@@ -73,17 +92,21 @@ public final class GridRenderer {
 		int hover = ClientGrid.hover;
 		if (hover >= 0 && hover < cells.size()) {
 			List<Integer> path = ClientGrid.pathTo(hover);
-			// path line
 			for (int i = 1; i < path.size(); i++) {
-				drawPathSegment(b, m, world, cells.get(path.get(i - 1)).pos(), cells.get(path.get(i)).pos());
+				long from = cells.get(path.get(i - 1)).pos();
+				long to = cells.get(path.get(i)).pos();
+				boolean through = BlockFade.isSeeThrough(from) || BlockFade.isSeeThrough(to);
+				if (through == seeThrough) drawPathSegment(b, m, world, from, to);
 			}
-			// cursor square
+
 			long key = cells.get(hover).pos();
-			tile(b, m, world, key, 0.04f, 0.65f, 0.90f, 1.00f, 0.55f);
-			border(b, m, world, key, 0.04f, 0.09f, 0.85f, 0.95f, 1.00f, 1.00f);
+			if (BlockFade.isSeeThrough(key) == seeThrough) {
+				tile(b, m, world, key, 0.04f, 0.65f, 0.90f, 1.00f, 0.55f);
+				border(b, m, world, key, 0.04f, 0.09f, 0.85f, 0.95f, 1.00f, 1.00f);
+			}
 		}
 
-		if (ClientGrid.hoverEntity >= 0) {
+		if (!seeThrough && ClientGrid.hoverEntity >= 0) {
 			Entity target = world.getEntityById(ClientGrid.hoverEntity);
 			if (target != null) {
 				long key = Grid.cellOf(target).asLong();
@@ -96,11 +119,6 @@ public final class GridRenderer {
 			degenerate(b, m); // the buffer must contain at least one vertex to be ended
 		}
 		BufferRenderer.drawWithGlobalProgram(b.end());
-
-		RenderSystem.depthMask(true);
-		RenderSystem.enableCull();
-		RenderSystem.disableBlend();
-		ms.pop();
 	}
 
 	// ---------------------------------------------------------------- shapes

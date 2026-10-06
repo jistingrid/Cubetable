@@ -30,8 +30,7 @@ public final class MousePicker {
 		Vec3d dir = rayDirection(mc, camera, mouseX, mouseY);
 		Vec3d end = origin.add(dir.multiply(RANGE));
 
-		BlockHitResult hit = mc.world.raycast(new RaycastContext(origin, end,
-				RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, mc.player));
+		BlockHitResult hit = raycastSkippingFaded(mc, origin, end);
 		boolean blockHit = hit.getType() == HitResult.Type.BLOCK;
 		double blockDist = blockHit ? hit.getPos().distanceTo(origin) : Double.MAX_VALUE;
 
@@ -68,6 +67,32 @@ public final class MousePicker {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * Block raycast that looks straight through faded blocks, so a click lands on the square behind a
+	 * see-through wall instead of on the wall itself.
+	 */
+	private static BlockHitResult raycastSkippingFaded(MinecraftClient mc, Vec3d origin, Vec3d end) {
+		Vec3d dir = end.subtract(origin).normalize();
+		Vec3d start = origin;
+		for (int i = 0; i < 64; i++) {
+			BlockHitResult hit = mc.world.raycast(new RaycastContext(start, end,
+					RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, mc.player));
+			if (hit.getType() != HitResult.Type.BLOCK || !BlockFade.isFaded(hit.getBlockPos().asLong())) {
+				return hit;
+			}
+
+			// walk out of the faded block along the ray, then continue from there
+			BlockPos fadedPos = hit.getBlockPos();
+			Vec3d s = hit.getPos();
+			for (int k = 0; k < 64 && BlockPos.ofFloored(s).equals(fadedPos); k++) {
+				s = s.add(dir.multiply(0.05));
+			}
+			start = s;
+			if (start.squaredDistanceTo(end) < 0.01) break;
+		}
+		return BlockHitResult.createMissed(end, Direction.UP, BlockPos.ofFloored(end));
 	}
 
 	/** Direction of the ray through the given GUI pixel, for the current camera. */

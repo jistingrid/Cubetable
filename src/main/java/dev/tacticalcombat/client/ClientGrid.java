@@ -41,6 +41,7 @@ public final class ClientGrid {
 		threat = t;
 		SURFACE.clear();
 		hover = -1;
+		BlockFade.markDirty(); // squares hidden behind faded blocks must be re-evaluated for the new grid
 	}
 
 	public static void clear() {
