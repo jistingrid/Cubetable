@@ -501,7 +501,21 @@ public final class Combat {
 				bestCost = n.cost;
 			}
 		}
-		if (best == 0) return; // already in the best spot
+		if (best == 0) {
+			// already in the best spot: just settle onto the middle of the square
+			Vec3d centre = Grid.centerOf(world, Grid.cellOf(mob));
+			double dx = centre.x - mob.getX();
+			double dz = centre.z - mob.getZ();
+			if (dx * dx + dz * dz > 0.0025) {
+				LinkedList<Vec3d> settle = new LinkedList<>();
+				settle.add(centre);
+				c.path = settle;
+				c.pathIdx = 0;
+				c.pathPos = mob.getPos();
+				sync();
+			}
+			return;
+		}
 
 		c.path = buildPath(r, best);
 		c.pathIdx = 0;

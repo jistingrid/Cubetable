@@ -24,7 +24,7 @@ public final class CombatConfig {
 
 	/** Grid squares a player may walk per turn (leftover movement can be spent in several moves). */
 	public static final double PLAYER_MOVEMENT = 8.0;
-	/** Horizontal blocks a hostile mob may walk per turn (mobs still walk freely, not square by square). */
+	/** Horizontal blocks a hostile mob may walk per turn. */
 	public static final double MOB_MOVEMENT = 6.0;
 
 	/** Blocks per tick the server slides a player along a chosen path (0.4 = 8 squares per second). */
