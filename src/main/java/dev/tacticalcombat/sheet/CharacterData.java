@@ -31,6 +31,21 @@ public final class CharacterData {
 		return c;
 	}
 
+	public JsonObject toJson() {
+		JsonObject o = new JsonObject();
+		o.addProperty("format", format);
+		JsonObject t = new JsonObject();
+		new java.util.TreeMap<>(texts).forEach(t::addProperty);
+		o.add("text", t);
+		JsonObject v = new JsonObject();
+		new java.util.TreeMap<>(values).forEach((k, d) -> {
+			if (d == Math.rint(d) && Math.abs(d) < 1.0E12) v.addProperty(k, (long) (double) d);
+			else v.addProperty(k, d);
+		});
+		o.add("values", v);
+		return o;
+	}
+
 	public String displayName() {
 		return texts.getOrDefault("name", file);
 	}

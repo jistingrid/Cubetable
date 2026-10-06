@@ -474,5 +474,231 @@
     "sk_persuasion": 0,
     "sk_stealth": 0,
     "sk_survival": 0
-  }
+  },
+  "fields": [
+    {
+      "id": "name",
+      "label": "Name",
+      "type": "text",
+      "group": "Identity",
+      "default": "Unnamed"
+    },
+    {
+      "id": "subtitle",
+      "label": "Race / class",
+      "type": "text",
+      "group": "Identity",
+      "default": ""
+    },
+    {
+      "id": "str",
+      "label": "Strength",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "dex",
+      "label": "Dexterity",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "con",
+      "label": "Constitution",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "int",
+      "label": "Intelligence",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "wis",
+      "label": "Wisdom",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "cha",
+      "label": "Charisma",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "level",
+      "label": "Level",
+      "group": "Level and defense",
+      "default": 1
+    },
+    {
+      "id": "prof",
+      "label": "Proficiency bonus",
+      "group": "Level and defense",
+      "default": 2
+    },
+    {
+      "id": "hp",
+      "label": "HP now",
+      "group": "Level and defense",
+      "default": 10
+    },
+    {
+      "id": "hp_max",
+      "label": "HP max",
+      "group": "Level and defense",
+      "default": 10
+    },
+    {
+      "id": "ac",
+      "label": "Armor class",
+      "group": "Level and defense",
+      "default": 10
+    },
+    {
+      "id": "sp_str",
+      "label": "Strength save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_dex",
+      "label": "Dexterity save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_con",
+      "label": "Constitution save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_int",
+      "label": "Intelligence save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_wis",
+      "label": "Wisdom save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_cha",
+      "label": "Charisma save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_acrobatics",
+      "label": "Acrobatics",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_athletics",
+      "label": "Athletics",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_arcana",
+      "label": "Arcana",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_history",
+      "label": "History",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_insight",
+      "label": "Insight",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_intimidation",
+      "label": "Intimidation",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_investigation",
+      "label": "Investigation",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_perception",
+      "label": "Perception",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_persuasion",
+      "label": "Persuasion",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_stealth",
+      "label": "Stealth",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_survival",
+      "label": "Survival",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "qty_longsword",
+      "label": "Longsword",
+      "group": "Gear (amounts)",
+      "default": 0
+    },
+    {
+      "id": "qty_handaxe",
+      "label": "Handaxe",
+      "group": "Gear (amounts)",
+      "default": 0
+    },
+    {
+      "id": "qty_chain_mail",
+      "label": "Chain mail",
+      "group": "Gear (amounts)",
+      "default": 0
+    },
+    {
+      "id": "qty_crossbow",
+      "label": "Light crossbow",
+      "group": "Gear (amounts)",
+      "default": 0
+    },
+    {
+      "id": "qty_bolts",
+      "label": "Bolts",
+      "group": "Gear (amounts)",
+      "default": 0
+    },
+    {
+      "id": "qty_potion",
+      "label": "Healing potion",
+      "group": "Gear (amounts)",
+      "default": 0
+    },
+    {
+      "id": "qty_torch",
+      "label": "Torch",
+      "group": "Gear (amounts)",
+      "default": 0
+    }
+  ]
 }

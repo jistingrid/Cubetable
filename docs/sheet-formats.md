@@ -5,7 +5,7 @@ A sheet format is a `.json` file that describes one game's character sheet. The 
 Folders (created on first run, under the game's `config/` folder):
 
 - `config/tacticalcombat/sheets/` – your format files. A file with the same `id` as a built-in format replaces it.
-- `config/tacticalcombat/characters/` – one `.json` per character. Press **Reload** in the window after adding files.
+- `config/tacticalcombat/characters/` – one `.json` per character. Press **Reload** in the window after adding files. **New** in the window's top bar asks for a format and fills in a character from the format's `fields`; **Edit** changes the open one. Both save to the characters folder.
 
 ## Character file
 
@@ -24,6 +24,7 @@ Folders (created on first run, under the game's `config/` folder):
 | key | meaning |
 | --- | --- |
 | `id`, `name`, `description` | identity (`id` is what characters refer to) |
+| `fields` | the inputs of the New / Edit form: `id`, `label`, `type` (`number`, or `text` for name-like values), `group` (heading) and `default`. If left out, the form is built from the names your formulas use |
 | `defaults` | values a character may leave out, e.g. `"sp_dex": 0` for "not proficient" |
 | `derived` | calculated values, `name: formula`, in any order; they may use each other |
 | `header` | `title` / `subtitle` templates (`$name`, `$subtitle` come from the character's `text`), `bars` (`label`, `value`, `max`, `color`) and `badges` (`label`, `value`, `signed`) |

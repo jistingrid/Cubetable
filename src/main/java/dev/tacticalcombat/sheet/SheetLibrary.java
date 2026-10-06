@@ -85,6 +85,34 @@ public final class SheetLibrary {
 				FORMATS.size(), CHARACTERS.size(), PROBLEMS.size());
 	}
 
+	/** Writes a character to its file (a new character gets a file name from its name) and keeps the list current. */
+	public static void save(CharacterData c) throws IOException {
+		Files.createDirectories(charactersDir());
+		if (c.file.isEmpty()) {
+			String slug = c.displayName().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("^_+|_+$", "");
+			if (slug.isEmpty()) slug = "character";
+			String name = slug + ".json";
+			for (int n = 2; Files.exists(charactersDir().resolve(name)); n++) {
+				name = slug + "_" + n + ".json";
+			}
+			c.file = name;
+		}
+		String json = new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(c.toJson());
+		Files.writeString(charactersDir().resolve(c.file), json, StandardCharsets.UTF_8);
+		for (int i = 0; i < CHARACTERS.size(); i++) {
+			if (CHARACTERS.get(i).file.equals(c.file)) {
+				CHARACTERS.set(i, c);
+				return;
+			}
+		}
+		CHARACTERS.add(c);
+	}
+
+	public static void delete(CharacterData c) throws IOException {
+		Files.deleteIfExists(charactersDir().resolve(c.file));
+		CHARACTERS.removeIf(o -> o.file.equals(c.file));
+	}
+
 	/** First run: drop a couple of example characters into the (empty) characters folder. */
 	private static void seedExamples() throws IOException {
 		if (!jsonFiles(charactersDir()).isEmpty()) return;

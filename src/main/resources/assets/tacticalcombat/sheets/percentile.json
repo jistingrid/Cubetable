@@ -112,5 +112,75 @@
         }
       ]
     }
+  ],
+  "fields": [
+    {
+      "id": "name",
+      "label": "Name",
+      "type": "text",
+      "group": "Identity",
+      "default": "Unnamed"
+    },
+    {
+      "id": "subtitle",
+      "label": "Occupation",
+      "type": "text",
+      "group": "Identity",
+      "default": ""
+    },
+    {
+      "id": "hp",
+      "label": "HP now",
+      "group": "Vitals",
+      "default": 10
+    },
+    {
+      "id": "hp_max",
+      "label": "HP max",
+      "group": "Vitals",
+      "default": 10
+    },
+    {
+      "id": "sanity",
+      "label": "Sanity now",
+      "group": "Vitals",
+      "default": 50
+    },
+    {
+      "id": "sanity_max",
+      "label": "Sanity max",
+      "group": "Vitals",
+      "default": 99
+    },
+    {
+      "id": "luck",
+      "label": "Luck",
+      "group": "Vitals",
+      "default": 50
+    },
+    {
+      "id": "fighting",
+      "label": "Fighting",
+      "group": "Skills (percent)",
+      "default": 25
+    },
+    {
+      "id": "firearms",
+      "label": "Firearms",
+      "group": "Skills (percent)",
+      "default": 20
+    },
+    {
+      "id": "spot_hidden",
+      "label": "Spot Hidden",
+      "group": "Skills (percent)",
+      "default": 25
+    },
+    {
+      "id": "library_use",
+      "label": "Library Use",
+      "group": "Skills (percent)",
+      "default": 20
+    }
   ]
 }

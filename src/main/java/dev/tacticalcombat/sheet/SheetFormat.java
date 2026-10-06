@@ -29,6 +29,16 @@ public final class SheetFormat {
 	/** Where it came from, for messages ("built in" or a file name). */
 	public String source = "";
 
+	/** One input of the character editor. type is "text" (kept in the character's text) or "number". */
+	public record Field(String id, String label, String type, String group, String def) {
+		public boolean isText() {
+			return type.equals("text");
+		}
+	}
+
+	/** Declared inputs; when a format declares none, they are worked out from the names its formulas use. */
+	public final List<Field> fields = new ArrayList<>();
+
 	public record Bar(String label, String value, String max, int color) {}
 
 	public record Badge(String label, String value, boolean signed) {}
@@ -87,6 +97,13 @@ public final class SheetFormat {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("derived").entrySet()) {
 				f.derived.put(e.getKey().toLowerCase(), e.getValue().getAsString());
 			}
+		}
+		for (JsonElement e : arr(o, "fields")) {
+			JsonObject fo = e.getAsJsonObject();
+			String fid = str(fo, "id", null);
+			if (fid == null) continue;
+			f.fields.add(new Field(fid.toLowerCase(), str(fo, "label", fid), str(fo, "type", "number"),
+					str(fo, "group", "Values"), str(fo, "default", "0")));
 		}
 		if (o.has("defaults")) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("defaults").entrySet()) {
@@ -173,5 +190,42 @@ public final class SheetFormat {
 		} catch (NumberFormatException e) {
 			return 0xFF3CB84A;
 		}
+	}
+
+	private static final java.util.regex.Pattern NAME = java.util.regex.Pattern.compile("[a-z_][a-z0-9_]*");
+	private static final java.util.Set<String> FUNCTIONS = java.util.Set.of("floor", "ceil", "round", "abs", "min", "max");
+
+	/** The inputs the editor shows: the declared ones, else name / subtitle plus every name the formulas need. */
+	public List<Field> editableFields() {
+		if (!fields.isEmpty()) return fields;
+		List<Field> out = new ArrayList<>();
+		out.add(new Field("name", "Name", "text", "Identity", "Unnamed"));
+		out.add(new Field("subtitle", "Subtitle", "text", "Identity", ""));
+		java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>(defaults.keySet());
+		List<String> formulas = new ArrayList<>(derived.values());
+		for (Bar b : bars) { formulas.add(b.value()); formulas.add(b.max()); }
+		for (Badge b : badges) formulas.add(b.value());
+		for (Page p : pages) for (Column c : p.columns) for (Section s : c.sections) for (Item i : s.items) {
+			if (i.value != null) formulas.add(i.value);
+			if (i.mark != null) formulas.add(i.mark);
+			if (i.roll != null) formulas.add(i.roll);
+			for (Button b : i.buttons) {
+				if (b.value != null) formulas.add(b.value);
+				if (b.roll != null) formulas.add(b.roll);
+			}
+		}
+		for (String formula : formulas) {
+			java.util.regex.Matcher m = NAME.matcher(formula.toLowerCase());
+			while (m.find()) {
+				String n = m.group();
+				if (FUNCTIONS.contains(n) || n.matches("d\\d*") || derived.containsKey(n)) continue;
+				// the letter of "2d6" is matched as "d6"; names glued to digits are not inputs either
+				names.add(n);
+			}
+		}
+		for (String n : names) {
+			out.add(new Field(n, n.replace('_', ' '), "number", "Values", String.valueOf(defaults.getOrDefault(n, 0.0)).replace(".0", "")));
+		}
+		return out;
 	}
 }

@@ -13,6 +13,7 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.PlayerSkinDrawer;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
@@ -20,8 +21,11 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The character sheet window: a draggable in-game window that draws whichever sheet format the selected character
@@ -53,7 +57,15 @@ public final class CharacterSheetScreen extends Screen {
 	private static int charIndex;
 	private static int pageIndex;
 	private static int rollMode; // 0 normal, 1 advantage, 2 disadvantage
-	private static boolean formatsView;
+	private enum View { SHEET, FORMATS, EDITOR }
+
+	private static View view = View.SHEET;
+	// character editor state (kept static so a window resize does not lose what was typed)
+	private static SheetFormat editFormat;
+	private static CharacterData editChar;
+	private static final Map<String, String> formValues = new LinkedHashMap<>();
+	private static String flash = "";
+	private static long flashUntil;
 	private static boolean loaded;
 	private static boolean pendingOpen;
 
@@ -70,6 +82,17 @@ public final class CharacterSheetScreen extends Screen {
 	private int mouseY;
 	private boolean dragging;
 	private int formatSelected;
+
+	private record FormItem(SheetFormat.Field field, TextFieldWidget widget, int relX, int relY, int labelW) {}
+
+	private record FormHead(String text, int relY) {}
+
+	private final List<FormItem> formItems = new ArrayList<>();
+	private final List<FormHead> formHeads = new ArrayList<>();
+	private int formHeight;
+	private float formScroll;
+	private float formMaxScroll;
+	private boolean deleteArmed;
 
 	public CharacterSheetScreen() {
 		super(Text.literal("Character Sheet"));
@@ -147,8 +170,10 @@ public final class CharacterSheetScreen extends Screen {
 
 		String tooltip = null;
 		drawTitleBar(g, x, y, w);
-		if (formatsView) {
+		if (view == View.FORMATS) {
 			drawFormats(g, x, y + TITLE_H, w, h - TITLE_H);
+		} else if (view == View.EDITOR) {
+			drawEditor(g, x, y + TITLE_H, w, h - TITLE_H, delta);
 		} else {
 			SheetContext sc = sheet();
 			if (sc == null) {
@@ -179,21 +204,29 @@ public final class CharacterSheetScreen extends Screen {
 
 		int right = x + w - 3;
 		right -= smallButton(g, right - 12, y + 3, "x", this::close, "Close", 0xFF7A1C27, 0xFFB8323F) + 3;
-		right -= smallButton(g, right - tw("Reload") - 6, y + 3, "Reload", () -> SheetLibrary.reload(), "Read the sheets and characters folders again", PANEL, 0xFF3B414C) + 3;
-		right -= smallButton(g, right - tw("Formats") - 6, y + 3, formatsView ? "Back" : "Formats", () -> formatsView = !formatsView,
-				"Installed sheet formats", PANEL, 0xFF3B414C) + 3;
+		if (view != View.EDITOR) {
+			right -= smallButton(g, right - tw("Reload") - 6, y + 3, "Reload", () -> SheetLibrary.reload(), "Read the sheets and characters folders again", PANEL, 0xFF3B414C) + 3;
+			right -= smallButton(g, right - tw("Formats") - 6, y + 3, view == View.FORMATS ? "Back" : "Formats",
+					() -> view = view == View.FORMATS ? View.SHEET : View.FORMATS, "Installed sheet formats", PANEL, 0xFF3B414C) + 3;
+			if (view == View.SHEET && sheet() != null) {
+				right -= smallButton(g, right - tw("Edit") - 6, y + 3, "Edit", this::startEdit, "Change this character's details", PANEL, 0xFF3B414C) + 3;
+			}
+			right -= smallButton(g, right - tw("New") - 6, y + 3, "New", this::startNew, "Create a new character", PANEL, 0xFF3B414C) + 3;
+		}
 
-		// character switcher in the middle
+		// character switcher on the left
 		CharacterData c = character();
-		String name = c == null ? "No characters" : c.displayName();
+		String name = c == null ? "No characters" : textRenderer.trimToWidth(c.displayName(), 90);
 		int cx = x + 6;
-		if (!formatsView && SheetLibrary.CHARACTERS.size() > 1) {
+		if (view == View.SHEET && SheetLibrary.CHARACTERS.size() > 1) {
 			cx += smallButton(g, cx, y + 3, "<", () -> { charIndex--; resetScroll(); }, "Previous character", PANEL, 0xFF3B414C) + 3;
 			g.drawText(textRenderer, name, cx, y + 4, 0xFFC9CCD2, false);
 			cx += tw(name) + 4;
 			smallButton(g, cx, y + 3, ">", () -> { charIndex++; resetScroll(); }, "Next character", PANEL, 0xFF3B414C);
 		} else {
-			g.drawText(textRenderer, formatsView ? "Sheet formats" : name, cx, y + 4, 0xFFC9CCD2, false);
+			String title = view == View.FORMATS ? "Sheet formats"
+					: view == View.EDITOR ? (editChar == null ? "New character" : "Edit " + editChar.displayName()) : name;
+			g.drawText(textRenderer, textRenderer.trimToWidth(title, Math.max(40, right - cx - 4)), cx, y + 4, 0xFFC9CCD2, false);
 		}
 	}
 
@@ -217,7 +250,9 @@ public final class CharacterSheetScreen extends Screen {
 			g.drawText(textRenderer, line, x + 12, ly, MUTED, false);
 			ly += 10;
 		}
-		smallButton(g, x + 12, ly + 6, "Formats", () -> formatsView = true, "Installed sheet formats", PANEL, 0xFF3B414C);
+		int ex = x + 12;
+		ex += smallButton(g, ex, ly + 6, "New character", this::startNew, "Create a new character", PANEL, 0xFF3B414C) + 4;
+		smallButton(g, ex, ly + 6, "Formats", () -> view = View.FORMATS, "Installed sheet formats", PANEL, 0xFF3B414C);
 	}
 
 	private void drawBanner(DrawContext g, SheetContext sc, int x, int y, int w) {
@@ -441,8 +476,10 @@ public final class CharacterSheetScreen extends Screen {
 	private void drawFooter(DrawContext g, int x, int y, int w) {
 		g.fill(x, y, x + w, y + FOOT_H, 0xFF0F1114);
 		g.fill(x, y, x + w, y + 1, EDGE);
-		g.drawText(textRenderer, "Click a value or button to roll. Drag the title bar to move.", x + 6, y + 2, DIM, false);
-		if (!SheetLibrary.PROBLEMS.isEmpty()) {
+		boolean flashing = System.currentTimeMillis() < flashUntil;
+		g.drawText(textRenderer, flashing ? flash : "Click a value or button to roll. Drag the title bar to move.", x + 6, y + 2,
+				flashing ? 0xFF7CE08A : DIM, false);
+		if (!flashing && !SheetLibrary.PROBLEMS.isEmpty()) {
 			String p = SheetLibrary.PROBLEMS.size() + " problem(s): see Formats";
 			g.drawText(textRenderer, p, x + w - 6 - tw(p), y + 2, 0xFFFF6B6B, false);
 		}
@@ -513,6 +550,247 @@ public final class CharacterSheetScreen extends Screen {
 		}
 	}
 
+	// ------------------------------------------------------------------ editor
+
+	private void startNew() {
+		view = View.EDITOR;
+		editFormat = null; // step 1: choose the format
+		editChar = null;
+		deleteArmed = false;
+		formValues.clear();
+		rebuildForm();
+	}
+
+	private void startEdit() {
+		SheetContext sc = sheet();
+		if (sc == null) return;
+		view = View.EDITOR;
+		editFormat = sc.format;
+		editChar = sc.character;
+		deleteArmed = false;
+		formValues.clear();
+		for (SheetFormat.Field f : editFormat.editableFields()) {
+			if (f.isText()) {
+				formValues.put(f.id(), editChar.texts.getOrDefault(f.id(), f.def()));
+			} else {
+				Double v = editChar.values.get(f.id());
+				formValues.put(f.id(), v == null ? f.def() : numberText(v));
+			}
+		}
+		rebuildForm();
+	}
+
+	private void chooseFormat(SheetFormat format) {
+		editFormat = format;
+		formValues.clear();
+		for (SheetFormat.Field f : format.editableFields()) {
+			formValues.put(f.id(), f.def());
+		}
+		rebuildForm();
+	}
+
+	private void cancelEdit() {
+		view = View.SHEET;
+		editFormat = null;
+		editChar = null;
+		rebuildForm();
+	}
+
+	private void saveEdit() {
+		if (editFormat == null) return;
+		CharacterData c = new CharacterData();
+		c.format = editFormat.id;
+		c.file = editChar == null ? "" : editChar.file;
+		for (SheetFormat.Field f : editFormat.editableFields()) {
+			String raw = formValues.getOrDefault(f.id(), f.def()).trim();
+			if (f.isText()) {
+				c.texts.put(f.id(), raw);
+			} else {
+				c.values.put(f.id(), parseNumber(raw, f.def()));
+			}
+		}
+		if (c.texts.getOrDefault("name", "").isBlank()) c.texts.put("name", "Unnamed");
+		try {
+			SheetLibrary.save(c);
+		} catch (IOException e) {
+			say("Could not save: " + e.getMessage());
+			return;
+		}
+		charIndex = SheetLibrary.CHARACTERS.indexOf(c);
+		say("Saved " + c.file);
+		cancelEdit();
+	}
+
+	private void deleteEdit() {
+		if (editChar == null) return;
+		if (!deleteArmed) {
+			deleteArmed = true;
+			return;
+		}
+		try {
+			SheetLibrary.delete(editChar);
+			say("Deleted " + editChar.file);
+		} catch (IOException e) {
+			say("Could not delete: " + e.getMessage());
+		}
+		charIndex = 0;
+		cancelEdit();
+	}
+
+	private static void say(String message) {
+		flash = message;
+		flashUntil = System.currentTimeMillis() + 4000;
+	}
+
+	private static double parseNumber(String raw, String fallback) {
+		try {
+			return Double.parseDouble(raw);
+		} catch (NumberFormatException e) {
+			try {
+				return Double.parseDouble(fallback);
+			} catch (NumberFormatException e2) {
+				return 0;
+			}
+		}
+	}
+
+	private static String numberText(double v) {
+		return v == Math.rint(v) ? Long.toString((long) v) : Double.toString(v);
+	}
+
+	@Override
+	protected void init() {
+		rebuildForm();
+	}
+
+	/** (Re)creates the text boxes for the editor, filled from {@link #formValues}. */
+	private void rebuildForm() {
+		clearChildren();
+		formItems.clear();
+		formHeads.clear();
+		formScroll = 0;
+		if (view != View.EDITOR || editFormat == null || textRenderer == null) return;
+
+		int w = Math.min(WIN_W, width - 8);
+		int colW = (w - 20) / 2;
+		int boxW = 52;
+		int rowY = 0;
+		String group = null;
+		int col = 0;
+		for (SheetFormat.Field f : editFormat.editableFields()) {
+			if (!f.group().equals(group)) {
+				if (col == 1) rowY += 15;
+				col = 0;
+				group = f.group();
+				rowY += rowY == 0 ? 0 : 4;
+				formHeads.add(new FormHead(group, rowY));
+				rowY += 12;
+			}
+			boolean text = f.isText();
+			if (text && col == 1) {
+				rowY += 15;
+				col = 0;
+			}
+			int relX = text || col == 0 ? 0 : colW + 8;
+			int bw = text ? 200 : boxW;
+			int labelW = text ? 90 : colW - boxW - 4;
+			TextFieldWidget box = new TextFieldWidget(textRenderer, 0, 0, bw, 12, Text.literal(f.label()));
+			box.setMaxLength(text ? 40 : 9);
+			if (!text) box.setTextPredicate(t -> t.matches("-?\\d*\\.?\\d*"));
+			box.setText(formValues.getOrDefault(f.id(), f.def()));
+			final String id = f.id();
+			box.setChangedListener(t -> formValues.put(id, t));
+			addDrawableChild(box);
+			formItems.add(new FormItem(f, box, relX, rowY, labelW));
+			if (text) {
+				rowY += 15;
+			} else if (col == 0) {
+				col = 1;
+			} else {
+				col = 0;
+				rowY += 15;
+			}
+		}
+		if (col == 1) rowY += 15;
+		formHeight = rowY + 4;
+	}
+
+	private void drawEditor(DrawContext g, int x, int y, int w, int h, float delta) {
+		if (editFormat == null) {
+			drawFormatChooser(g, x, y, w, h);
+			return;
+		}
+		// top strip: format name and the buttons
+		g.fill(x, y, x + w, y + 18, 0xFF12151A);
+		g.fill(x, y + 17, x + w, y + 18, EDGE);
+		g.drawText(textRenderer, "Format: " + editFormat.name, x + 8, y + 5, GOLD, false);
+		int rx = x + w - 6;
+		rx -= smallButton(g, rx - tw("Save") - 8, y + 3, "Save", this::saveEdit, "Write the character to its file", 0xFF1E4A25, 0xFF3CB84A) + 4;
+		rx -= smallButton(g, rx - tw("Cancel") - 6, y + 3, "Cancel", this::cancelEdit, "Throw away changes (Esc)", PANEL, 0xFF3B414C) + 4;
+		if (editChar != null) {
+			smallButton(g, rx - tw("Really delete?") - 6, y + 3, deleteArmed ? "Really delete?" : "Delete", this::deleteEdit,
+					"Remove this character's file", deleteArmed ? 0xFF7A1C27 : PANEL, 0xFFB8323F);
+		}
+
+		int bodyY = y + 20;
+		int bodyH = h - 20 - 2;
+		formMaxScroll = Math.max(0, formHeight + 4 - bodyH);
+		formScroll = MathHelper.clamp(formScroll, 0, formMaxScroll);
+
+		g.enableScissor(x, bodyY, x + w, bodyY + bodyH);
+		int baseX = x + 8;
+		int baseY = bodyY + 4 - Math.round(formScroll);
+		for (FormHead head : formHeads) {
+			int hy = baseY + head.relY();
+			if (hy + 10 > bodyY && hy < bodyY + bodyH) {
+				g.drawText(textRenderer, head.text(), baseX, hy + 1, GOLD, false);
+			}
+		}
+		for (FormItem item : formItems) {
+			int fy = baseY + item.relY();
+			boolean visible = fy >= bodyY && fy + 12 <= bodyY + bodyH;
+			item.widget().visible = visible;
+			if (!visible) continue;
+			int fx = baseX + item.relX();
+			g.drawText(textRenderer, textRenderer.trimToWidth(item.field().label(), item.labelW()), fx, fy + 2, 0xFFC9CCD2, false);
+			item.widget().setX(fx + item.labelW() + 4);
+			item.widget().setY(fy);
+			item.widget().render(g, mouseX, mouseY, delta);
+		}
+		g.disableScissor();
+		if (formMaxScroll > 0) {
+			int barH = Math.max(8, Math.round(bodyH * bodyH / (float) (formHeight + 4)));
+			int barY = bodyY + Math.round((bodyH - barH) * (formScroll / formMaxScroll));
+			g.fill(x + w - 3, barY, x + w - 1, barY + barH, 0xFF5A616C);
+		}
+	}
+
+	private void drawFormatChooser(DrawContext g, int x, int y, int w, int h) {
+		g.drawText(textRenderer, "Which game is this character for?", x + 8, y + 7, GOLD, false);
+		List<SheetFormat> formats = new ArrayList<>(SheetLibrary.FORMATS.values());
+		int ly = y + 20;
+		for (SheetFormat f : formats) {
+			boolean over = hit(x + 6, ly, w - 12, 34, () -> chooseFormat(f), null);
+			g.fill(x + 6, ly, x + w - 6, ly + 34, EDGE);
+			g.fill(x + 7, ly + 1, x + w - 7, ly + 33, over ? PANEL_HOVER : PANEL);
+			g.drawText(textRenderer, f.name, x + 12, ly + 4, 0xFFE8E6E1, false);
+			var ms = g.getMatrices();
+			ms.push();
+			ms.translate(x + 12, ly + 16, 0);
+			ms.scale(0.75f, 0.75f, 1.0f);
+			int dy = 0;
+			for (OrderedText line : textRenderer.wrapLines(StringVisitable.plain(f.description), (int) ((w - 30) / 0.75f))) {
+				if (dy > 18) break;
+				g.drawText(textRenderer, line, 0, dy, MUTED, false);
+				dy += 9;
+			}
+			ms.pop();
+			ly += 38;
+			if (ly > y + h - 30) break;
+		}
+		smallButton(g, x + 8, y + h - 18, "Cancel", this::cancelEdit, null, PANEL, 0xFF3B414C);
+	}
+
 	// ------------------------------------------------------------------ rolling
 
 	private void rollDice(SheetContext sc, String label, String formula) {
@@ -579,7 +857,11 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
-		SheetContext sc = formatsView ? null : sheet();
+		if (view == View.EDITOR && editFormat != null) {
+			formScroll = MathHelper.clamp(formScroll - (float) vertical * 14, 0, formMaxScroll);
+			return true;
+		}
+		SheetContext sc = view != View.SHEET ? null : sheet();
 		if (sc != null) {
 			SheetFormat.Page page = sc.format.pages.get(MathHelper.clamp(pageIndex, 0, sc.format.pages.size() - 1));
 			float totalWeight = 0;
@@ -601,7 +883,12 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if (TacticalCombatClient.SHEET_KEY.matchesKey(keyCode, scanCode)) {
+		boolean typing = view == View.EDITOR && getFocused() instanceof TextFieldWidget field && field.isFocused();
+		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && view == View.EDITOR) {
+			cancelEdit();
+			return true;
+		}
+		if (!typing && TacticalCombatClient.SHEET_KEY.matchesKey(keyCode, scanCode)) {
 			close();
 			return true;
 		}
