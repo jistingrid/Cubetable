@@ -3,7 +3,10 @@ package dev.tacticalcombat;
 import com.mojang.brigadier.CommandDispatcher;
 import dev.tacticalcombat.combat.Combat;
 import dev.tacticalcombat.combat.CombatManager;
+import dev.tacticalcombat.dice.DiceSpec;
 import dev.tacticalcombat.net.CombatStatePayload;
+import dev.tacticalcombat.net.DiceRollPayload;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.tacticalcombat.net.AttackRequestPayload;
 import dev.tacticalcombat.net.EndTurnPayload;
 import dev.tacticalcombat.net.GridPayload;
@@ -36,6 +39,7 @@ public class TacticalCombatMod implements ModInitializer {
 		// Networking
 		PayloadTypeRegistry.playS2C().register(CombatStatePayload.ID, CombatStatePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(GridPayload.ID, GridPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(DiceRollPayload.ID, DiceRollPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(EndTurnPayload.ID, EndTurnPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(MoveRequestPayload.ID, MoveRequestPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(AttackRequestPayload.ID, AttackRequestPayload.CODEC);
@@ -98,6 +102,26 @@ public class TacticalCombatMod implements ModInitializer {
 							ctx.getSource().sendFeedback(() -> Text.translatable("tacticalcombat.cmd.ended"), false);
 							return 1;
 						}))
+				.then(CommandManager.literal("roll")
+						.then(CommandManager.argument("dice", StringArgumentType.word())
+								.executes(ctx -> {
+									ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+									String text = StringArgumentType.getString(ctx, "dice");
+									DiceSpec spec = DiceSpec.parse(text);
+									if (spec == null) {
+										ctx.getSource().sendError(Text.literal("Unknown dice '" + text
+												+ "'. Try d4, d6, d8, d10, d%, d12, d20, 2d6 or d20+5 (max "
+												+ DiceSpec.MAX_COUNT + " dice)."));
+										return 0;
+									}
+									// the server decides the numbers; every player sees the same animation
+									DiceRollPayload payload = new DiceRollPayload(player.getGameProfile().getName(),
+											spec.type(), spec.modifier(), spec.roll(new java.util.Random()));
+									for (ServerPlayerEntity p : ctx.getSource().getServer().getPlayerManager().getPlayerList()) {
+										ServerPlayNetworking.send(p, payload);
+									}
+									return 1;
+								})))
 				.then(CommandManager.literal("endturn")
 						.executes(ctx -> {
 							ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
