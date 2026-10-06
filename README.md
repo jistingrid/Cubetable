@@ -28,6 +28,7 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 | Mouse wheel | zoom |
 | Middle mouse drag / Left-Right arrows | rotate (drag up/down also tilts) |
 | 1-9, E, T, / , Esc | hotbar, inventory, chat, command, pause menu still work |
+| `/tbc roll <dice>` | roll dice, e.g. `d20`, `d%`, `2d6`, `d20+5` (d4 d6 d8 d10 d% d12 d20, up to 10 at once); a 2D tumbling animation plays on every player's screen, then the result is printed in chat |
 | `/tbc start`, `/tbc end` (op) | force a fight with nearby hostiles / end it |
 
 ## What is implemented

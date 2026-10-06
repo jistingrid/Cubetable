@@ -1,6 +1,7 @@
 package dev.tacticalcombat.client;
 
 import dev.tacticalcombat.net.CombatStatePayload;
+import dev.tacticalcombat.net.DiceRollPayload;
 import dev.tacticalcombat.net.EndTurnPayload;
 import dev.tacticalcombat.net.GridPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -35,13 +36,18 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(GridPayload.ID,
 				(payload, context) -> ClientGrid.apply(payload));
 
+		ClientPlayNetworking.registerGlobalReceiver(DiceRollPayload.ID,
+				(payload, context) -> DiceAnimation.enqueue(payload));
+
 		FadeModels.register();
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			ClientCombatState.reset();
 			BlockFade.clear();
+			DiceAnimation.clear();
 		});
 
 		HudRenderCallback.EVENT.register(CombatHud::render);
+		HudRenderCallback.EVENT.register(DiceAnimation::render);
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
