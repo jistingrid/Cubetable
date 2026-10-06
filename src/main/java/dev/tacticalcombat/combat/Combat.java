@@ -6,7 +6,7 @@ import dev.tacticalcombat.net.GridPayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.RangedAttackMob;
+import net.minecraft.entity.ai.RangedAttackMob;
 import net.minecraft.entity.ai.pathing.MobNavigation;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.CreeperEntity;
