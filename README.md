@@ -42,7 +42,7 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 | Movement | 8 squares per turn for players. Leftover squares can be used in several clicks. Blue = reachable, white = your square, red = squares enemies can reach or hit next turn, cyan line = path preview, bright frame = hovered square. |
 | Camera | Rises when combat starts and follows whoever's turn it is (so you watch enemy turns too). Independent of where you look. It never collides with terrain: blocks between the camera and the active unit fade to ~30% opacity instead (a cone that is narrow at the unit and wide at the camera; the ground under the unit never fades). Clicks and the square highlights look straight through faded blocks. |
 | Action | One melee attack per turn (click an enemy). Mobs get one hit, then their turn ends. |
-| Mobs | Still walk freely (6 blocks per turn), not yet square-by-square. |
+| Mobs | Move on the same grid as players: on its turn a ground mob picks the reachable square (up to 6 squares) that gets it closest to the nearest player, walks there square by square, then acts. Melee mobs (zombies, spiders...) wait a moment, then hit once if in reach; archers aim for about 6 blocks of distance and shoot with their normal AI; creepers use their normal AI. The red area shown on your turn is exactly where they can reach and hit. Flying and swimming mobs (phantoms, ghasts, guardians...) can not use the ground grid and still walk freely under a 6-block budget. |
 | Combat end | All enemies dead or out of range, or all players dead. |
 
 Tunables are in `combat/CombatConfig.java`.
@@ -79,4 +79,4 @@ src/client/java/dev/tacticalcombat/
 - The cursor ray uses the FOV setting; speed effects that change the FOV can shift the pick slightly.
 - Stairs count as full blocks, so highlights above stairs sit half a block high. Fences and walls are not walkable.
 - The walk is server-driven (one position update per tick), so it looks slightly steppy.
-- Mobs are not grid-locked yet; next: mob turns square by square, a bonus action / abilities bar, config file.
+- Mobs ignore walls for wide hitboxes while sliding along a path (they are moved by the server, not by pathfinding), and do not avoid being hit when choosing a square. Next: a bonus action / abilities bar, config file.
