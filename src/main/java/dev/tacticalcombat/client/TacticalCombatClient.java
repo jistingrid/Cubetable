@@ -47,6 +47,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientCombatState.tick(client);
 			BlockFade.tick(client);
+			WalkAnimation.tick(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {
 				pollCameraKeys(client);
