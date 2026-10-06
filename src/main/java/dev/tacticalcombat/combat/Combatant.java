@@ -25,6 +25,13 @@ public final class Combatant {
 	public int ticksSinceMoveExhausted;
 	public boolean moveExhausted;
 
+	/** Mob only: the turn has been planned (destination chosen). */
+	public boolean planned;
+	/** Mob only: can not use the grid (flying, swimming...), so it walks freely under a block budget. */
+	public boolean freeWalk;
+	/** Mob only: ticks spent in the action phase (after the move). */
+	public int ticksInAction;
+
 	/** Waypoints (square centres) of the grid move the server is currently carrying out; null when standing. */
 	public List<Vec3d> path;
 	public int pathIdx;
@@ -53,6 +60,9 @@ public final class Combatant {
 		this.ticksSinceActionUsed = 0;
 		this.ticksSinceMoveExhausted = 0;
 		this.moveExhausted = false;
+		this.planned = false;
+		this.freeWalk = false;
+		this.ticksInAction = 0;
 		this.path = null;
 		this.pathIdx = 0;
 		this.pathPos = null;

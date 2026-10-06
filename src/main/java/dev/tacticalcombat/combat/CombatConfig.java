@@ -34,7 +34,18 @@ public final class CombatConfig {
 	/** At most this many enemies contribute to the threat area (keeps the search cheap). */
 	public static final int THREAT_MAX_ENEMIES = 12;
 
-	/** Hard cap on a mob's turn length. */
+	/** Blocks per tick a mob slides along its path (0.3 = 6 squares per second). */
+	public static final double MOB_MOVE_SPEED = 0.3;
+	/** Ticks a melee mob waits after arriving before it strikes (so the player can see it coming). */
+	public static final int MOB_WINDUP_TICKS = 6;
+	/** A melee mob that has nobody in reach ends its turn after this many ticks. */
+	public static final int MOB_IDLE_TICKS = 15;
+	/** Ranged / special mobs (skeletons, creepers...) get this long to act with their normal AI. */
+	public static final int MOB_AI_ACTION_TICKS = 60;
+	/** Ranged mobs try to end their move about this many blocks from their target. */
+	public static final double MOB_RANGED_DISTANCE = 6.0;
+
+	/** Hard cap on a free-walking mob's turn length (flying / swimming mobs that can not use the grid). */
 	public static final int MOB_TURN_MAX_TICKS = 100;
 	/** Ticks a mob keeps its turn after it used its action. */
 	public static final int MOB_AFTER_ACTION_TICKS = 15;

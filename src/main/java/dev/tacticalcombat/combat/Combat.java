@@ -6,6 +6,10 @@ import dev.tacticalcombat.net.GridPayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.RangedAttackMob;
+import net.minecraft.entity.ai.pathing.MobNavigation;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.mob.FlyingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
@@ -32,9 +36,9 @@ import java.util.Set;
 
 /**
  * A single turn based fight. Owns the initiative order, whose turn it is, and enforces the rules:
- * only the active combatant may move and attack; everyone else is frozen. Players move square by square
- * (the server computes the reachable squares and slides the player along the chosen path); mobs still walk
- * freely but are limited to a movement budget.
+ * only the active combatant may move and attack; everyone else is frozen. Players and ground mobs move square
+ * by square (the server computes the reachable squares and slides the combatant along the chosen path); mobs
+ * that can not use the grid (flying, swimming) still walk freely but are limited to a movement budget.
  */
 public final class Combat {
 	/** Teleports that must not touch the client's camera / look direction. */
@@ -158,15 +162,7 @@ public final class Combat {
 		if (!node.endable || node.cost <= 0) return;
 		if (c.moveUsed + node.cost > c.moveBudget + 1.0E-6) return;
 
-		LinkedList<Vec3d> waypoints = new LinkedList<>();
-		int i = idx;
-		while (i > 0) {
-			Grid.Node n = moveGrid.nodes.get(i);
-			waypoints.addFirst(Grid.centerOf(world, BlockPos.fromLong(n.pos)));
-			i = n.parent;
-		}
-
-		c.path = waypoints;
+		c.path = buildPath(moveGrid, idx);
 		c.pathIdx = 0;
 		c.pathPos = player.getPos();
 		c.moveUsed += node.cost;
@@ -175,6 +171,18 @@ public final class Combat {
 		threat = Set.of();
 		sendGrid(); // clears the highlights while walking
 		sync();
+	}
+
+	/** Square centres from just after the start square up to and including node {@code idx}. */
+	private LinkedList<Vec3d> buildPath(Grid.Result grid, int idx) {
+		LinkedList<Vec3d> waypoints = new LinkedList<>();
+		int i = idx;
+		while (i > 0) {
+			Grid.Node n = grid.nodes.get(i);
+			waypoints.addFirst(Grid.centerOf(world, BlockPos.fromLong(n.pos)));
+			i = n.parent;
+		}
+		return waypoints;
 	}
 
 	/** The active player clicked an enemy: spend the action on a melee hit. */
@@ -224,15 +232,21 @@ public final class Combat {
 		Combatant cur = current();
 		cur.ticksInTurn++;
 		for (Combatant c : order) {
-			// everyone is held in place; the only exceptions are a mob on its own turn and a player mid-walk
-			if (c != cur || (c.isPlayer() && !c.moving())) freeze(c);
-		}
-		if (cur.isPlayer()) {
-			if (cur.moving()) {
-				tickMove(cur);
-			} else {
-				tickPlayerTurn(cur);
+			if (c != cur) {
+				freeze(c, false); // waiting: held in place, mobs are not allowed to chase anyone
+			} else if (!c.moving()) {
+				if (c.isPlayer()) {
+					freeze(c, false); // standing still between clicks
+				} else if (!c.freeWalk) {
+					freeze(c, true); // grid mob while planning / acting: pinned, but may keep its target
+				}
+				// free-walking mobs and anyone mid-walk are not held
 			}
+		}
+		if (cur.moving()) {
+			tickMove(cur);
+		} else if (cur.isPlayer()) {
+			tickPlayerTurn(cur);
 		} else {
 			tickMobTurn(cur);
 		}
@@ -351,8 +365,11 @@ public final class Combat {
 		p.networkHandler.requestTeleport(x, y, z, p.getYaw(), p.getPitch(), KEEP_LOOK);
 	}
 
-	/** Keeps a waiting combatant exactly where it is. */
-	private void freeze(Combatant c) {
+	/**
+	 * Keeps a combatant exactly where it is.
+	 * @param keepTarget for the mob that is acting right now: do not clear its attack target
+	 */
+	private void freeze(Combatant c, boolean keepTarget) {
 		Vec3d a = c.anchor;
 		LivingEntity e = c.entity;
 		if (e instanceof ServerPlayerEntity p) {
@@ -362,7 +379,7 @@ public final class Combat {
 				teleportKeepLook(p, a.x, p.getY(), a.z);
 			}
 		} else if (e instanceof MobEntity m) {
-			m.setTarget(null);
+			if (!keepTarget) m.setTarget(null);
 			m.getNavigation().stop();
 			boolean flying = m instanceof FlyingEntity || m.hasNoGravity();
 			double dx = m.getX() - a.x;
@@ -381,11 +398,11 @@ public final class Combat {
 		}
 	}
 
-	/** Slides the active player along the chosen path, one step per tick. */
+	/** Slides the active combatant (player or mob) along its chosen path, one step per tick. */
 	private void tickMove(Combatant c) {
-		ServerPlayerEntity p = (ServerPlayerEntity) c.entity;
-		Vec3d pos = c.pathPos;
-		double remaining = CombatConfig.MOVE_SPEED;
+		Vec3d before = c.pathPos;
+		Vec3d pos = before;
+		double remaining = c.isPlayer() ? CombatConfig.MOVE_SPEED : CombatConfig.MOB_MOVE_SPEED;
 
 		while (remaining > 1.0E-6 && c.pathIdx < c.path.size()) {
 			Vec3d target = c.path.get(c.pathIdx);
@@ -402,8 +419,22 @@ public final class Combat {
 		}
 
 		c.pathPos = pos;
-		teleportKeepLook(p, pos.x, pos.y, pos.z);
-		p.fallDistance = 0;
+		if (c.entity instanceof ServerPlayerEntity p) {
+			teleportKeepLook(p, pos.x, pos.y, pos.z);
+			p.fallDistance = 0;
+		} else if (c.entity instanceof MobEntity m) {
+			double dx = pos.x - before.x;
+			double dz = pos.z - before.z;
+			float yaw = dx * dx + dz * dz > 1.0E-6
+					? (float) (MathHelper.atan2(dz, dx) * 57.29577951308232) - 90.0f
+					: m.getYaw();
+			m.refreshPositionAndAngles(pos.x, pos.y, pos.z, yaw, m.getPitch());
+			m.setHeadYaw(yaw);
+			m.setBodyYaw(yaw);
+			m.setVelocity(Vec3d.ZERO);
+			m.getNavigation().stop();
+			m.fallDistance = 0;
+		}
 
 		if (c.pathIdx >= c.path.size()) {
 			c.path = null;
@@ -414,7 +445,112 @@ public final class Combat {
 		}
 	}
 
+	// ---------------------------------------------------------------- mob turns
+
+	/**
+	 * A mob's turn: first it plans and walks (square by square, like a player) to the best square it can reach,
+	 * then it acts from where it stopped. Mobs that can not use the grid (flying, swimming) walk freely instead.
+	 */
 	private void tickMobTurn(Combatant c) {
+		if (!c.planned) {
+			c.planned = true;
+			planMobMove(c);
+			return; // the walk (if any) starts next tick
+		}
+		if (c.freeWalk) {
+			tickMobTurnFree(c);
+		} else {
+			actMob(c);
+		}
+	}
+
+	/** Picks the reachable square that gets the mob closest to (or, for archers, at a good distance from) its target. */
+	private void planMobMove(Combatant c) {
+		MobEntity mob = (MobEntity) c.entity;
+		ServerPlayerEntity target = nearestPlayer(mob);
+		boolean onGround = mob.getNavigation() instanceof MobNavigation && !mob.hasNoGravity() && mob.isOnGround();
+		if (target == null || !onGround) {
+			c.freeWalk = true;
+			return;
+		}
+
+		Set<Long> playerCells = new HashSet<>();
+		Set<Long> occupied = new HashSet<>();
+		for (Combatant o : order) {
+			if (o == c) continue;
+			long key = Grid.cellOf(o.entity).asLong();
+			occupied.add(key);
+			if (o.isPlayer()) playerCells.add(key);
+		}
+
+		Grid.Result r = Grid.reachable(world, Grid.cellOf(mob), (int) CombatConfig.MOB_MOVEMENT, playerCells);
+		boolean ranged = mob instanceof RangedAttackMob;
+		Vec3d goal = target.getPos();
+
+		int best = 0;
+		double bestScore = Double.MAX_VALUE;
+		int bestCost = Integer.MAX_VALUE;
+		for (int i = 0; i < r.nodes.size(); i++) {
+			Grid.Node n = r.nodes.get(i);
+			if (i != 0 && occupied.contains(n.pos)) continue; // can not stop on somebody else
+			double d = Grid.centerOf(world, BlockPos.fromLong(n.pos)).distanceTo(goal);
+			double score = ranged ? Math.abs(d - CombatConfig.MOB_RANGED_DISTANCE) : d;
+			if (score < bestScore - 1.0E-6 || (Math.abs(score - bestScore) <= 1.0E-6 && n.cost < bestCost)) {
+				best = i;
+				bestScore = score;
+				bestCost = n.cost;
+			}
+		}
+		if (best == 0) return; // already in the best spot
+
+		c.path = buildPath(r, best);
+		c.pathIdx = 0;
+		c.pathPos = mob.getPos();
+		c.moveUsed = r.nodes.get(best).cost;
+		sync();
+	}
+
+	/** The mob stands still on its square and attacks. */
+	private void actMob(Combatant c) {
+		MobEntity mob = (MobEntity) c.entity;
+		c.ticksInAction++;
+
+		ServerPlayerEntity target = nearestPlayer(mob);
+		if (target != null) mob.setTarget(target);
+
+		boolean direct = isDirectMelee(mob);
+		if (direct && target != null) {
+			mob.getLookControl().lookAt(target, 30.0f, 30.0f);
+			if (!c.actionUsed && c.ticksInAction >= CombatConfig.MOB_WINDUP_TICKS && inMeleeReach(mob, target)) {
+				mob.swingHand(Hand.MAIN_HAND);
+				mob.tryAttack(target);
+				c.actionUsed = true;
+			}
+		}
+		// everything else (archers, creepers, ...) uses its normal AI while pinned to its square; the
+		// ALLOW_DAMAGE hook marks the action as used when it deals damage
+
+		if (c.actionUsed) {
+			if (++c.ticksSinceActionUsed >= CombatConfig.MOB_AFTER_ACTION_TICKS) endTurn();
+		} else if (c.ticksInAction >= (direct ? CombatConfig.MOB_IDLE_TICKS : CombatConfig.MOB_AI_ACTION_TICKS)) {
+			endTurn();
+		}
+	}
+
+	/** Plain melee attackers can be told to hit directly; archers, creepers etc. need their own AI. */
+	private static boolean isDirectMelee(MobEntity mob) {
+		return !(mob instanceof RangedAttackMob)
+				&& !(mob instanceof CreeperEntity)
+				&& mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE) != null;
+	}
+
+	private static boolean inMeleeReach(MobEntity mob, LivingEntity target) {
+		double w = mob.getWidth() * 2.0;
+		return mob.squaredDistanceTo(target) <= w * w + target.getWidth() + 1.0;
+	}
+
+	/** Old behaviour for mobs that can not use the grid: walk freely, limited to a movement budget in blocks. */
+	private void tickMobTurnFree(Combatant c) {
 		MobEntity mob = (MobEntity) c.entity;
 
 		LivingEntity target = mob.getTarget();
