@@ -3,12 +3,9 @@ package dev.tacticalcombat.mixin.client;
 import dev.tacticalcombat.client.ClientCombatState;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
-import net.minecraft.world.RaycastContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -56,14 +53,8 @@ public abstract class CameraMixin {
 		double wanted = ClientCombatState.lerpedZoom(tickDelta) * blend;
 		Vec3d target = focus.add(back.multiply(wanted));
 
-		// Do not let the camera end up inside solid blocks.
-		BlockHitResult hit = area.raycast(new RaycastContext(focus, target,
-				RaycastContext.ShapeType.VISUAL, RaycastContext.FluidHandling.NONE, focusedEntity));
-		if (hit.getType() != HitResult.Type.MISS) {
-			double clipped = Math.max(0.5, hit.getPos().distanceTo(focus) - 0.4);
-			target = focus.add(back.multiply(Math.min(wanted, clipped)));
-		}
-
+		// No collision with terrain on purpose: blocks between the camera and the active unit are faded out
+		// (see BlockFade), so the camera keeps its exact position instead of being pushed in front of them.
 		this.setPos(target.x, target.y, target.z);
 	}
 }

@@ -40,7 +40,7 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 | Turns | One combatant acts at a time; everyone else is held in place by the server. |
 | Grid | One square = one block position. 4-directional steps. Up 1 block per step, down up to 3. Blocked by solid blocks, water, lava, fire, cactus, magma, berry bushes, cobwebs, powder snow, and by enemies. Allies can be walked through but not stood on. |
 | Movement | 8 squares per turn for players. Leftover squares can be used in several clicks. Blue = reachable, white = your square, red = squares enemies can reach or hit next turn, cyan line = path preview, bright frame = hovered square. |
-| Camera | Rises when combat starts and follows whoever's turn it is (so you watch enemy turns too). Independent of where you look. Collides with blocks. |
+| Camera | Rises when combat starts and follows whoever's turn it is (so you watch enemy turns too). Independent of where you look. It never collides with terrain: blocks between the camera and the active unit fade to ~30% opacity instead (a cone that is narrow at the unit and wide at the camera; the ground under the unit never fades). Clicks and the square highlights look straight through faded blocks. |
 | Action | One melee attack per turn (click an enemy). Mobs get one hit, then their turn ends. |
 | Mobs | Still walk freely (6 blocks per turn), not yet square-by-square. |
 | Combat end | All enemies dead or out of range, or all players dead. |
@@ -74,6 +74,7 @@ src/client/java/dev/tacticalcombat/
 
 ## Known limitations / next steps
 
+- Block fading rebuilds the affected chunk sections (a few times a second while the camera moves) and needs a Fabric Rendering API renderer (built-in Indigo, or Sodium with FRAPI support). Shaderpacks that replace the translucent pass may draw faded blocks differently.
 - Using items (bow, potions, food) is not possible from the combat screen yet. Only melee attacks via click.
 - The cursor ray uses the FOV setting; speed effects that change the FOV can shift the pick slightly.
 - Stairs count as full blocks, so highlights above stairs sit half a block high. Fences and walls are not walkable.

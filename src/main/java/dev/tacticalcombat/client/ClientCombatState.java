@@ -145,6 +145,12 @@ public final class ClientCombatState {
 		return entries.get(activeIndex).entityId() == mc.player.getId();
 	}
 
+	/** The entity whose turn it is (null if unknown / not loaded). */
+	public static Entity activeEntity(MinecraftClient mc) {
+		if (!active || mc.world == null || activeIndex < 0 || activeIndex >= entries.size()) return null;
+		return mc.world.getEntityById(entries.get(activeIndex).entityId());
+	}
+
 	/** In combat: the local player is never allowed to walk freely, all movement goes through the grid. */
 	public static boolean isFrozen() {
 		MinecraftClient mc = MinecraftClient.getInstance();

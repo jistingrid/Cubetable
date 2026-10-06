@@ -35,13 +35,18 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(GridPayload.ID,
 				(payload, context) -> ClientGrid.apply(payload));
 
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientCombatState.reset());
+		FadeModels.register();
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			ClientCombatState.reset();
+			BlockFade.clear();
+		});
 
 		HudRenderCallback.EVENT.register(CombatHud::render);
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientCombatState.tick(client);
+			BlockFade.tick(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {
 				pollCameraKeys(client);
