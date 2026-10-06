@@ -112,6 +112,10 @@ public final class TacticalScreen extends Screen {
 			mc.setScreen(new GameMenuScreen(true));
 			return true;
 		}
+		if (TacticalCombatClient.SHEET_KEY.matchesKey(keyCode, scanCode)) {
+			CharacterSheetScreen.requestOpen();
+			return true;
+		}
 		if (TacticalCombatClient.END_TURN_KEY.matchesKey(keyCode, scanCode)) {
 			TacticalCombatClient.sendEndTurn();
 			return true;

@@ -1,0 +1,116 @@
+{
+  "id": "percentile",
+  "name": "Percentile Skills",
+  "description": "Roll d% and try to get under the skill. Shows how a different game plugs into the same window.",
+  "derived": {
+    "half_fighting": "floor(fighting / 2)",
+    "fifth_fighting": "floor(fighting / 5)"
+  },
+  "header": {
+    "title": "$name",
+    "subtitle": "$subtitle",
+    "bars": [
+      {
+        "label": "HP",
+        "value": "hp",
+        "max": "hp_max",
+        "color": "#3cb84a"
+      },
+      {
+        "label": "SAN",
+        "value": "sanity",
+        "max": "sanity_max",
+        "color": "#4da3ff"
+      }
+    ],
+    "badges": [
+      {
+        "label": "LUCK",
+        "value": "luck"
+      }
+    ]
+  },
+  "pages": [
+    {
+      "title": "Skills",
+      "columns": [
+        {
+          "weight": 1.0,
+          "sections": [
+            {
+              "title": "SKILLS (roll under)",
+              "items": [
+                {
+                  "label": "Fighting",
+                  "sub": "hard / extreme",
+                  "value": "fighting",
+                  "roll": "d%",
+                  "rollLabel": "Fighting",
+                  "buttons": []
+                },
+                {
+                  "label": "Firearms",
+                  "value": "firearms",
+                  "roll": "d%",
+                  "rollLabel": "Firearms"
+                },
+                {
+                  "label": "Spot Hidden",
+                  "value": "spot_hidden",
+                  "roll": "d%",
+                  "rollLabel": "Spot Hidden"
+                },
+                {
+                  "label": "Library Use",
+                  "value": "library_use",
+                  "roll": "d%",
+                  "rollLabel": "Library Use"
+                },
+                {
+                  "label": "Sanity check",
+                  "value": "sanity",
+                  "roll": "d%",
+                  "rollLabel": "Sanity"
+                },
+                {
+                  "label": "Luck",
+                  "value": "luck",
+                  "roll": "d%",
+                  "rollLabel": "Luck"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "weight": 1.0,
+          "sections": [
+            {
+              "title": "DAMAGE",
+              "items": [
+                {
+                  "label": "Unarmed",
+                  "sub": "1d4",
+                  "roll": "1d4",
+                  "rollLabel": "Unarmed damage"
+                },
+                {
+                  "label": "Knife",
+                  "sub": "1d4+2",
+                  "roll": "1d4 + 2",
+                  "rollLabel": "Knife damage"
+                },
+                {
+                  "label": "Revolver",
+                  "sub": "1d10",
+                  "roll": "1d10",
+                  "rollLabel": "Revolver damage"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

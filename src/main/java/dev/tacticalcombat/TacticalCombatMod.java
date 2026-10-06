@@ -3,7 +3,9 @@ package dev.tacticalcombat;
 import com.mojang.brigadier.CommandDispatcher;
 import dev.tacticalcombat.combat.Combat;
 import dev.tacticalcombat.combat.CombatManager;
+import dev.tacticalcombat.dice.DiceService;
 import dev.tacticalcombat.dice.DiceSpec;
+import dev.tacticalcombat.net.DiceRequestPayload;
 import dev.tacticalcombat.net.CombatStatePayload;
 import dev.tacticalcombat.net.DiceRollPayload;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -40,6 +42,10 @@ public class TacticalCombatMod implements ModInitializer {
 		PayloadTypeRegistry.playS2C().register(CombatStatePayload.ID, CombatStatePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(GridPayload.ID, GridPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(DiceRollPayload.ID, DiceRollPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(DiceRequestPayload.ID, DiceRequestPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
+				context.server().execute(() -> DiceService.roll(context.player(), payload.label(), payload.type(),
+						payload.count(), payload.modifier(), payload.mode())));
 		PayloadTypeRegistry.playC2S().register(EndTurnPayload.ID, EndTurnPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(MoveRequestPayload.ID, MoveRequestPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(AttackRequestPayload.ID, AttackRequestPayload.CODEC);
@@ -114,12 +120,7 @@ public class TacticalCombatMod implements ModInitializer {
 												+ DiceSpec.MAX_COUNT + " dice)."));
 										return 0;
 									}
-									// the server decides the numbers; every player sees the same animation
-									DiceRollPayload payload = new DiceRollPayload(player.getGameProfile().getName(),
-											spec.type(), spec.modifier(), spec.roll(new java.util.Random()));
-									for (ServerPlayerEntity p : ctx.getSource().getServer().getPlayerManager().getPlayerList()) {
-										ServerPlayNetworking.send(p, payload);
-									}
+									DiceService.roll(player, "", spec.type(), spec.count(), spec.modifier(), 0);
 									return 1;
 								})))
 				.then(CommandManager.literal("endturn")

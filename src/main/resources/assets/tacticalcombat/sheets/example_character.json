@@ -1,0 +1,33 @@
+{
+  "format": "generic_d20",
+  "text": {
+    "name": "Brannoc Veyle",
+    "subtitle": "Human Fighter 3"
+  },
+  "values": {
+    "str": 16,
+    "dex": 14,
+    "con": 15,
+    "int": 10,
+    "wis": 12,
+    "cha": 8,
+    "prof": 2,
+    "level": 3,
+    "hp": 25,
+    "hp_max": 32,
+    "ac": 16,
+    "sp_str": 1,
+    "sp_con": 1,
+    "sk_athletics": 1,
+    "sk_intimidation": 1,
+    "sk_perception": 1,
+    "sk_survival": 1,
+    "qty_longsword": 1,
+    "qty_handaxe": 2,
+    "qty_chain_mail": 1,
+    "qty_crossbow": 1,
+    "qty_bolts": 18,
+    "qty_potion": 2,
+    "qty_torch": 4
+  }
+}

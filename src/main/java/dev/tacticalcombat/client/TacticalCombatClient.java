@@ -5,6 +5,8 @@ import dev.tacticalcombat.net.DiceRollPayload;
 import dev.tacticalcombat.net.EndTurnPayload;
 import dev.tacticalcombat.net.GridPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -23,6 +25,12 @@ public class TacticalCombatClient implements ClientModInitializer {
 			"key.tacticalcombat.end_turn",
 			InputUtil.Type.KEYSYM,
 			GLFW.GLFW_KEY_ENTER,
+			"key.categories.tacticalcombat"));
+
+	public static final KeyBinding SHEET_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.tacticalcombat.sheet",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_K,
 			"key.categories.tacticalcombat"));
 
 	private static final double PAN_SPEED = 0.35;
@@ -46,6 +54,12 @@ public class TacticalCombatClient implements ClientModInitializer {
 			DiceAnimation.clear();
 		});
 
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+				dispatcher.register(ClientCommandManager.literal("sheet").executes(ctx -> {
+					CharacterSheetScreen.requestOpen();
+					return 1;
+				})));
+
 		HudRenderCallback.EVENT.register(CombatHud::render);
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
@@ -55,9 +69,13 @@ public class TacticalCombatClient implements ClientModInitializer {
 			BlockFade.tick(client);
 			WalkAnimation.tick(client);
 			DiceAnimation.tick(client);
+			CharacterSheetScreen.tick(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {
 				pollCameraKeys(client);
+			}
+			while (SHEET_KEY.wasPressed()) {
+				CharacterSheetScreen.requestOpen();
 			}
 			while (END_TURN_KEY.wasPressed()) {
 				sendEndTurn();

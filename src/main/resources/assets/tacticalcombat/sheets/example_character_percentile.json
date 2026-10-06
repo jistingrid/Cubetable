@@ -1,0 +1,18 @@
+{
+  "format": "percentile",
+  "text": {
+    "name": "Dr. Ines Marlowe",
+    "subtitle": "Investigator"
+  },
+  "values": {
+    "hp": 11,
+    "hp_max": 11,
+    "sanity": 62,
+    "sanity_max": 99,
+    "luck": 55,
+    "fighting": 45,
+    "firearms": 35,
+    "spot_hidden": 60,
+    "library_use": 70
+  }
+}

@@ -74,26 +74,30 @@ public final class DiceAnimation {
 	}
 
 	private static void printResult(MinecraftClient client, DiceRollPayload roll) {
-		int total = roll.modifier();
+		int kept = roll.keptIndex();
 		StringBuilder list = new StringBuilder();
 		for (int i = 0; i < roll.results().length; i++) {
 			if (i > 0) list.append(", ");
 			list.append(roll.results()[i]);
-			total += roll.results()[i];
 		}
-		String spec = (roll.results().length > 1 ? String.valueOf(roll.results().length) : "") + roll.type().label
+		int rolled = kept >= 0 ? 1 : roll.results().length;
+		String spec = (rolled > 1 ? String.valueOf(rolled) : "") + roll.type().label
 				+ (roll.modifier() > 0 ? "+" + roll.modifier() : roll.modifier() < 0 ? String.valueOf(roll.modifier()) : "");
+		String what = roll.label().isEmpty() ? spec : roll.label() + " (" + spec + ")";
+		if (roll.keep() == 1) what += " with advantage";
+		if (roll.keep() == 2) what += " with disadvantage";
 
 		Text text = Text.literal(roll.roller()).formatted(Formatting.YELLOW)
-				.append(Text.literal(" rolled " + spec + ": ").formatted(Formatting.GRAY))
+				.append(Text.literal(" rolled " + what + ": ").formatted(Formatting.GRAY))
 				.append(Text.literal("[" + list + "]").formatted(Formatting.WHITE));
 		if (roll.modifier() != 0 || roll.results().length > 1) {
 			text = text.copy().append(Text.literal(" = ").formatted(Formatting.GRAY))
-					.append(Text.literal(String.valueOf(total)).formatted(Formatting.GOLD, Formatting.BOLD));
+					.append(Text.literal(String.valueOf(roll.total())).formatted(Formatting.GOLD, Formatting.BOLD));
 		}
-		if (roll.type() == DiceType.D20 && roll.results().length == 1) {
-			if (roll.results()[0] == 20) text = text.copy().append(Text.literal("  Critical hit!").formatted(Formatting.GREEN));
-			if (roll.results()[0] == 1) text = text.copy().append(Text.literal("  Critical fail!").formatted(Formatting.RED));
+		if (roll.type() == DiceType.D20 && rolled == 1) {
+			int face = roll.results()[Math.max(kept, 0)];
+			if (face == 20) text = text.copy().append(Text.literal("  Critical hit!").formatted(Formatting.GREEN));
+			if (face == 1) text = text.copy().append(Text.literal("  Critical fail!").formatted(Formatting.RED));
 		}
 		client.inGameHud.getChatHud().addMessage(text);
 	}
@@ -126,7 +130,7 @@ public final class DiceAnimation {
 		int bottom = Math.round(chatTop(mc, h)) - 2;
 		int top = bottom - gridH;
 
-		int total = roll.modifier();
+		int keptDie = roll.keptIndex();
 		for (int slot = 0; slot < slots; slot++) {
 			int die = percent ? slot / 2 : slot;
 			boolean tens = percent && slot % 2 == 0;
@@ -152,13 +156,12 @@ public final class DiceAnimation {
 				label = faceLabel(roll.type(), fake, tens);
 			}
 			drawDie(ctx, tr, shape, tens ? 0xFFB07CFF : colorOf(roll.type()), cx, cy - bounce, size,
-					rotation, squash, label, p >= 1.0f);
+					rotation, squash, label, p >= 1.0f, p >= 1.0f && keptDie >= 0 && die != keptDie);
 		}
 
 		if (p >= 1.0f) {
-			for (int r : roll.results()) total += r;
 			String text = roll.results().length > 1 || roll.modifier() != 0
-					? "= " + total : String.valueOf(roll.results()[0]);
+					? "= " + roll.total() : String.valueOf(roll.results()[0]);
 			ctx.getMatrices().push();
 			float scale = 1.6f;
 			ctx.getMatrices().translate(left + gridW + resultW / 2f, top + gridH / 2f - 8, 0);
@@ -239,7 +242,8 @@ public final class DiceAnimation {
 	}
 
 	private static void drawDie(DrawContext ctx, TextRenderer tr, DiceType shape, int color, float cx, float cy, int size,
-								float rotation, float squash, String label, boolean settled) {
+								float rotation, float squash, String label, boolean settled, boolean dim) {
+		if (dim) color = (color & 0x00FFFFFF) | 0x55000000;
 		var ms = ctx.getMatrices();
 		ms.push();
 		ms.translate(cx, cy, 0);
@@ -253,7 +257,7 @@ public final class DiceAnimation {
 		RenderSystem.setShader(GameRenderer::getPositionColorProgram);
 
 		float[][] out = outline(shape);
-		fan(m, out, size, 0xFF101010);
+		fan(m, out, size, dim ? 0x55101010 : 0xFF101010);
 		fan(m, out, size * 0.9f, color);
 		float[][] facet = facet(shape);
 		if (facet != null) {
@@ -267,7 +271,7 @@ public final class DiceAnimation {
 		ms.scale(textScale, textScale, 1.0f);
 		int tw = tr.getWidth(label);
 		// settle highlight: number turns gold once the die has stopped
-		ctx.drawText(tr, label, -tw / 2, -4, settled ? 0xFFFFE066 : 0xFFFFFFFF, true);
+		ctx.drawText(tr, label, -tw / 2, -4, dim ? 0x66FFFFFF : settled ? 0xFFFFE066 : 0xFFFFFFFF, true);
 		ms.pop();
 		ctx.draw(); // flush the text now so the next die's polygon is layered on top of it
 		ms.pop();
