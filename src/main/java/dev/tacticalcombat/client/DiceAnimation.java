@@ -125,7 +125,6 @@ public final class DiceAnimation {
 		int left = 4;
 		int bottom = Math.round(chatTop(mc, h)) - 2;
 		int top = bottom - gridH;
-		ctx.fill(left, top, left + gridW + resultW, bottom, 0x66000000);
 
 		int total = roll.modifier();
 		for (int slot = 0; slot < slots; slot++) {
