@@ -283,7 +283,9 @@ public final class CharacterSheetScreen extends Screen {
 
 	private void drawEmpty(DrawContext g, int x, int y, int w, int h) {
 		CharacterData c = character();
-		String msg = c == null
+		String msg = SheetLibrary.FORMATS.isEmpty()
+				? "No game packs installed. Copy a game's folder (e.g. packs/generic_d20 from the mod's repository) into config/tacticalcombat/packs/ and press Reload."
+				: c == null
 				? "No characters found. Put a .json file in config/tacticalcombat/characters/"
 				: "Character \"" + c.displayName() + "\" uses the format \"" + c.format + "\", which is not installed.";
 		List<OrderedText> lines = textRenderer.wrapLines(StringVisitable.plain(msg), w - 24);

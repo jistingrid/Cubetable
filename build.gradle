@@ -56,3 +56,9 @@ main classes and processed resources.
 tasks.named('jar', Jar).configure {
 	from(sourceSets.main.output)
 }
+// Game packs live outside the mod (see docs/sheet-formats.md). Copy them into the dev client's config folder.
+tasks.register('installPacks', Copy) {
+	from 'packs'
+	into 'run/config/tacticalcombat/packs'
+}
+tasks.matching { it.name == 'runClient' }.configureEach { dependsOn 'installPacks' }

@@ -21,9 +21,10 @@ import java.util.stream.Stream;
  * Finds game packs, sheet formats, themes and characters.
  *
  * <p>A <b>game pack</b> is a folder: {@code format.json} (the sheet format) and optionally {@code themes/*.json}.
- * Built-in packs are listed in {@code assets/tacticalcombat/sheets/packs.json} and may also ship example
- * {@code characters/}. Your own packs go in {@code config/tacticalcombat/packs/<name>/}; a pack with the same format
- * id as an earlier one replaces it. Loose {@code sheets/*.json} and {@code themes/*.json} files in the config folder
+ * The mod itself only ships the colour themes ({@code core}, listed in {@code assets/tacticalcombat/sheets/packs.json}).
+ * Games are packs in {@code config/tacticalcombat/packs/<name>/} (the repository's {@code packs/} folder has examples),
+ * which may carry example {@code characters/} that are copied once into an empty characters folder. A pack with the
+ * same format id as an earlier one replaces it. Loose {@code sheets/*.json} and {@code themes/*.json} files in the config folder
  * still work. Characters are always {@code config/tacticalcombat/characters/*.json}.
  *
  * <p>Client side only; nothing here touches the game yet.
@@ -225,6 +226,13 @@ public final class SheetLibrary {
 						if (c != null) Files.copy(c, charactersDir().resolve(path.substring(path.lastIndexOf('/') + 1)));
 					}
 				}
+			}
+		}
+		// example characters shipped inside game packs (packs/<game>/characters/*.json)
+		for (Path dir : subDirs(packsDir())) {
+			for (Path p : jsonFiles(dir.resolve("characters"))) {
+				Path target = charactersDir().resolve(p.getFileName().toString());
+				if (!Files.exists(target)) Files.copy(p, target);
 			}
 		}
 	}

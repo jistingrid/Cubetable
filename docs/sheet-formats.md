@@ -18,7 +18,7 @@ config/tacticalcombat/packs/my_game/
   themes/ember.json    optional colour themes for it
 ```
 
-Press **Reload** in the Formats view (the **Open packs folder** button opens the folder). The mod ships its own packs the same way: `core` (themes), `generic_d20` and `percentile`, under `src/main/resources/assets/tacticalcombat/sheets/`. A built-in pack also has a `pack.json` (`name`, `format`, `themes`, `characters` - paths inside the pack) and is listed in `packs.json`; example characters are copied to the characters folder on first run. Copying `generic_d20/` into your packs folder and editing it is the quickest way to start a new game.
+Press **Reload** in the Formats view (the **Open packs folder** button opens the folder). The mod itself ships no game, only the colour themes (`core`). The games that come with the project live in the repository's top-level `packs/` folder (`packs/generic_d20`, `packs/percentile`): copy the folders you want into `config/tacticalcombat/packs/` and press Reload. A pack may also contain `characters/*.json` examples; they are copied once into the characters folder when it is empty. Copying `generic_d20/` and editing it is the quickest way to start a new game. (For development, `./gradlew installPacks` copies the repository's `packs/` into `run/config/tacticalcombat/packs/`, and `runClient` does it automatically.)
 
 ## Character file
 
@@ -111,7 +111,7 @@ Numbers, names, `+ - * / ( )`, and `floor() ceil() round() abs() min() max()` (m
 
 Roll formulas additionally contain exactly one dice term, which may only be added: `d20 + str_mod + prof`, `2d6 + 3`, `d%`. Dice are d4, d6, d8, d10, d% (d100), d12 and d20. Single d20 rolls obey the window's Normal / Advantage / Disadvantage setting.
 
-See `generic_d20/format.json` and `percentile/format.json` under `src/main/resources/assets/tacticalcombat/sheets/` for two complete examples.
+See `packs/generic_d20/format.json` and `packs/percentile/format.json` `packs/` in the repository for two complete examples.
 
 ## `enabled`
 
