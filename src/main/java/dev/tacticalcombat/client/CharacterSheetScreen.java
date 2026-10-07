@@ -285,12 +285,23 @@ public final class CharacterSheetScreen extends Screen {
 			double max = sc.number(bar.max());
 			float frac = max > 0 && !Double.isNaN(cur) ? (float) MathHelper.clamp(cur / max, 0, 1) : 0;
 			int bw = 88;
+
+			// a bar whose value is a stored number (not a calculated one) can be changed right here
+			String name = bar.value().trim().toLowerCase(java.util.Locale.ROOT);
+			boolean adjustable = name.matches("[a-z_][a-z0-9_]*") && !sc.format.derived.containsKey(name);
+			if (adjustable) {
+				bx += adjustButton(g, sc, bar, name, "-", -1, bx, y + 34) + 1;
+			}
 			g.fill(bx, y + 34, bx + bw, y + 45, 0xFF05060A);
 			g.fill(bx + 1, y + 35, bx + bw - 1, y + 44, 0xFF1A0B0E);
 			g.fill(bx + 1, y + 35, bx + 1 + Math.round((bw - 2) * frac), y + 44, bar.color());
 			String label = bar.label() + " " + sc.show(bar.value(), false) + " / " + sc.show(bar.max(), false);
 			g.drawCenteredTextWithShadow(textRenderer, label, bx + bw / 2, y + 35, 0xFFFFFFFF);
-			bx += bw + 6;
+			bx += bw + 1;
+			if (adjustable) {
+				bx += adjustButton(g, sc, bar, name, "+", 1, bx, y + 34);
+			}
+			bx += 6;
 		}
 
 		int badgeX = x + w - 6;
@@ -308,6 +319,59 @@ public final class CharacterSheetScreen extends Screen {
 			ms.pop();
 			g.drawCenteredTextWithShadow(textRenderer, b.label(), badgeX + 18, y + 33, 0xFFF0CFD2);
 			badgeX -= 2;
+		}
+	}
+
+	/** The stored value name behind a bar ("hp"), or null when the bar shows something calculated. */
+	private static String editableKey(SheetContext sc, String formula) {
+		String name = formula.trim().toLowerCase();
+		if (!name.matches("[a-z_][a-z0-9_]*") || sc.format.derived.containsKey(name)) return null;
+		return name;
+	}
+
+	private static int step() {
+		return hasControlDown() ? 10 : hasShiftDown() ? 5 : 1;
+	}
+
+	/** Changes a stored value (such as HP) by delta, keeps it between 0 and its maximum, and saves the character. */
+	private static void adjust(SheetContext sc, String key, String maxFormula, int delta) {
+		CharacterData c = sc.character;
+		double cur = c.values.getOrDefault(key, sc.format.defaults.getOrDefault(key, 0.0));
+		double max = sc.number(maxFormula);
+		double next = cur + delta;
+		next = Math.max(0, max > 0 ? Math.min(max, next) : next);
+		if (next == cur) return;
+		c.values.put(key, next);
+		try {
+			SheetLibrary.save(c);
+		} catch (IOException e) {
+			say("Could not save: " + e.getMessage());
+		}
+	}
+
+	/** The small - / + beside a bar: click = 1, Shift-click = 5. Saves the character straight away. */
+	private int adjustButton(DrawContext g, SheetContext sc, SheetFormat.Bar bar, String name, String text, int direction, int x, int y) {
+		int bw = 11;
+		boolean over = hit(x, y, bw, 11, () -> adjustValue(sc, bar, name, direction * (hasShiftDown() ? 5 : 1)),
+				bar.label() + " " + text + "1  (Shift: " + text + "5)");
+		g.fill(x, y, x + bw, y + 11, 0xFF05060A);
+		g.fill(x + 1, y + 1, x + bw - 1, y + 10, over ? 0xFF8F1D2C : 0xFF3A1018);
+		g.drawCenteredTextWithShadow(textRenderer, text, x + bw / 2, y + 2, 0xFFFFFFFF);
+		return bw;
+	}
+
+	private void adjustValue(SheetContext sc, SheetFormat.Bar bar, String name, int delta) {
+		CharacterData c = sc.character;
+		double current = c.values.getOrDefault(name, sc.format.defaults.getOrDefault(name, 0.0));
+		double max = sc.number(bar.max());
+		double next = current + delta;
+		next = Math.max(0, max > 0 && !Double.isNaN(max) ? Math.min(max, next) : next);
+		if (next == current) return;
+		c.values.put(name, next);
+		try {
+			SheetLibrary.save(c);
+		} catch (IOException e) {
+			say("Could not save: " + e.getMessage());
 		}
 	}
 
@@ -477,7 +541,7 @@ public final class CharacterSheetScreen extends Screen {
 		g.fill(x, y, x + w, y + FOOT_H, 0xFF0F1114);
 		g.fill(x, y, x + w, y + 1, EDGE);
 		boolean flashing = System.currentTimeMillis() < flashUntil;
-		g.drawText(textRenderer, flashing ? flash : "Click a value or button to roll. Drag the title bar to move.", x + 6, y + 2,
+		g.drawText(textRenderer, flashing ? flash : "Click a value or button to roll. HP: click - or + (Shift = 5).", x + 6, y + 2,
 				flashing ? 0xFF7CE08A : DIM, false);
 		if (!flashing && !SheetLibrary.PROBLEMS.isEmpty()) {
 			String p = SheetLibrary.PROBLEMS.size() + " problem(s): see Formats";
