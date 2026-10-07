@@ -10,12 +10,14 @@ import java.util.Set;
 public final class SheetContext {
 	public final SheetFormat format;
 	public final CharacterData character;
+	public final SheetFormat.Layout layout;
 	private final Map<String, Double> cache = new HashMap<>();
 	private final Set<String> resolving = new HashSet<>();
 
 	public SheetContext(SheetFormat format, CharacterData character) {
 		this.format = format;
 		this.character = character;
+		this.layout = format.layout(character.kind);
 	}
 
 	/** Value of a name, or null if neither the character nor the format knows it. */
@@ -64,6 +66,13 @@ public final class SheetContext {
 		String s = Math.abs(v - r) < 1.0E-9 ? Long.toString(Math.abs(r)) : String.format(Locale.ROOT, "%.1f", Math.abs(v));
 		if (!signed) return (v < 0 ? "-" : "") + s;
 		return (v < 0 ? "-" : "+") + s;
+	}
+
+	/** True when an optional "enabled" formula allows showing something (no formula, or not calculable = shown). */
+	public boolean enabled(String formula) {
+		if (formula == null || formula.isBlank()) return true;
+		double v = number(formula);
+		return Double.isNaN(v) || v > 0;
 	}
 
 	/** Replaces $name / $subtitle with the character's text fields. */

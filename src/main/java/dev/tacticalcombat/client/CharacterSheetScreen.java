@@ -7,12 +7,14 @@ import dev.tacticalcombat.sheet.Expr;
 import dev.tacticalcombat.sheet.SheetContext;
 import dev.tacticalcombat.sheet.SheetFormat;
 import dev.tacticalcombat.sheet.SheetLibrary;
+import dev.tacticalcombat.sheet.Theme;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.PlayerSkinDrawer;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.StringVisitable;
@@ -39,17 +41,37 @@ public final class CharacterSheetScreen extends Screen {
 	private static final int TAB_H = 15;
 	private static final int FOOT_H = 12;
 
-	private static final int BG = 0xFF181B20;
-	private static final int PANEL = 0xFF20242B;
-	private static final int PANEL_HOVER = 0xFF2B313A;
-	private static final int EDGE = 0xFF2C313A;
-	private static final int GOLD = 0xFFE0B84C;
-	private static final int MUTED = 0xFF9AA0A8;
-	private static final int DIM = 0xFF6F7680;
-	private static final int CRIMSON_A = 0xFF5C0F1B;
-	private static final int CRIMSON_B = 0xFF8F1D2C;
-	private static final int ROLL_BG = 0xFF2A2218;
-	private static final int ROLL_EDGE = 0xFF7A6330;
+	private static int BG = 0xFF181B20;
+	private static int PANEL = 0xFF20242B;
+	private static int PANEL_HOVER = 0xFF2B313A;
+	private static int EDGE = 0xFF2C313A;
+	private static int GOLD = 0xFFE0B84C;
+	private static int MUTED = 0xFF9AA0A8;
+	private static int DIM = 0xFF6F7680;
+	private static int CRIMSON_A = 0xFF5C0F1B;
+	private static int CRIMSON_B = 0xFF8F1D2C;
+	private static int ROLL_BG = 0xFF2A2218;
+	private static int ROLL_EDGE = 0xFF7A6330;
+
+	private static void applyTheme(Theme t) {
+		BG = t.get("bg");
+		PANEL = t.get("panel");
+		PANEL_HOVER = t.get("panel_hover");
+		EDGE = t.get("edge");
+		GOLD = t.get("accent");
+		MUTED = t.get("muted");
+		DIM = t.get("dim");
+		CRIMSON_A = t.get("banner_a");
+		CRIMSON_B = t.get("banner_b");
+		ROLL_BG = t.get("roll_bg");
+		ROLL_EDGE = t.get("roll_edge");
+	}
+
+	/** Format text may be a translation key (e.g. "mygame.skill.stealth"); anything else is shown as written. */
+	private static String tr(String text) {
+		if (text == null || text.isEmpty() || text.indexOf(' ') >= 0 || text.indexOf('.') < 0) return text;
+		return I18n.hasTranslation(text) ? I18n.translate(text) : text;
+	}
 
 	// the window remembers where it was, which character and page was open, and the advantage mode
 	private static int winX = Integer.MIN_VALUE;
@@ -68,6 +90,9 @@ public final class CharacterSheetScreen extends Screen {
 	private static long flashUntil;
 	private static boolean loaded;
 	private static boolean pendingOpen;
+	/** Layout mode: tabs and sections can be hidden and sections moved; the theme can be changed. */
+	private static boolean customize;
+	private static String editKind = SheetFormat.DEFAULT_KIND;
 
 	private record Hit(int x, int y, int w, int h, Runnable action, String tip) {
 		boolean contains(double mx, double my) {
@@ -152,6 +177,10 @@ public final class CharacterSheetScreen extends Screen {
 		mouseX = mx;
 		mouseY = my;
 		hits.clear();
+
+		SheetContext themed = view == View.SHEET ? sheet() : null;
+		applyTheme(SheetLibrary.theme(themed == null ? null
+				: !themed.character.theme.isEmpty() ? themed.character.theme : themed.format.theme));
 
 		int w = Math.min(WIN_W, width - 8);
 		int h = Math.min(WIN_H, height - 8);
@@ -269,8 +298,8 @@ public final class CharacterSheetScreen extends Screen {
 			PlayerSkinDrawer.draw(g, mc.player.getSkinTextures(), x + 11, y + 11, 32);
 		}
 
-		String title = sc.template(sc.format.titleTemplate);
-		String subtitle = sc.template(sc.format.subtitleTemplate);
+		String title = tr(sc.template(sc.layout.titleTemplate));
+		String subtitle = tr(sc.template(sc.layout.subtitleTemplate));
 		var ms = g.getMatrices();
 		ms.push();
 		ms.translate(x + 54, y + 7, 0);
@@ -280,7 +309,7 @@ public final class CharacterSheetScreen extends Screen {
 		g.drawText(textRenderer, subtitle, x + 54, y + 22, 0xFFF0CFD2, false);
 
 		int bx = x + 54;
-		for (SheetFormat.Bar bar : sc.format.bars) {
+		for (SheetFormat.Bar bar : sc.layout.bars) {
 			double cur = sc.number(bar.value());
 			double max = sc.number(bar.max());
 			float frac = max > 0 && !Double.isNaN(cur) ? (float) MathHelper.clamp(cur / max, 0, 1) : 0;
@@ -295,7 +324,15 @@ public final class CharacterSheetScreen extends Screen {
 			g.fill(bx, y + 34, bx + bw, y + 45, 0xFF05060A);
 			g.fill(bx + 1, y + 35, bx + bw - 1, y + 44, 0xFF1A0B0E);
 			g.fill(bx + 1, y + 35, bx + 1 + Math.round((bw - 2) * frac), y + 44, bar.color());
-			String label = bar.label() + " " + sc.show(bar.value(), false) + " / " + sc.show(bar.max(), false);
+			double temp = bar.temp() == null ? 0 : sc.number(bar.temp());
+			if (temp > 0 && max > 0) {
+				// temporary HP: a blue slice after the real HP (capped at the end of the bar)
+				int from = bx + 1 + Math.round((bw - 2) * frac);
+				int to = Math.min(bx + bw - 1, from + Math.max(2, Math.round((bw - 2) * (float) (temp / max))));
+				g.fill(from, y + 35, to, y + 44, 0xFF4DA3FF);
+			}
+			String label = tr(bar.label()) + " " + sc.show(bar.value(), false) + " / " + sc.show(bar.max(), false)
+					+ (temp > 0 ? " +" + sc.show(bar.temp(), false) : "");
 			g.drawCenteredTextWithShadow(textRenderer, label, bx + bw / 2, y + 35, 0xFFFFFFFF);
 			bx += bw + 1;
 			if (adjustable) {
@@ -305,8 +342,8 @@ public final class CharacterSheetScreen extends Screen {
 		}
 
 		int badgeX = x + w - 6;
-		for (int i = sc.format.badges.size() - 1; i >= 0; i--) {
-			SheetFormat.Badge b = sc.format.badges.get(i);
+		for (int i = sc.layout.badges.size() - 1; i >= 0; i--) {
+			SheetFormat.Badge b = sc.layout.badges.get(i);
 			badgeX -= 38;
 			g.fill(badgeX, y + 9, badgeX + 36, y + 45, 0xFF05060A);
 			g.fill(badgeX + 1, y + 10, badgeX + 35, y + 44, GOLD);
@@ -317,7 +354,7 @@ public final class CharacterSheetScreen extends Screen {
 			ms.scale(1.5f, 1.5f, 1.0f);
 			g.drawCenteredTextWithShadow(textRenderer, v, 0, 0, 0xFFFFFFFF);
 			ms.pop();
-			g.drawCenteredTextWithShadow(textRenderer, b.label(), badgeX + 18, y + 33, 0xFFF0CFD2);
+			g.drawCenteredTextWithShadow(textRenderer, tr(b.label()), badgeX + 18, y + 33, 0xFFF0CFD2);
 			badgeX -= 2;
 		}
 	}
@@ -349,25 +386,37 @@ public final class CharacterSheetScreen extends Screen {
 		}
 	}
 
-	/** The small - / + beside a bar: click = 1, Shift-click = 5. Saves the character straight away. */
+	/** The small - / + beside a bar: click = 1, Shift = 5, Ctrl = 10. Saves the character straight away. */
 	private int adjustButton(DrawContext g, SheetContext sc, SheetFormat.Bar bar, String name, String text, int direction, int x, int y) {
 		int bw = 11;
-		boolean over = hit(x, y, bw, 11, () -> adjustValue(sc, bar, name, direction * (hasShiftDown() ? 5 : 1)),
-				bar.label() + " " + text + "1  (Shift: " + text + "5)");
+		boolean over = hit(x, y, bw, 11, () -> adjustValue(sc, bar, name, direction * step()),
+				tr(bar.label()) + " " + text + "1  (Shift: " + text + "5, Ctrl: " + text + "10)");
 		g.fill(x, y, x + bw, y + 11, 0xFF05060A);
-		g.fill(x + 1, y + 1, x + bw - 1, y + 10, over ? 0xFF8F1D2C : 0xFF3A1018);
+		g.fill(x + 1, y + 1, x + bw - 1, y + 10, over ? CRIMSON_B : CRIMSON_A);
 		g.drawCenteredTextWithShadow(textRenderer, text, x + bw / 2, y + 2, 0xFFFFFFFF);
 		return bw;
 	}
 
+	/** Damage (negative) is soaked up by temporary HP first, when the bar has them. */
 	private void adjustValue(SheetContext sc, SheetFormat.Bar bar, String name, int delta) {
 		CharacterData c = sc.character;
-		double current = c.values.getOrDefault(name, sc.format.defaults.getOrDefault(name, 0.0));
-		double max = sc.number(bar.max());
-		double next = current + delta;
-		next = Math.max(0, max > 0 && !Double.isNaN(max) ? Math.min(max, next) : next);
-		if (next == current) return;
-		c.values.put(name, next);
+		if (delta < 0 && bar.temp() != null) {
+			String tempKey = editableKey(sc, bar.temp());
+			double temp = tempKey == null ? 0 : c.values.getOrDefault(tempKey, sc.format.defaults.getOrDefault(tempKey, 0.0));
+			if (temp > 0) {
+				double soaked = Math.min(temp, -delta);
+				c.values.put(tempKey, temp - soaked);
+				delta += (int) soaked;
+				if (delta == 0) {
+					store(c);
+					return;
+				}
+			}
+		}
+		adjust(sc, name, bar.max(), delta);
+	}
+
+	private static void store(CharacterData c) {
 		try {
 			SheetLibrary.save(c);
 		} catch (IOException e) {
@@ -375,24 +424,87 @@ public final class CharacterSheetScreen extends Screen {
 		}
 	}
 
+	private static double stored(SheetContext sc, String key) {
+		return sc.character.values.getOrDefault(key, sc.format.defaults.getOrDefault(key, 0.0));
+	}
+
+	private static void setStored(SheetContext sc, String key, double value) {
+		sc.character.values.put(key, value);
+		store(sc.character);
+	}
+
+	/** Pages shown now: enabled ones that are not hidden (hidden ones still show, dimmed, in layout mode). */
+	private List<SheetFormat.Page> pages(SheetContext sc) {
+		List<SheetFormat.Page> out = new ArrayList<>();
+		for (SheetFormat.Page p : sc.layout.pages) {
+			if (!sc.enabled(p.enabled)) continue;
+			if (!customize && sc.character.hidden.contains("page:" + p.id)) continue;
+			out.add(p);
+		}
+		return out;
+	}
+
+	/** Sections of a column in the character's chosen order, minus hidden / disabled ones. */
+	private List<SheetFormat.Section> sections(SheetContext sc, SheetFormat.Page page, int colIndex) {
+		SheetFormat.Column col = page.columns.get(colIndex);
+		List<SheetFormat.Section> ordered = new ArrayList<>(col.sections);
+		List<String> wanted = sc.character.order.get(page.id + "/" + colIndex);
+		if (wanted != null) {
+			ordered.sort(java.util.Comparator.comparingInt(sec -> {
+				int i = wanted.indexOf(sec.id);
+				return i < 0 ? Integer.MAX_VALUE : i;
+			}));
+		}
+		List<SheetFormat.Section> out = new ArrayList<>();
+		for (SheetFormat.Section sec : ordered) {
+			if (!sc.enabled(sec.enabled)) continue;
+			if (!customize && sc.character.hidden.contains("section:" + page.id + "/" + sec.id)) continue;
+			out.add(sec);
+		}
+		return out;
+	}
+
+	private void toggleHidden(SheetContext sc, String key) {
+		if (!sc.character.hidden.remove(key)) sc.character.hidden.add(key);
+		store(sc.character);
+	}
+
+	private void moveSection(SheetContext sc, SheetFormat.Page page, int colIndex, SheetFormat.Section section, int dir) {
+		List<SheetFormat.Section> all = sections(sc, page, colIndex);
+		int i = all.indexOf(section);
+		int j = i + dir;
+		if (i < 0 || j < 0 || j >= all.size()) return;
+		java.util.Collections.swap(all, i, j);
+		List<String> ids = new ArrayList<>();
+		for (SheetFormat.Section sec : all) ids.add(sec.id);
+		sc.character.order.put(page.id + "/" + colIndex, ids);
+		store(sc.character);
+	}
+
 	private void drawTabs(DrawContext g, SheetContext sc, int x, int y, int w) {
 		g.fill(x, y, x + w, y + TAB_H, 0xFF12151A);
 		g.fill(x, y + TAB_H - 1, x + w, y + TAB_H, EDGE);
-		pageIndex = MathHelper.clamp(pageIndex, 0, sc.format.pages.size() - 1);
+		List<SheetFormat.Page> pages = pages(sc);
+		pageIndex = MathHelper.clamp(pageIndex, 0, Math.max(0, pages.size() - 1));
 
 		int tx = x + 6;
-		for (int i = 0; i < sc.format.pages.size(); i++) {
+		for (int i = 0; i < pages.size(); i++) {
 			final int idx = i;
-			String t = sc.format.pages.get(i).title;
-			int bw = tw(t) + 14;
-			boolean over = hit(tx, y, bw, TAB_H, () -> { pageIndex = idx; resetScroll(); }, null);
+			SheetFormat.Page page = pages.get(i);
+			boolean hidden = sc.character.hidden.contains("page:" + page.id);
+			String t = tr(page.title);
+			int bw = tw(t) + 14 + (customize ? 9 : 0);
+			boolean over = hit(tx, y, bw - (customize ? 9 : 0), TAB_H, () -> { pageIndex = idx; resetScroll(); }, null);
 			boolean on = i == pageIndex;
-			g.drawText(textRenderer, t, tx + 7, y + 4, on ? 0xFFFFFFFF : over ? 0xFFC9CCD2 : MUTED, false);
-			if (on) g.fill(tx + 2, y + TAB_H - 3, tx + bw - 2, y + TAB_H - 1, GOLD);
+			g.drawText(textRenderer, t, tx + 7, y + 4, hidden ? DIM : on ? 0xFFFFFFFF : over ? 0xFFC9CCD2 : MUTED, false);
+			if (on) g.fill(tx + 2, y + TAB_H - 3, tx + bw - 2 - (customize ? 9 : 0), y + TAB_H - 1, GOLD);
+			if (customize) {
+				eye(g, sc, "page:" + page.id, tx + bw - 11, y + 4, hidden, "Show / hide this tab");
+			}
 			tx += bw;
 		}
 
-		// advantage mode for d20 rolls
+		// right side: advantage mode, then (layout mode) theme and layout buttons
 		String[] names = {"Normal", "Advantage", "Disadvantage"};
 		int rx = x + w - 6;
 		for (int i = 2; i >= 0; i--) {
@@ -406,10 +518,38 @@ public final class CharacterSheetScreen extends Screen {
 			g.drawText(textRenderer, names[i], rx + 4, y + 3, on ? 0xFF14161A : 0xFFC9CCD2, false);
 			rx -= 2;
 		}
+		rx -= 6;
+		rx -= smallButton(g, rx - tw("Layout") - 6, y + 2, "Layout", () -> customize = !customize,
+				"Hide tabs and sections, move sections, change the theme", customize ? GOLD : PANEL, 0xFF3B414C) + 2;
+		if (customize) {
+			Theme current = SheetLibrary.theme(!sc.character.theme.isEmpty() ? sc.character.theme : sc.format.theme);
+			String label = "Theme: " + current.name;
+			smallButton(g, rx - tw(label) - 6, y + 2, label, () -> cycleTheme(sc, current), "Next colour theme", PANEL, 0xFF3B414C);
+		}
+	}
+
+	private void cycleTheme(SheetContext sc, Theme current) {
+		List<String> ids = new ArrayList<>(SheetLibrary.THEMES.keySet());
+		if (ids.isEmpty()) return;
+		sc.character.theme = ids.get((ids.indexOf(current.id) + 1) % ids.size());
+		store(sc.character);
+	}
+
+	/** A small eye: filled = shown, hollow = hidden. */
+	private void eye(DrawContext g, SheetContext sc, String key, int x, int y, boolean hidden, String tip) {
+		hit(x - 1, y - 1, 9, 9, () -> toggleHidden(sc, key), tip);
+		g.fill(x, y, x + 7, y + 7, hidden ? DIM : GOLD);
+		g.fill(x + 1, y + 1, x + 6, y + 6, hidden ? BG : PANEL);
+		if (!hidden) g.fill(x + 2, y + 2, x + 5, y + 5, GOLD);
 	}
 
 	private void drawBody(DrawContext g, SheetContext sc, int x, int y, int w, int h) {
-		SheetFormat.Page page = sc.format.pages.get(pageIndex);
+		List<SheetFormat.Page> pages = pages(sc);
+		if (pages.isEmpty()) {
+			g.drawText(textRenderer, "Every tab is hidden. Press Layout, then the eye on a tab.", x + 8, y + 10, MUTED, false);
+			return;
+		}
+		SheetFormat.Page page = pages.get(MathHelper.clamp(pageIndex, 0, pages.size() - 1));
 		float totalWeight = 0;
 		for (SheetFormat.Column c : page.columns) totalWeight += c.weight;
 		int gap = 4;
@@ -418,23 +558,38 @@ public final class CharacterSheetScreen extends Screen {
 		for (int ci = 0; ci < page.columns.size() && ci < scroll.length; ci++) {
 			SheetFormat.Column col = page.columns.get(ci);
 			int cw = Math.round(usable * col.weight / totalWeight);
-			maxScroll[ci] = drawColumn(g, sc, col, ci, cx, y + 3, cw, h - 3);
+			maxScroll[ci] = drawColumn(g, sc, page, ci, cx, y + 3, cw, h - 3);
 			cx += cw + gap;
 		}
 	}
 
 	/** Draws one scrollable column; returns how far it can scroll. */
-	private float drawColumn(DrawContext g, SheetContext sc, SheetFormat.Column col, int ci, int x, int y, int w, int h) {
+	private float drawColumn(DrawContext g, SheetContext sc, SheetFormat.Page page, int ci, int x, int y, int w, int h) {
 		scroll[ci] = MathHelper.clamp(scroll[ci], 0, maxScroll[ci]);
 		g.enableScissor(x, y, x + w, y + h);
 		int cy = y - Math.round(scroll[ci]);
 		int start = cy;
-		for (SheetFormat.Section sec : col.sections) {
-			if (!sec.title.isEmpty()) {
-				g.drawText(textRenderer, sec.title, x + 1, cy + 1, GOLD, false);
+		for (SheetFormat.Section sec : sections(sc, page, ci)) {
+			String hideKey = "section:" + page.id + "/" + sec.id;
+			boolean hidden = sc.character.hidden.contains(hideKey);
+			if (!sec.title.isEmpty() || customize) {
+				if (cy + 11 > y && cy < y + h) {
+					g.drawText(textRenderer, tr(sec.title.isEmpty() ? sec.id : sec.title), x + 1, cy + 1, hidden ? DIM : GOLD, false);
+					if (customize) {
+						int bx = x + w - 3 - 28;
+						eye(g, sc, hideKey, bx, cy + 2, hidden, "Show / hide this section");
+						smallArrow(g, "^", () -> moveSection(sc, page, ci, sec, -1), x + w - 3 - 17, cy + 1, "Move up");
+						smallArrow(g, "v", () -> moveSection(sc, page, ci, sec, 1), x + w - 3 - 9, cy + 1, "Move down");
+					}
+				}
 				cy += 11;
 			}
+			if (hidden) {
+				cy += 4;
+				continue;
+			}
 			for (SheetFormat.Item it : sec.items) {
+				if (!sc.enabled(it.enabled)) continue;
 				cy += drawItem(g, sc, it, x, cy, w, y, y + h) + 1;
 			}
 			cy += 4;
@@ -450,11 +605,19 @@ public final class CharacterSheetScreen extends Screen {
 		return Math.max(0, content - h);
 	}
 
+	private void smallArrow(DrawContext g, String text, Runnable action, int x, int y, String tip) {
+		boolean over = hit(x, y, 8, 9, action, tip);
+		g.drawText(textRenderer, text, x + 1, y + 1, over ? 0xFFFFFFFF : MUTED, false);
+	}
+
 	/** One row of a section. Returns its height. */
 	private int drawItem(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
+		if (it.widget.equals("pips") || it.widget.equals("counter")) {
+			return drawTracker(g, sc, it, x, y, w, clipTop, clipBottom);
+		}
 		boolean hasText = !it.text.isEmpty();
 		List<OrderedText> lines = hasText
-				? textRenderer.wrapLines(StringVisitable.plain(it.text), (int) ((w - 8) / 0.75f)) : List.of();
+				? textRenderer.wrapLines(StringVisitable.plain(tr(it.text)), (int) ((w - 8) / 0.75f)) : List.of();
 		boolean hasSub = !it.sub.isEmpty();
 		int h = hasText ? 12 + lines.size() * 7 + 3 : hasSub ? 19 : 13;
 		if (y + h <= clipTop || y >= clipBottom) return h;
@@ -467,8 +630,8 @@ public final class CharacterSheetScreen extends Screen {
 		int bx = x + w - 3;
 		for (int i = count - 1; i >= 0; i--) {
 			SheetFormat.Button b = it.buttons.get(i);
-			String t = b.before + (b.value != null ? sc.show(b.value, b.signed) : "")
-					+ (b.label.isEmpty() ? "" : (b.value != null || !b.before.isEmpty() ? " " : "") + b.label);
+			String t = tr(b.before) + (b.value != null ? sc.show(b.value, b.signed) : "")
+					+ (b.label.isEmpty() ? "" : (b.value != null || !b.before.isEmpty() ? " " : "") + tr(b.label));
 			texts[i] = t;
 			bws[i] = tw(t) + 6;
 			bx -= bws[i];
@@ -487,14 +650,29 @@ public final class CharacterSheetScreen extends Screen {
 		g.fill(x, y, x + 1, y + h, EDGE);
 
 		int tx = x + 4;
-		if (it.mark != null) {
+		if (it.widget.equals("cycle") && it.store != null) {
+			// a proficiency-style marker the player can step through (e.g. none / half / full / expertise)
+			double now = stored(sc, it.store);
+			hit(x + 1, y, 11, Math.min(h, 13), () -> {
+				int at = 0;
+				for (int k = 0; k < it.cycle.length; k++) if (Math.abs(it.cycle[k] - now) < 1.0E-6) at = k;
+				setStored(sc, it.store, it.cycle[(at + 1) % it.cycle.length]);
+			}, "Click to change (" + numberText(now) + ")");
+			double top = it.cycle[it.cycle.length - 1];
+			g.fill(x + 3, y + 4, x + 10, y + 11, now > 0 ? GOLD : 0xFF5A616C);
+			g.fill(x + 4, y + 5, x + 9, y + 10, PANEL);
+			if (now >= top && now > 0) g.fill(x + 4, y + 5, x + 9, y + 10, GOLD);
+			else if (now > 0 && now < top) g.fill(x + 4, y + 5, x + 9, y + 5 + Math.max(2, Math.round(5 * (float) (now / top))), GOLD);
+			if (now > 1) g.fill(x + 5, y + 6, x + 8, y + 9, 0xFF14161A);
+			tx = x + 14;
+		} else if (it.mark != null) {
 			boolean on = sc.number(it.mark) > 0;
 			g.fill(x + 3, y + 4, x + 8, y + 9, on ? GOLD : 0xFF5A616C);
 			if (!on) g.fill(x + 4, y + 5, x + 7, y + 8, PANEL);
 			tx = x + 11;
 		}
 
-		String label = textRenderer.trimToWidth(it.label, Math.max(10, free - tx - (it.value != null ? 28 : 4)));
+		String label = textRenderer.trimToWidth(tr(it.label), Math.max(10, free - tx - (it.value != null ? 28 : 4)));
 		g.drawText(textRenderer, label, tx, y + 3, 0xFFE8E6E1, false);
 
 		if (it.value != null) {
@@ -511,7 +689,7 @@ public final class CharacterSheetScreen extends Screen {
 			ms.push();
 			ms.translate(tx, y + 12, 0);
 			ms.scale(0.75f, 0.75f, 1.0f);
-			g.drawText(textRenderer, it.sub, 0, 0, MUTED, false);
+			g.drawText(textRenderer, tr(it.sub), 0, 0, MUTED, false);
 			ms.pop();
 		}
 		if (hasText) {
@@ -537,11 +715,51 @@ public final class CharacterSheetScreen extends Screen {
 		return h;
 	}
 
+	/** Pips (spell slots, inspiration, death saves...) and counters: rows that edit a stored number. */
+	private int drawTracker(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
+		int h = 13;
+		if (y + h <= clipTop || y >= clipBottom || it.store == null) return h;
+		g.fill(x, y, x + w, y + h, PANEL);
+		g.fill(x, y, x + 1, y + h, EDGE);
+		double max = it.max == null ? 0 : sc.number(it.max);
+		double now = stored(sc, it.store);
+		g.drawText(textRenderer, textRenderer.trimToWidth(tr(it.label), w - 70), x + 4, y + 3, 0xFFE8E6E1, false);
+
+		if (it.widget.equals("pips")) {
+			int n = (int) Math.max(0, Math.min(12, Double.isNaN(max) ? 0 : max));
+			int px = x + w - 4 - n * 9;
+			for (int i = 0; i < n; i++) {
+				final int idx = i;
+				boolean filled = i < now;
+				hit(px + i * 9, y + 2, 9, 9, () -> setStored(sc, it.store, idx + 1 == (int) now ? idx : idx + 1), tr(it.label) + ": " + numberText(now) + " / " + n);
+				g.fill(px + i * 9, y + 3, px + i * 9 + 7, y + 10, it.color);
+				g.fill(px + i * 9 + 1, y + 4, px + i * 9 + 6, y + 9, filled ? it.color : PANEL);
+			}
+		} else {
+			int bx = x + w - 3;
+			String shown = numberText(now) + (max > 0 ? " / " + numberText(max) : "");
+			bx -= smallStep(g, sc, it, "+", 1, bx - 11, y + 1);
+			bx -= tw(shown) + 6;
+			g.drawText(textRenderer, shown, bx + 3, y + 3, 0xFFFFFFFF, true);
+			smallStep(g, sc, it, "-", -1, bx - 11, y + 1);
+		}
+		return h;
+	}
+
+	private int smallStep(DrawContext g, SheetContext sc, SheetFormat.Item it, String text, int direction, int x, int y) {
+		boolean over = hit(x, y, 11, 11, () -> adjust(sc, it.store, it.max == null ? "0" : it.max, direction * step()),
+				"Shift: 5, Ctrl: 10");
+		g.fill(x, y, x + 11, y + 11, EDGE);
+		g.fill(x + 1, y + 1, x + 10, y + 10, over ? PANEL_HOVER : PANEL);
+		g.drawCenteredTextWithShadow(textRenderer, text, x + 5, y + 2, 0xFFFFFFFF);
+		return 11;
+	}
+
 	private void drawFooter(DrawContext g, int x, int y, int w) {
 		g.fill(x, y, x + w, y + FOOT_H, 0xFF0F1114);
 		g.fill(x, y, x + w, y + 1, EDGE);
 		boolean flashing = System.currentTimeMillis() < flashUntil;
-		g.drawText(textRenderer, flashing ? flash : "Click a value or button to roll. HP: click - or + (Shift = 5).", x + 6, y + 2,
+		g.drawText(textRenderer, flashing ? flash : "Click a value or button to roll. +/-: Shift = 5, Ctrl = 10.", x + 6, y + 2,
 				flashing ? 0xFF7CE08A : DIM, false);
 		if (!flashing && !SheetLibrary.PROBLEMS.isEmpty()) {
 			String p = SheetLibrary.PROBLEMS.size() + " problem(s): see Formats";
@@ -588,7 +806,7 @@ public final class CharacterSheetScreen extends Screen {
 				dy += 9;
 			}
 			dy += 4;
-			g.drawText(textRenderer, f.pages.size() + " page(s), " + f.derived.size() + " calculated value(s)", px, dy, MUTED, false);
+			g.drawText(textRenderer, f.layouts.size() + " sheet type(s), " + f.derived.size() + " calculated value(s)", px, dy, MUTED, false);
 			dy += 14;
 		}
 
@@ -630,6 +848,7 @@ public final class CharacterSheetScreen extends Screen {
 		if (sc == null) return;
 		view = View.EDITOR;
 		editFormat = sc.format;
+		editKind = sc.character.kind;
 		editChar = sc.character;
 		deleteArmed = false;
 		formValues.clear();
@@ -644,8 +863,9 @@ public final class CharacterSheetScreen extends Screen {
 		rebuildForm();
 	}
 
-	private void chooseFormat(SheetFormat format) {
+	private void chooseFormat(SheetFormat format, String kind) {
 		editFormat = format;
+		editKind = kind;
 		formValues.clear();
 		for (SheetFormat.Field f : format.editableFields()) {
 			formValues.put(f.id(), f.def());
@@ -665,6 +885,15 @@ public final class CharacterSheetScreen extends Screen {
 		CharacterData c = new CharacterData();
 		c.format = editFormat.id;
 		c.file = editChar == null ? "" : editChar.file;
+		c.kind = editKind;
+		if (editChar != null) {
+			// editing must not lose the layout choices made on the sheet itself
+			c.theme = editChar.theme;
+			c.hidden.addAll(editChar.hidden);
+			c.order.putAll(editChar.order);
+			// values the form does not offer (trackers such as death saves) stay as they were
+			for (Map.Entry<String, Double> e : editChar.values.entrySet()) c.values.putIfAbsent(e.getKey(), e.getValue());
+		}
 		for (SheetFormat.Field f : editFormat.editableFields()) {
 			String raw = formValues.getOrDefault(f.id(), f.def()).trim();
 			if (f.isText()) {
@@ -787,7 +1016,7 @@ public final class CharacterSheetScreen extends Screen {
 		// top strip: format name and the buttons
 		g.fill(x, y, x + w, y + 18, 0xFF12151A);
 		g.fill(x, y + 17, x + w, y + 18, EDGE);
-		g.drawText(textRenderer, "Format: " + editFormat.name, x + 8, y + 5, GOLD, false);
+		g.drawText(textRenderer, "Format: " + tr(editFormat.name) + (editFormat.layouts.size() > 1 ? "  (" + tr(editFormat.layout(editKind).name) + ")" : ""), x + 8, y + 5, GOLD, false);
 		int rx = x + w - 6;
 		rx -= smallButton(g, rx - tw("Save") - 8, y + 3, "Save", this::saveEdit, "Write the character to its file", 0xFF1E4A25, 0xFF3CB84A) + 4;
 		rx -= smallButton(g, rx - tw("Cancel") - 6, y + 3, "Cancel", this::cancelEdit, "Throw away changes (Esc)", PANEL, 0xFF3B414C) + 4;
@@ -831,26 +1060,27 @@ public final class CharacterSheetScreen extends Screen {
 
 	private void drawFormatChooser(DrawContext g, int x, int y, int w, int h) {
 		g.drawText(textRenderer, "Which game is this character for?", x + 8, y + 7, GOLD, false);
-		List<SheetFormat> formats = new ArrayList<>(SheetLibrary.FORMATS.values());
 		int ly = y + 20;
-		for (SheetFormat f : formats) {
-			boolean over = hit(x + 6, ly, w - 12, 34, () -> chooseFormat(f), null);
-			g.fill(x + 6, ly, x + w - 6, ly + 34, EDGE);
-			g.fill(x + 7, ly + 1, x + w - 7, ly + 33, over ? PANEL_HOVER : PANEL);
-			g.drawText(textRenderer, f.name, x + 12, ly + 4, 0xFFE8E6E1, false);
-			var ms = g.getMatrices();
-			ms.push();
-			ms.translate(x + 12, ly + 16, 0);
-			ms.scale(0.75f, 0.75f, 1.0f);
-			int dy = 0;
-			for (OrderedText line : textRenderer.wrapLines(StringVisitable.plain(f.description), (int) ((w - 30) / 0.75f))) {
-				if (dy > 18) break;
-				g.drawText(textRenderer, line, 0, dy, MUTED, false);
-				dy += 9;
+		for (SheetFormat f : SheetLibrary.FORMATS.values()) {
+			for (SheetFormat.Layout lay : f.layouts.values()) {
+				boolean over = hit(x + 6, ly, w - 12, 34, () -> chooseFormat(f, lay.kind), null);
+				g.fill(x + 6, ly, x + w - 6, ly + 34, EDGE);
+				g.fill(x + 7, ly + 1, x + w - 7, ly + 33, over ? PANEL_HOVER : PANEL);
+				g.drawText(textRenderer, tr(f.name) + (f.layouts.size() > 1 ? "  -  " + tr(lay.name) : ""), x + 12, ly + 4, 0xFFE8E6E1, false);
+				var ms = g.getMatrices();
+				ms.push();
+				ms.translate(x + 12, ly + 16, 0);
+				ms.scale(0.75f, 0.75f, 1.0f);
+				int dy = 0;
+				for (OrderedText line : textRenderer.wrapLines(StringVisitable.plain(tr(f.description)), (int) ((w - 30) / 0.75f))) {
+					if (dy > 18) break;
+					g.drawText(textRenderer, line, 0, dy, MUTED, false);
+					dy += 9;
+				}
+				ms.pop();
+				ly += 38;
+				if (ly > y + h - 30) break;
 			}
-			ms.pop();
-			ly += 38;
-			if (ly > y + h - 30) break;
 		}
 		smallButton(g, x + 8, y + h - 18, "Cancel", this::cancelEdit, null, PANEL, 0xFF3B414C);
 	}
@@ -927,7 +1157,9 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		SheetContext sc = view != View.SHEET ? null : sheet();
 		if (sc != null) {
-			SheetFormat.Page page = sc.format.pages.get(MathHelper.clamp(pageIndex, 0, sc.format.pages.size() - 1));
+			List<SheetFormat.Page> visible = pages(sc);
+			if (visible.isEmpty()) return super.mouseScrolled(mx, my, horizontal, vertical);
+			SheetFormat.Page page = visible.get(MathHelper.clamp(pageIndex, 0, visible.size() - 1));
 			float totalWeight = 0;
 			for (SheetFormat.Column c : page.columns) totalWeight += c.weight;
 			int w = Math.min(WIN_W, width - 8);

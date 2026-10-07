@@ -27,10 +27,22 @@ Folders (created on first run, under the game's `config/` folder):
 | `fields` | the inputs of the New / Edit form: `id`, `label`, `type` (`number`, or `text` for name-like values), `group` (heading) and `default`. If left out, the form is built from the names your formulas use |
 | `defaults` | values a character may leave out, e.g. `"sp_dex": 0` for "not proficient" |
 | `derived` | calculated values, `name: formula`, in any order; they may use each other |
-| `header` | `title` / `subtitle` templates (`$name`, `$subtitle` come from the character's `text`), `bars` (`label`, `value`, `max`, `color`) and `badges` (`label`, `value`, `signed`) |
-| `pages` | tabs; each has `columns` (with a `weight`), each with `sections` (`title`, `items`) |
+| `theme` | id of the colour theme this format prefers (see Themes) |
+| `sheets` | the kinds of sheet this game has, e.g. `character` and `npc`. Each has `kind`, `name`, a `header` and `pages`. (A format with just a top-level `header` and `pages` is one `character` sheet.) |
+| `header` | `title` / `subtitle` templates (`$name`, `$subtitle` come from the character's `text`), `bars` (`label`, `value`, `max`, `temp`, `color`) and `badges` (`label`, `value`, `signed`). A bar whose `value` is a stored number gets -/+ buttons; negative changes are soaked up by the `temp` value first |
+| `pages` | tabs: `id`, `title`, optional `enabled`; each has `columns` (with a `weight`), each with `sections` (`id`, `title`, optional `enabled`, `items`) |
 
 An **item** is one row: `label`, `sub` (small text), `text` (a wrapped paragraph), `value` (formula shown on the right, `signed` adds +/-), `mark` (formula; a gold square when above 0), `roll` (formula; clicking the row rolls it), `rollLabel` (name shown in chat), and `buttons`.
+
+**Widgets** (`widget` on an item):
+
+| widget | what it does | keys |
+| --- | --- | --- |
+| `pips` | a row of squares for a stored number (spell slots, inspiration, death saves...); click a pip to set it | `store`, `max`, `color` |
+| `counter` | a stored number with -/+ (exhaustion, hit dice...); Shift = 5, Ctrl = 10 | `store`, `max` |
+| `cycle` | a normal row with a clickable proficiency marker that steps through values | `store`, `cycle` (e.g. `[0, 0.5, 1, 2]`) |
+
+Every stored name a widget uses should have a `defaults` entry (or a character value).
 
 A **button** has `before` (text before the number), `value` (+ `signed`), `label` (text after), `roll`, `rollLabel`.
 
@@ -41,3 +53,29 @@ Numbers, names, `+ - * / ( )`, and `floor() ceil() round() abs() min() max()`.
 Roll formulas additionally contain exactly one dice term, which may only be added: `d20 + str_mod + prof`, `2d6 + 3`, `d%`. Dice are d4, d6, d8, d10, d% (d100), d12 and d20. Single d20 rolls obey the window's Normal / Advantage / Disadvantage setting.
 
 See `src/main/resources/assets/tacticalcombat/sheets/` for two complete examples.
+
+## `enabled`
+
+Pages, sections and items may carry an `enabled` formula; they are shown when it is above 0. Use it to show a spell page only for casters: `"enabled": "spell_slots_total"`.
+
+## Themes
+
+A theme is a `.json` of colour overrides (`bg`, `panel`, `panel_hover`, `edge`, `accent`, `muted`, `dim`, `banner_a`, `banner_b`, `roll_bg`, `roll_edge`; hex colours):
+
+```json
+{ "id": "ember", "name": "Ember", "colors": { "banner_a": "#4a1a05", "banner_b": "#b5470f", "accent": "#ffb347" } }
+```
+
+Put it in `config/tacticalcombat/themes/`. A character uses the theme chosen with **Layout** > **Theme** on the sheet, else its format's `theme`, else crimson. Built in: crimson, forest, azure, violet.
+
+## Layout mode
+
+**Layout** in the tab bar lets each character hide tabs and sections (the eye icons), move sections up and down, and change theme. These choices are saved in the character's file under `ui`.
+
+## Translation keys
+
+Any text in a format that looks like a translation key (`mygame.skill.stealth`: no spaces, contains a dot) is looked up in the game's language files and shown translated; otherwise it is shown as written.
+
+## Sheet kinds
+
+When a format has more than one sheet kind, **New** lists each (e.g. "Generic d20 - NPC / monster"). A character remembers its kind in `"kind"`.

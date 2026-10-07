@@ -182,5 +182,6 @@
       "group": "Skills (percent)",
       "default": 20
     }
-  ]
+  ],
+  "theme": "azure"
 }

@@ -1,0 +1,15 @@
+{
+  "id": "azure",
+  "name": "Azure",
+  "colors": {
+    "banner_a": "#10284f",
+    "banner_b": "#1f56a3",
+    "accent": "#7cc4ff",
+    "roll_bg": "#14202e",
+    "roll_edge": "#3b6a9a",
+    "bg": "#161a20",
+    "panel": "#1d232c",
+    "panel_hover": "#283240",
+    "edge": "#2b3340"
+  }
+}

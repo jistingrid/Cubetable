@@ -10,6 +10,14 @@ import java.util.Map;
 public final class CharacterData {
 	public String file = "";
 	public String format = "";
+	/** Which layout of the format this character uses ("character", "npc", ...). */
+	public String kind = SheetFormat.DEFAULT_KIND;
+	/** Theme id; empty = the format's own theme. */
+	public String theme = "";
+	/** Hidden pages ("page:<id>") and sections ("section:<page>/<id>") of this character's sheet. */
+	public final java.util.Set<String> hidden = new java.util.LinkedHashSet<>();
+	/** Section order per column ("<page>/<column index>" -> section ids); sections not listed keep their place after. */
+	public final Map<String, java.util.List<String>> order = new java.util.LinkedHashMap<>();
 	public final Map<String, String> texts = new HashMap<>();
 	public final Map<String, Double> values = new HashMap<>();
 
@@ -18,6 +26,19 @@ public final class CharacterData {
 		c.file = file;
 		c.format = o.has("format") ? o.get("format").getAsString() : "";
 		if (c.format.isBlank()) throw new IllegalArgumentException("missing \"format\"");
+		if (o.has("kind")) c.kind = o.get("kind").getAsString().toLowerCase();
+		if (o.has("theme")) c.theme = o.get("theme").getAsString().toLowerCase();
+		if (o.has("ui") && o.get("ui").isJsonObject()) {
+			JsonObject ui = o.getAsJsonObject("ui");
+			if (ui.has("hidden")) for (JsonElement e : ui.getAsJsonArray("hidden")) c.hidden.add(e.getAsString());
+			if (ui.has("order")) {
+				for (Map.Entry<String, JsonElement> e : ui.getAsJsonObject("order").entrySet()) {
+					java.util.List<String> ids = new java.util.ArrayList<>();
+					for (JsonElement id : e.getValue().getAsJsonArray()) ids.add(id.getAsString());
+					c.order.put(e.getKey(), ids);
+				}
+			}
+		}
 		if (o.has("text")) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("text").entrySet()) {
 				c.texts.put(e.getKey().toLowerCase(), e.getValue().getAsString());
@@ -34,6 +55,8 @@ public final class CharacterData {
 	public JsonObject toJson() {
 		JsonObject o = new JsonObject();
 		o.addProperty("format", format);
+		if (!kind.equals(SheetFormat.DEFAULT_KIND)) o.addProperty("kind", kind);
+		if (!theme.isEmpty()) o.addProperty("theme", theme);
 		JsonObject t = new JsonObject();
 		new java.util.TreeMap<>(texts).forEach(t::addProperty);
 		o.add("text", t);
@@ -43,6 +66,24 @@ public final class CharacterData {
 			else v.addProperty(k, d);
 		});
 		o.add("values", v);
+		if (!hidden.isEmpty() || !order.isEmpty()) {
+			JsonObject ui = new JsonObject();
+			if (!hidden.isEmpty()) {
+				com.google.gson.JsonArray a = new com.google.gson.JsonArray();
+				hidden.forEach(a::add);
+				ui.add("hidden", a);
+			}
+			if (!order.isEmpty()) {
+				JsonObject ord = new JsonObject();
+				order.forEach((k, ids) -> {
+					com.google.gson.JsonArray a = new com.google.gson.JsonArray();
+					ids.forEach(a::add);
+					ord.add(k, a);
+				});
+				ui.add("order", ord);
+			}
+			o.add("ui", ui);
+		}
 		return o;
 	}
 

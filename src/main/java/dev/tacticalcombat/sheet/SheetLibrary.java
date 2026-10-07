@@ -24,11 +24,13 @@ import java.util.stream.Stream;
  */
 public final class SheetLibrary {
 	private static final String RES = "/assets/tacticalcombat/sheets/";
+	private static final String[] BUILT_IN_THEMES = {"theme_crimson", "theme_forest", "theme_azure", "theme_violet"};
 	private static final String[] BUILT_IN_FORMATS = {"generic_d20", "percentile"};
 	private static final String[][] EXAMPLE_CHARACTERS = {
 			{"example_character", "brannoc_veyle.json"}, {"example_character_percentile", "ines_marlowe.json"}};
 
 	public static final Map<String, SheetFormat> FORMATS = new LinkedHashMap<>();
+	public static final Map<String, Theme> THEMES = new LinkedHashMap<>();
 	public static final List<CharacterData> CHARACTERS = new ArrayList<>();
 	/** Files that could not be read, with the reason; shown in the window so a typo is easy to find. */
 	public static final List<String> PROBLEMS = new ArrayList<>();
@@ -39,15 +41,35 @@ public final class SheetLibrary {
 		return FabricLoader.getInstance().getConfigDir().resolve("tacticalcombat").resolve("sheets");
 	}
 
+	public static Path themesDir() {
+		return FabricLoader.getInstance().getConfigDir().resolve("tacticalcombat").resolve("themes");
+	}
+
+	public static Theme theme(String id) {
+		Theme t = id == null ? null : THEMES.get(id.toLowerCase(java.util.Locale.ROOT));
+		if (t == null) t = THEMES.get(Theme.DEFAULT_ID);
+		return t != null ? t : Theme.fallback();
+	}
+
 	public static Path charactersDir() {
 		return FabricLoader.getInstance().getConfigDir().resolve("tacticalcombat").resolve("characters");
 	}
 
 	public static void reload() {
 		FORMATS.clear();
+		THEMES.clear();
 		CHARACTERS.clear();
 		PROBLEMS.clear();
 
+		for (String name : BUILT_IN_THEMES) {
+			try (InputStream in = SheetLibrary.class.getResourceAsStream(RES + name + ".json")) {
+				if (in == null) continue;
+				Theme t = Theme.parse(readObject(in), name);
+				THEMES.put(t.id, t);
+			} catch (Exception e) {
+				PROBLEMS.add("built-in " + name + ": " + e.getMessage());
+			}
+		}
 		for (String name : BUILT_IN_FORMATS) {
 			try (InputStream in = SheetLibrary.class.getResourceAsStream(RES + name + ".json")) {
 				if (in == null) continue;
@@ -61,6 +83,7 @@ public final class SheetLibrary {
 		try {
 			Files.createDirectories(sheetsDir());
 			Files.createDirectories(charactersDir());
+			Files.createDirectories(themesDir());
 			seedExamples();
 		} catch (IOException e) {
 			PROBLEMS.add("config folder: " + e.getMessage());
@@ -70,6 +93,14 @@ public final class SheetLibrary {
 			try (Reader r = Files.newBufferedReader(p, StandardCharsets.UTF_8)) {
 				SheetFormat f = SheetFormat.parse(JsonParser.parseReader(r).getAsJsonObject(), p.getFileName().toString());
 				FORMATS.put(f.id, f);
+			} catch (Exception e) {
+				PROBLEMS.add(p.getFileName() + ": " + e.getMessage());
+			}
+		}
+		for (Path p : jsonFiles(themesDir())) {
+			try (Reader r = Files.newBufferedReader(p, StandardCharsets.UTF_8)) {
+				Theme t = Theme.parse(JsonParser.parseReader(r).getAsJsonObject(), p.getFileName().toString().replace(".json", ""));
+				THEMES.put(t.id, t);
 			} catch (Exception e) {
 				PROBLEMS.add(p.getFileName() + ": " + e.getMessage());
 			}

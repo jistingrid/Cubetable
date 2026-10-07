@@ -6,26 +6,37 @@ import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A sheet format: a data file describing one game's character sheet (what is calculated, what is shown, what each
  * button rolls). The in-game window knows nothing about any particular game; it only draws a format.
+ *
+ * A format has one or more <b>layouts</b> (kinds of sheet: "character", "npc", ...). They share the format's
+ * calculated values and inputs but each has its own header and pages.
  */
 public final class SheetFormat {
+	public static final String DEFAULT_KIND = "character";
+
 	public String id;
 	public String name = "";
 	public String description = "";
+	/** Name of the colour theme this format prefers (see {@link Theme}); may be empty. */
+	public String theme = "";
 	/** Calculated values, in file order: name -> formula. */
 	public final Map<String, String> derived = new LinkedHashMap<>();
 	/** Values a character may leave out (flags such as "not proficient" = 0). */
 	public final Map<String, Double> defaults = new LinkedHashMap<>();
-	public final List<Bar> bars = new ArrayList<>();
-	public final List<Badge> badges = new ArrayList<>();
-	public String titleTemplate = "$name";
-	public String subtitleTemplate = "$subtitle";
-	public final List<Page> pages = new ArrayList<>();
+	/** Declared inputs; when a format declares none, they are worked out from the names its formulas use. */
+	public final List<Field> fields = new ArrayList<>();
+	/** kind -> layout, in file order. The first one is the default. */
+	public final Map<String, Layout> layouts = new LinkedHashMap<>();
 	/** Where it came from, for messages ("built in" or a file name). */
 	public String source = "";
 
@@ -36,15 +47,26 @@ public final class SheetFormat {
 		}
 	}
 
-	/** Declared inputs; when a format declares none, they are worked out from the names its formulas use. */
-	public final List<Field> fields = new ArrayList<>();
-
-	public record Bar(String label, String value, String max, int color) {}
+	public record Bar(String label, String value, String max, String temp, int color) {}
 
 	public record Badge(String label, String value, boolean signed) {}
 
+	/** One kind of sheet: a header plus pages. */
+	public static final class Layout {
+		public String kind = DEFAULT_KIND;
+		public String name = "Character";
+		public String titleTemplate = "$name";
+		public String subtitleTemplate = "$subtitle";
+		public final List<Bar> bars = new ArrayList<>();
+		public final List<Badge> badges = new ArrayList<>();
+		public final List<Page> pages = new ArrayList<>();
+	}
+
 	public static final class Page {
+		public String id = "";
 		public String title = "";
+		/** Formula; the page is shown when it is above 0 (or not calculable). Null = always. */
+		public String enabled;
 		public final List<Column> columns = new ArrayList<>();
 	}
 
@@ -54,11 +76,13 @@ public final class SheetFormat {
 	}
 
 	public static final class Section {
+		public String id = "";
 		public String title = "";
+		public String enabled;
 		public final List<Item> items = new ArrayList<>();
 	}
 
-	/** One row: optional mark, label, small text, a calculated value, and roll buttons. */
+	/** One row: optional mark, label, small text, a calculated value, roll buttons, or a widget. */
 	public static final class Item {
 		public String label = "";
 		public String sub = "";
@@ -70,7 +94,18 @@ public final class SheetFormat {
 		/** Clicking the row rolls this. */
 		public String roll;
 		public String rollLabel;
+		public String enabled;
 		public final List<Button> buttons = new ArrayList<>();
+
+		/** "" (plain row), "pips", "counter" or "cycle". */
+		public String widget = "";
+		/** Stored value a widget edits (pips, counter, cycle). */
+		public String store;
+		/** Formula for the most a pips / counter widget can reach. */
+		public String max;
+		public int color = 0;
+		/** Cycle widget: the values a click steps through. */
+		public double[] cycle = {0, 1};
 	}
 
 	public static final class Button {
@@ -83,6 +118,13 @@ public final class SheetFormat {
 		public String rollLabel;
 	}
 
+	// ------------------------------------------------------------------ access
+
+	public Layout layout(String kind) {
+		Layout l = layouts.get(kind == null || kind.isEmpty() ? DEFAULT_KIND : kind);
+		return l != null ? l : layouts.values().iterator().next();
+	}
+
 	// ------------------------------------------------------------------ parsing
 
 	public static SheetFormat parse(JsonObject o, String source) {
@@ -92,41 +134,64 @@ public final class SheetFormat {
 		if (f.id == null || f.id.isBlank()) throw new IllegalArgumentException("missing \"id\"");
 		f.name = str(o, "name", f.id);
 		f.description = str(o, "description", "");
+		f.theme = str(o, "theme", "");
 
 		if (o.has("derived")) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("derived").entrySet()) {
-				f.derived.put(e.getKey().toLowerCase(), e.getValue().getAsString());
+				f.derived.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
 			}
 		}
 		for (JsonElement e : arr(o, "fields")) {
 			JsonObject fo = e.getAsJsonObject();
 			String fid = str(fo, "id", null);
 			if (fid == null) continue;
-			f.fields.add(new Field(fid.toLowerCase(), str(fo, "label", fid), str(fo, "type", "number"),
+			f.fields.add(new Field(fid.toLowerCase(Locale.ROOT), str(fo, "label", fid), str(fo, "type", "number"),
 					str(fo, "group", "Values"), str(fo, "default", "0")));
 		}
 		if (o.has("defaults")) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("defaults").entrySet()) {
-				f.defaults.put(e.getKey().toLowerCase(), e.getValue().getAsDouble());
+				f.defaults.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsDouble());
 			}
 		}
+
+		// "sheets": [ {kind, name, header, pages}, ... ]. A format with just top-level header / pages is one
+		// "character" layout (the original, still supported shape).
+		if (o.has("sheets")) {
+			for (JsonElement e : o.getAsJsonArray("sheets")) {
+				Layout l = parseLayout(e.getAsJsonObject());
+				f.layouts.put(l.kind, l);
+			}
+		} else {
+			f.layouts.put(DEFAULT_KIND, parseLayout(o));
+		}
+		if (f.layouts.isEmpty()) throw new IllegalArgumentException("no sheets");
+		return f;
+	}
+
+	private static Layout parseLayout(JsonObject o) {
+		Layout l = new Layout();
+		l.kind = str(o, "kind", DEFAULT_KIND).toLowerCase(Locale.ROOT);
+		l.name = str(o, "name", l.kind.substring(0, 1).toUpperCase(Locale.ROOT) + l.kind.substring(1));
 		if (o.has("header")) {
 			JsonObject h = o.getAsJsonObject("header");
-			f.titleTemplate = str(h, "title", f.titleTemplate);
-			f.subtitleTemplate = str(h, "subtitle", f.subtitleTemplate);
+			l.titleTemplate = str(h, "title", l.titleTemplate);
+			l.subtitleTemplate = str(h, "subtitle", l.subtitleTemplate);
 			for (JsonElement e : arr(h, "bars")) {
 				JsonObject b = e.getAsJsonObject();
-				f.bars.add(new Bar(str(b, "label", ""), str(b, "value", "0"), str(b, "max", "0"), color(str(b, "color", "#3cb84a"))));
+				l.bars.add(new Bar(str(b, "label", ""), str(b, "value", "0"), str(b, "max", "0"), str(b, "temp", null),
+						color(str(b, "color", "#3cb84a"))));
 			}
 			for (JsonElement e : arr(h, "badges")) {
 				JsonObject b = e.getAsJsonObject();
-				f.badges.add(new Badge(str(b, "label", ""), str(b, "value", "0"), bool(b, "signed")));
+				l.badges.add(new Badge(str(b, "label", ""), str(b, "value", "0"), bool(b, "signed")));
 			}
 		}
 		for (JsonElement pe : arr(o, "pages")) {
 			JsonObject po = pe.getAsJsonObject();
 			Page page = new Page();
 			page.title = str(po, "title", "Sheet");
+			page.id = str(po, "id", slug(page.title));
+			page.enabled = str(po, "enabled", null);
 			for (JsonElement ce : arr(po, "columns")) {
 				JsonObject co = ce.getAsJsonObject();
 				Column col = new Column();
@@ -135,6 +200,8 @@ public final class SheetFormat {
 					JsonObject so = se.getAsJsonObject();
 					Section sec = new Section();
 					sec.title = str(so, "title", "");
+					sec.id = str(so, "id", slug(sec.title));
+					sec.enabled = str(so, "enabled", null);
 					for (JsonElement ie : arr(so, "items")) {
 						sec.items.add(parseItem(ie.getAsJsonObject()));
 					}
@@ -142,10 +209,10 @@ public final class SheetFormat {
 				}
 				page.columns.add(col);
 			}
-			f.pages.add(page);
+			l.pages.add(page);
 		}
-		if (f.pages.isEmpty()) throw new IllegalArgumentException("no \"pages\"");
-		return f;
+		if (l.pages.isEmpty()) throw new IllegalArgumentException("sheet \"" + l.kind + "\" has no \"pages\"");
+		return l;
 	}
 
 	private static Item parseItem(JsonObject o) {
@@ -158,6 +225,18 @@ public final class SheetFormat {
 		i.mark = str(o, "mark", null);
 		i.roll = str(o, "roll", null);
 		i.rollLabel = str(o, "rollLabel", i.label);
+		i.enabled = str(o, "enabled", null);
+		i.widget = str(o, "widget", "").toLowerCase(Locale.ROOT);
+		String store = str(o, "store", null);
+		i.store = store == null ? null : store.toLowerCase(Locale.ROOT);
+		i.max = str(o, "max", null);
+		i.color = color(str(o, "color", "#e0b84c"));
+		if (o.has("cycle") && o.get("cycle").isJsonArray()) {
+			JsonArray a = o.getAsJsonArray("cycle");
+			i.cycle = new double[a.size()];
+			for (int k = 0; k < a.size(); k++) i.cycle[k] = a.get(k).getAsDouble();
+			if (i.cycle.length == 0) i.cycle = new double[]{0, 1};
+		}
 		for (JsonElement e : arr(o, "buttons")) {
 			JsonObject b = e.getAsJsonObject();
 			Button btn = new Button();
@@ -192,8 +271,14 @@ public final class SheetFormat {
 		}
 	}
 
-	private static final java.util.regex.Pattern NAME = java.util.regex.Pattern.compile("[a-z_][a-z0-9_]*");
-	private static final java.util.Set<String> FUNCTIONS = java.util.Set.of("floor", "ceil", "round", "abs", "min", "max");
+	public static String slug(String s) {
+		return s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("^_+|_+$", "");
+	}
+
+	// ------------------------------------------------------------------ editor inputs
+
+	private static final Pattern NAME = Pattern.compile("[a-z_][a-z0-9_]*");
+	private static final Set<String> FUNCTIONS = Set.of("floor", "ceil", "round", "abs", "min", "max");
 
 	/** The inputs the editor shows: the declared ones, else name / subtitle plus every name the formulas need. */
 	public List<Field> editableFields() {
@@ -201,25 +286,30 @@ public final class SheetFormat {
 		List<Field> out = new ArrayList<>();
 		out.add(new Field("name", "Name", "text", "Identity", "Unnamed"));
 		out.add(new Field("subtitle", "Subtitle", "text", "Identity", ""));
-		java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>(defaults.keySet());
+		LinkedHashSet<String> names = new LinkedHashSet<>(defaults.keySet());
 		List<String> formulas = new ArrayList<>(derived.values());
-		for (Bar b : bars) { formulas.add(b.value()); formulas.add(b.max()); }
-		for (Badge b : badges) formulas.add(b.value());
-		for (Page p : pages) for (Column c : p.columns) for (Section s : c.sections) for (Item i : s.items) {
-			if (i.value != null) formulas.add(i.value);
-			if (i.mark != null) formulas.add(i.mark);
-			if (i.roll != null) formulas.add(i.roll);
-			for (Button b : i.buttons) {
-				if (b.value != null) formulas.add(b.value);
-				if (b.roll != null) formulas.add(b.roll);
+		for (Layout l : layouts.values()) {
+			for (Bar b : l.bars) {
+				formulas.add(b.value());
+				formulas.add(b.max());
+				if (b.temp() != null) formulas.add(b.temp());
+			}
+			for (Badge b : l.badges) formulas.add(b.value());
+			for (Page p : l.pages) for (Column c : p.columns) for (Section s : c.sections) for (Item i : s.items) {
+				for (String x : new String[]{i.value, i.mark, i.roll, i.store, i.max}) {
+					if (x != null) formulas.add(x);
+				}
+				for (Button b : i.buttons) {
+					if (b.value != null) formulas.add(b.value);
+					if (b.roll != null) formulas.add(b.roll);
+				}
 			}
 		}
 		for (String formula : formulas) {
-			java.util.regex.Matcher m = NAME.matcher(formula.toLowerCase());
+			Matcher m = NAME.matcher(formula.toLowerCase(Locale.ROOT));
 			while (m.find()) {
 				String n = m.group();
 				if (FUNCTIONS.contains(n) || n.matches("d\\d*") || derived.containsKey(n)) continue;
-				// the letter of "2d6" is matched as "d6"; names glued to digits are not inputs either
 				names.add(n);
 			}
 		}

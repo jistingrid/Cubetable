@@ -2,479 +2,7 @@
   "id": "generic_d20",
   "name": "Generic d20",
   "description": "Six abilities, skills and weapon attacks. Built in; use it as a starting point for your own format.",
-  "derived": {
-    "str_mod": "floor((str - 10) / 2)",
-    "dex_mod": "floor((dex - 10) / 2)",
-    "con_mod": "floor((con - 10) / 2)",
-    "int_mod": "floor((int - 10) / 2)",
-    "wis_mod": "floor((wis - 10) / 2)",
-    "cha_mod": "floor((cha - 10) / 2)",
-    "save_str": "str_mod + prof * sp_str",
-    "save_dex": "dex_mod + prof * sp_dex",
-    "save_con": "con_mod + prof * sp_con",
-    "save_int": "int_mod + prof * sp_int",
-    "save_wis": "wis_mod + prof * sp_wis",
-    "save_cha": "cha_mod + prof * sp_cha",
-    "skill_acrobatics": "dex_mod + prof * sk_acrobatics",
-    "skill_athletics": "str_mod + prof * sk_athletics",
-    "skill_arcana": "int_mod + prof * sk_arcana",
-    "skill_history": "int_mod + prof * sk_history",
-    "skill_insight": "wis_mod + prof * sk_insight",
-    "skill_intimidation": "cha_mod + prof * sk_intimidation",
-    "skill_investigation": "int_mod + prof * sk_investigation",
-    "skill_perception": "wis_mod + prof * sk_perception",
-    "skill_persuasion": "cha_mod + prof * sk_persuasion",
-    "skill_stealth": "dex_mod + prof * sk_stealth",
-    "skill_survival": "wis_mod + prof * sk_survival",
-    "init": "dex_mod",
-    "atk_str": "str_mod + prof",
-    "atk_dex": "dex_mod + prof"
-  },
-  "header": {
-    "title": "$name",
-    "subtitle": "$subtitle",
-    "bars": [
-      {
-        "label": "HP",
-        "value": "hp",
-        "max": "hp_max",
-        "color": "#3cb84a"
-      }
-    ],
-    "badges": [
-      {
-        "label": "ARMOR",
-        "value": "ac"
-      },
-      {
-        "label": "INIT",
-        "value": "init",
-        "signed": true
-      },
-      {
-        "label": "PROF",
-        "value": "prof",
-        "signed": true
-      }
-    ]
-  },
-  "pages": [
-    {
-      "title": "Sheet",
-      "columns": [
-        {
-          "weight": 1.0,
-          "sections": [
-            {
-              "title": "ABILITIES",
-              "items": [
-                {
-                  "label": "STR",
-                  "sub": "Strength",
-                  "value": "str_mod",
-                  "signed": true,
-                  "roll": "d20 + str_mod",
-                  "rollLabel": "Strength check",
-                  "buttons": [
-                    {
-                      "label": "Save",
-                      "value": "save_str",
-                      "signed": true,
-                      "roll": "d20 + save_str",
-                      "rollLabel": "Strength save"
-                    }
-                  ],
-                  "mark": "sp_str"
-                },
-                {
-                  "label": "DEX",
-                  "sub": "Dexterity",
-                  "value": "dex_mod",
-                  "signed": true,
-                  "roll": "d20 + dex_mod",
-                  "rollLabel": "Dexterity check",
-                  "buttons": [
-                    {
-                      "label": "Save",
-                      "value": "save_dex",
-                      "signed": true,
-                      "roll": "d20 + save_dex",
-                      "rollLabel": "Dexterity save"
-                    }
-                  ],
-                  "mark": "sp_dex"
-                },
-                {
-                  "label": "CON",
-                  "sub": "Constitution",
-                  "value": "con_mod",
-                  "signed": true,
-                  "roll": "d20 + con_mod",
-                  "rollLabel": "Constitution check",
-                  "buttons": [
-                    {
-                      "label": "Save",
-                      "value": "save_con",
-                      "signed": true,
-                      "roll": "d20 + save_con",
-                      "rollLabel": "Constitution save"
-                    }
-                  ],
-                  "mark": "sp_con"
-                },
-                {
-                  "label": "INT",
-                  "sub": "Intelligence",
-                  "value": "int_mod",
-                  "signed": true,
-                  "roll": "d20 + int_mod",
-                  "rollLabel": "Intelligence check",
-                  "buttons": [
-                    {
-                      "label": "Save",
-                      "value": "save_int",
-                      "signed": true,
-                      "roll": "d20 + save_int",
-                      "rollLabel": "Intelligence save"
-                    }
-                  ],
-                  "mark": "sp_int"
-                },
-                {
-                  "label": "WIS",
-                  "sub": "Wisdom",
-                  "value": "wis_mod",
-                  "signed": true,
-                  "roll": "d20 + wis_mod",
-                  "rollLabel": "Wisdom check",
-                  "buttons": [
-                    {
-                      "label": "Save",
-                      "value": "save_wis",
-                      "signed": true,
-                      "roll": "d20 + save_wis",
-                      "rollLabel": "Wisdom save"
-                    }
-                  ],
-                  "mark": "sp_wis"
-                },
-                {
-                  "label": "CHA",
-                  "sub": "Charisma",
-                  "value": "cha_mod",
-                  "signed": true,
-                  "roll": "d20 + cha_mod",
-                  "rollLabel": "Charisma check",
-                  "buttons": [
-                    {
-                      "label": "Save",
-                      "value": "save_cha",
-                      "signed": true,
-                      "roll": "d20 + save_cha",
-                      "rollLabel": "Charisma save"
-                    }
-                  ],
-                  "mark": "sp_cha"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "weight": 1.1,
-          "sections": [
-            {
-              "title": "SKILLS",
-              "items": [
-                {
-                  "label": "Acrobatics",
-                  "sub": "DEX",
-                  "value": "skill_acrobatics",
-                  "signed": true,
-                  "roll": "d20 + skill_acrobatics",
-                  "rollLabel": "Acrobatics",
-                  "mark": "sk_acrobatics"
-                },
-                {
-                  "label": "Athletics",
-                  "sub": "STR",
-                  "value": "skill_athletics",
-                  "signed": true,
-                  "roll": "d20 + skill_athletics",
-                  "rollLabel": "Athletics",
-                  "mark": "sk_athletics"
-                },
-                {
-                  "label": "Arcana",
-                  "sub": "INT",
-                  "value": "skill_arcana",
-                  "signed": true,
-                  "roll": "d20 + skill_arcana",
-                  "rollLabel": "Arcana",
-                  "mark": "sk_arcana"
-                },
-                {
-                  "label": "History",
-                  "sub": "INT",
-                  "value": "skill_history",
-                  "signed": true,
-                  "roll": "d20 + skill_history",
-                  "rollLabel": "History",
-                  "mark": "sk_history"
-                },
-                {
-                  "label": "Insight",
-                  "sub": "WIS",
-                  "value": "skill_insight",
-                  "signed": true,
-                  "roll": "d20 + skill_insight",
-                  "rollLabel": "Insight",
-                  "mark": "sk_insight"
-                },
-                {
-                  "label": "Intimidation",
-                  "sub": "CHA",
-                  "value": "skill_intimidation",
-                  "signed": true,
-                  "roll": "d20 + skill_intimidation",
-                  "rollLabel": "Intimidation",
-                  "mark": "sk_intimidation"
-                },
-                {
-                  "label": "Investigation",
-                  "sub": "INT",
-                  "value": "skill_investigation",
-                  "signed": true,
-                  "roll": "d20 + skill_investigation",
-                  "rollLabel": "Investigation",
-                  "mark": "sk_investigation"
-                },
-                {
-                  "label": "Perception",
-                  "sub": "WIS",
-                  "value": "skill_perception",
-                  "signed": true,
-                  "roll": "d20 + skill_perception",
-                  "rollLabel": "Perception",
-                  "mark": "sk_perception"
-                },
-                {
-                  "label": "Persuasion",
-                  "sub": "CHA",
-                  "value": "skill_persuasion",
-                  "signed": true,
-                  "roll": "d20 + skill_persuasion",
-                  "rollLabel": "Persuasion",
-                  "mark": "sk_persuasion"
-                },
-                {
-                  "label": "Stealth",
-                  "sub": "DEX",
-                  "value": "skill_stealth",
-                  "signed": true,
-                  "roll": "d20 + skill_stealth",
-                  "rollLabel": "Stealth",
-                  "mark": "sk_stealth"
-                },
-                {
-                  "label": "Survival",
-                  "sub": "WIS",
-                  "value": "skill_survival",
-                  "signed": true,
-                  "roll": "d20 + skill_survival",
-                  "rollLabel": "Survival",
-                  "mark": "sk_survival"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "weight": 1.3,
-          "sections": [
-            {
-              "title": "ACTIONS",
-              "items": [
-                {
-                  "label": "Longsword",
-                  "sub": "Melee, 5 ft, slashing",
-                  "buttons": [
-                    {
-                      "value": "atk_str",
-                      "signed": true,
-                      "label": "hit",
-                      "roll": "d20 + atk_str",
-                      "rollLabel": "Longsword attack"
-                    },
-                    {
-                      "before": "1d8",
-                      "value": "str_mod",
-                      "signed": true,
-                      "roll": "1d8 + str_mod",
-                      "rollLabel": "Longsword damage"
-                    }
-                  ]
-                },
-                {
-                  "label": "Handaxe",
-                  "sub": "Melee or thrown 20/60 ft",
-                  "buttons": [
-                    {
-                      "value": "atk_str",
-                      "signed": true,
-                      "label": "hit",
-                      "roll": "d20 + atk_str",
-                      "rollLabel": "Handaxe attack"
-                    },
-                    {
-                      "before": "1d6",
-                      "value": "str_mod",
-                      "signed": true,
-                      "roll": "1d6 + str_mod",
-                      "rollLabel": "Handaxe damage"
-                    }
-                  ]
-                },
-                {
-                  "label": "Light Crossbow",
-                  "sub": "Ranged 80/320 ft, piercing",
-                  "buttons": [
-                    {
-                      "value": "atk_dex",
-                      "signed": true,
-                      "label": "hit",
-                      "roll": "d20 + atk_dex",
-                      "rollLabel": "Crossbow attack"
-                    },
-                    {
-                      "before": "1d8",
-                      "value": "dex_mod",
-                      "signed": true,
-                      "roll": "1d8 + dex_mod",
-                      "rollLabel": "Crossbow damage"
-                    }
-                  ]
-                },
-                {
-                  "label": "Initiative",
-                  "sub": "Roll for turn order",
-                  "value": "init",
-                  "signed": true,
-                  "roll": "d20 + init",
-                  "rollLabel": "Initiative"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "Inventory",
-      "columns": [
-        {
-          "weight": 1.0,
-          "sections": [
-            {
-              "title": "GEAR",
-              "items": [
-                {
-                  "label": "Longsword",
-                  "sub": "Equipped",
-                  "value": "qty_longsword"
-                },
-                {
-                  "label": "Handaxe",
-                  "sub": "Equipped",
-                  "value": "qty_handaxe"
-                },
-                {
-                  "label": "Chain Mail",
-                  "sub": "Worn, AC 16",
-                  "value": "qty_chain_mail"
-                },
-                {
-                  "label": "Light Crossbow",
-                  "sub": "",
-                  "value": "qty_crossbow"
-                },
-                {
-                  "label": "Bolts",
-                  "sub": "",
-                  "value": "qty_bolts"
-                },
-                {
-                  "label": "Healing Potion",
-                  "sub": "Heals 2d4+2",
-                  "value": "qty_potion"
-                },
-                {
-                  "label": "Torch",
-                  "sub": "",
-                  "value": "qty_torch"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "Features",
-      "columns": [
-        {
-          "weight": 1.0,
-          "sections": [
-            {
-              "title": "FEATURES",
-              "items": [
-                {
-                  "label": "Second Wind",
-                  "text": "Once per short rest, as a bonus action, regain 1d10 + level hit points.",
-                  "buttons": [
-                    {
-                      "before": "1d10",
-                      "value": "level",
-                      "signed": true,
-                      "roll": "1d10 + level",
-                      "rollLabel": "Second Wind"
-                    }
-                  ]
-                },
-                {
-                  "label": "Action Surge",
-                  "text": "Once per short rest, take one additional action on your turn."
-                },
-                {
-                  "label": "Improved Critical",
-                  "text": "Weapon attacks score a critical hit on a roll of 19 or 20."
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "defaults": {
-    "sp_str": 0,
-    "sp_dex": 0,
-    "sp_con": 0,
-    "sp_int": 0,
-    "sp_wis": 0,
-    "sp_cha": 0,
-    "sk_acrobatics": 0,
-    "sk_athletics": 0,
-    "sk_arcana": 0,
-    "sk_history": 0,
-    "sk_insight": 0,
-    "sk_intimidation": 0,
-    "sk_investigation": 0,
-    "sk_perception": 0,
-    "sk_persuasion": 0,
-    "sk_stealth": 0,
-    "sk_survival": 0
-  },
+  "theme": "crimson",
   "fields": [
     {
       "id": "name",
@@ -549,6 +77,12 @@
       "label": "HP max",
       "group": "Level and defense",
       "default": 10
+    },
+    {
+      "id": "hp_temp",
+      "label": "Temp HP",
+      "group": "Level and defense",
+      "default": 0
     },
     {
       "id": "ac",
@@ -699,6 +233,876 @@
       "label": "Torch",
       "group": "Gear (amounts)",
       "default": 0
+    }
+  ],
+  "defaults": {
+    "sp_str": 0,
+    "sp_dex": 0,
+    "sp_con": 0,
+    "sp_int": 0,
+    "sp_wis": 0,
+    "sp_cha": 0,
+    "sk_acrobatics": 0,
+    "sk_athletics": 0,
+    "sk_arcana": 0,
+    "sk_history": 0,
+    "sk_insight": 0,
+    "sk_intimidation": 0,
+    "sk_investigation": 0,
+    "sk_perception": 0,
+    "sk_persuasion": 0,
+    "sk_stealth": 0,
+    "sk_survival": 0,
+    "hp_temp": 0,
+    "death_s": 0,
+    "death_f": 0,
+    "inspiration": 0,
+    "exhaustion": 0,
+    "second_wind": 1,
+    "action_surge": 1
+  },
+  "derived": {
+    "str_mod": "floor((str - 10) / 2)",
+    "dex_mod": "floor((dex - 10) / 2)",
+    "con_mod": "floor((con - 10) / 2)",
+    "int_mod": "floor((int - 10) / 2)",
+    "wis_mod": "floor((wis - 10) / 2)",
+    "cha_mod": "floor((cha - 10) / 2)",
+    "save_str": "str_mod + prof * sp_str",
+    "save_dex": "dex_mod + prof * sp_dex",
+    "save_con": "con_mod + prof * sp_con",
+    "save_int": "int_mod + prof * sp_int",
+    "save_wis": "wis_mod + prof * sp_wis",
+    "save_cha": "cha_mod + prof * sp_cha",
+    "skill_acrobatics": "floor(dex_mod + prof * sk_acrobatics)",
+    "skill_athletics": "floor(str_mod + prof * sk_athletics)",
+    "skill_arcana": "floor(int_mod + prof * sk_arcana)",
+    "skill_history": "floor(int_mod + prof * sk_history)",
+    "skill_insight": "floor(wis_mod + prof * sk_insight)",
+    "skill_intimidation": "floor(cha_mod + prof * sk_intimidation)",
+    "skill_investigation": "floor(int_mod + prof * sk_investigation)",
+    "skill_perception": "floor(wis_mod + prof * sk_perception)",
+    "skill_persuasion": "floor(cha_mod + prof * sk_persuasion)",
+    "skill_stealth": "floor(dex_mod + prof * sk_stealth)",
+    "skill_survival": "floor(wis_mod + prof * sk_survival)",
+    "init": "dex_mod",
+    "atk_str": "str_mod + prof",
+    "atk_dex": "dex_mod + prof"
+  },
+  "sheets": [
+    {
+      "kind": "character",
+      "name": "Character",
+      "header": {
+        "title": "$name",
+        "subtitle": "$subtitle",
+        "bars": [
+          {
+            "label": "HP",
+            "value": "hp",
+            "max": "hp_max",
+            "color": "#3cb84a",
+            "temp": "hp_temp"
+          }
+        ],
+        "badges": [
+          {
+            "label": "ARMOR",
+            "value": "ac"
+          },
+          {
+            "label": "INIT",
+            "value": "init",
+            "signed": true
+          },
+          {
+            "label": "PROF",
+            "value": "prof",
+            "signed": true
+          }
+        ]
+      },
+      "pages": [
+        {
+          "title": "Sheet",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "ABILITIES",
+                  "items": [
+                    {
+                      "label": "STR",
+                      "sub": "Strength",
+                      "value": "str_mod",
+                      "signed": true,
+                      "roll": "d20 + str_mod",
+                      "rollLabel": "Strength check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_str",
+                          "signed": true,
+                          "roll": "d20 + save_str",
+                          "rollLabel": "Strength save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_str",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "DEX",
+                      "sub": "Dexterity",
+                      "value": "dex_mod",
+                      "signed": true,
+                      "roll": "d20 + dex_mod",
+                      "rollLabel": "Dexterity check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_dex",
+                          "signed": true,
+                          "roll": "d20 + save_dex",
+                          "rollLabel": "Dexterity save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_dex",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "CON",
+                      "sub": "Constitution",
+                      "value": "con_mod",
+                      "signed": true,
+                      "roll": "d20 + con_mod",
+                      "rollLabel": "Constitution check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_con",
+                          "signed": true,
+                          "roll": "d20 + save_con",
+                          "rollLabel": "Constitution save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_con",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "INT",
+                      "sub": "Intelligence",
+                      "value": "int_mod",
+                      "signed": true,
+                      "roll": "d20 + int_mod",
+                      "rollLabel": "Intelligence check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_int",
+                          "signed": true,
+                          "roll": "d20 + save_int",
+                          "rollLabel": "Intelligence save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_int",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "WIS",
+                      "sub": "Wisdom",
+                      "value": "wis_mod",
+                      "signed": true,
+                      "roll": "d20 + wis_mod",
+                      "rollLabel": "Wisdom check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_wis",
+                          "signed": true,
+                          "roll": "d20 + save_wis",
+                          "rollLabel": "Wisdom save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_wis",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "CHA",
+                      "sub": "Charisma",
+                      "value": "cha_mod",
+                      "signed": true,
+                      "roll": "d20 + cha_mod",
+                      "rollLabel": "Charisma check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_cha",
+                          "signed": true,
+                          "roll": "d20 + save_cha",
+                          "rollLabel": "Charisma save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_cha",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 1.1,
+              "sections": [
+                {
+                  "title": "SKILLS",
+                  "items": [
+                    {
+                      "label": "Acrobatics",
+                      "sub": "DEX",
+                      "value": "skill_acrobatics",
+                      "signed": true,
+                      "roll": "d20 + skill_acrobatics",
+                      "rollLabel": "Acrobatics",
+                      "widget": "cycle",
+                      "store": "sk_acrobatics",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Athletics",
+                      "sub": "STR",
+                      "value": "skill_athletics",
+                      "signed": true,
+                      "roll": "d20 + skill_athletics",
+                      "rollLabel": "Athletics",
+                      "widget": "cycle",
+                      "store": "sk_athletics",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Arcana",
+                      "sub": "INT",
+                      "value": "skill_arcana",
+                      "signed": true,
+                      "roll": "d20 + skill_arcana",
+                      "rollLabel": "Arcana",
+                      "widget": "cycle",
+                      "store": "sk_arcana",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "History",
+                      "sub": "INT",
+                      "value": "skill_history",
+                      "signed": true,
+                      "roll": "d20 + skill_history",
+                      "rollLabel": "History",
+                      "widget": "cycle",
+                      "store": "sk_history",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Insight",
+                      "sub": "WIS",
+                      "value": "skill_insight",
+                      "signed": true,
+                      "roll": "d20 + skill_insight",
+                      "rollLabel": "Insight",
+                      "widget": "cycle",
+                      "store": "sk_insight",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Intimidation",
+                      "sub": "CHA",
+                      "value": "skill_intimidation",
+                      "signed": true,
+                      "roll": "d20 + skill_intimidation",
+                      "rollLabel": "Intimidation",
+                      "widget": "cycle",
+                      "store": "sk_intimidation",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Investigation",
+                      "sub": "INT",
+                      "value": "skill_investigation",
+                      "signed": true,
+                      "roll": "d20 + skill_investigation",
+                      "rollLabel": "Investigation",
+                      "widget": "cycle",
+                      "store": "sk_investigation",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Perception",
+                      "sub": "WIS",
+                      "value": "skill_perception",
+                      "signed": true,
+                      "roll": "d20 + skill_perception",
+                      "rollLabel": "Perception",
+                      "widget": "cycle",
+                      "store": "sk_perception",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Persuasion",
+                      "sub": "CHA",
+                      "value": "skill_persuasion",
+                      "signed": true,
+                      "roll": "d20 + skill_persuasion",
+                      "rollLabel": "Persuasion",
+                      "widget": "cycle",
+                      "store": "sk_persuasion",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Stealth",
+                      "sub": "DEX",
+                      "value": "skill_stealth",
+                      "signed": true,
+                      "roll": "d20 + skill_stealth",
+                      "rollLabel": "Stealth",
+                      "widget": "cycle",
+                      "store": "sk_stealth",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Survival",
+                      "sub": "WIS",
+                      "value": "skill_survival",
+                      "signed": true,
+                      "roll": "d20 + skill_survival",
+                      "rollLabel": "Survival",
+                      "widget": "cycle",
+                      "store": "sk_survival",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 1.3,
+              "sections": [
+                {
+                  "title": "ACTIONS",
+                  "items": [
+                    {
+                      "label": "Longsword",
+                      "sub": "Melee, 5 ft, slashing",
+                      "buttons": [
+                        {
+                          "value": "atk_str",
+                          "signed": true,
+                          "label": "hit",
+                          "roll": "d20 + atk_str",
+                          "rollLabel": "Longsword attack"
+                        },
+                        {
+                          "before": "1d8",
+                          "value": "str_mod",
+                          "signed": true,
+                          "roll": "1d8 + str_mod",
+                          "rollLabel": "Longsword damage"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Handaxe",
+                      "sub": "Melee or thrown 20/60 ft",
+                      "buttons": [
+                        {
+                          "value": "atk_str",
+                          "signed": true,
+                          "label": "hit",
+                          "roll": "d20 + atk_str",
+                          "rollLabel": "Handaxe attack"
+                        },
+                        {
+                          "before": "1d6",
+                          "value": "str_mod",
+                          "signed": true,
+                          "roll": "1d6 + str_mod",
+                          "rollLabel": "Handaxe damage"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Light Crossbow",
+                      "sub": "Ranged 80/320 ft, piercing",
+                      "buttons": [
+                        {
+                          "value": "atk_dex",
+                          "signed": true,
+                          "label": "hit",
+                          "roll": "d20 + atk_dex",
+                          "rollLabel": "Crossbow attack"
+                        },
+                        {
+                          "before": "1d8",
+                          "value": "dex_mod",
+                          "signed": true,
+                          "roll": "1d8 + dex_mod",
+                          "rollLabel": "Crossbow damage"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Initiative",
+                      "sub": "Roll for turn order",
+                      "value": "init",
+                      "signed": true,
+                      "roll": "d20 + init",
+                      "rollLabel": "Initiative"
+                    }
+                  ]
+                },
+                {
+                  "title": "RESOURCES",
+                  "id": "resources",
+                  "items": [
+                    {
+                      "label": "Inspiration",
+                      "widget": "pips",
+                      "store": "inspiration",
+                      "max": "1",
+                      "color": "#e0b84c"
+                    },
+                    {
+                      "label": "Second Wind",
+                      "widget": "pips",
+                      "store": "second_wind",
+                      "max": "1",
+                      "color": "#4cd964"
+                    },
+                    {
+                      "label": "Action Surge",
+                      "widget": "pips",
+                      "store": "action_surge",
+                      "max": "1",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "label": "Death save: pass",
+                      "widget": "pips",
+                      "store": "death_s",
+                      "max": "3",
+                      "color": "#4cd964"
+                    },
+                    {
+                      "label": "Death save: fail",
+                      "widget": "pips",
+                      "store": "death_f",
+                      "max": "3",
+                      "color": "#c83232"
+                    },
+                    {
+                      "label": "Exhaustion",
+                      "widget": "counter",
+                      "store": "exhaustion",
+                      "max": "6"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "sheet"
+        },
+        {
+          "title": "Inventory",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "GEAR",
+                  "items": [
+                    {
+                      "label": "Longsword",
+                      "sub": "Equipped",
+                      "value": "qty_longsword"
+                    },
+                    {
+                      "label": "Handaxe",
+                      "sub": "Equipped",
+                      "value": "qty_handaxe"
+                    },
+                    {
+                      "label": "Chain Mail",
+                      "sub": "Worn, AC 16",
+                      "value": "qty_chain_mail"
+                    },
+                    {
+                      "label": "Light Crossbow",
+                      "sub": "",
+                      "value": "qty_crossbow"
+                    },
+                    {
+                      "label": "Bolts",
+                      "sub": "",
+                      "value": "qty_bolts"
+                    },
+                    {
+                      "label": "Healing Potion",
+                      "sub": "Heals 2d4+2",
+                      "value": "qty_potion"
+                    },
+                    {
+                      "label": "Torch",
+                      "sub": "",
+                      "value": "qty_torch"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "inventory"
+        },
+        {
+          "title": "Features",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "FEATURES",
+                  "items": [
+                    {
+                      "label": "Second Wind",
+                      "text": "Once per short rest, as a bonus action, regain 1d10 + level hit points.",
+                      "buttons": [
+                        {
+                          "before": "1d10",
+                          "value": "level",
+                          "signed": true,
+                          "roll": "1d10 + level",
+                          "rollLabel": "Second Wind"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Action Surge",
+                      "text": "Once per short rest, take one additional action on your turn."
+                    },
+                    {
+                      "label": "Improved Critical",
+                      "text": "Weapon attacks score a critical hit on a roll of 19 or 20."
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "features"
+        }
+      ]
+    },
+    {
+      "kind": "npc",
+      "name": "NPC / monster",
+      "header": {
+        "title": "$name",
+        "subtitle": "$subtitle",
+        "bars": [
+          {
+            "label": "HP",
+            "value": "hp",
+            "max": "hp_max",
+            "temp": "hp_temp",
+            "color": "#c83232"
+          }
+        ],
+        "badges": [
+          {
+            "label": "ARMOR",
+            "value": "ac"
+          },
+          {
+            "label": "INIT",
+            "value": "init",
+            "signed": true
+          }
+        ]
+      },
+      "pages": [
+        {
+          "id": "statblock",
+          "title": "Statblock",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "ABILITIES",
+                  "items": [
+                    {
+                      "label": "STR",
+                      "sub": "Strength",
+                      "value": "str_mod",
+                      "signed": true,
+                      "roll": "d20 + str_mod",
+                      "rollLabel": "Strength check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_str",
+                          "signed": true,
+                          "roll": "d20 + save_str",
+                          "rollLabel": "Strength save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "DEX",
+                      "sub": "Dexterity",
+                      "value": "dex_mod",
+                      "signed": true,
+                      "roll": "d20 + dex_mod",
+                      "rollLabel": "Dexterity check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_dex",
+                          "signed": true,
+                          "roll": "d20 + save_dex",
+                          "rollLabel": "Dexterity save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "CON",
+                      "sub": "Constitution",
+                      "value": "con_mod",
+                      "signed": true,
+                      "roll": "d20 + con_mod",
+                      "rollLabel": "Constitution check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_con",
+                          "signed": true,
+                          "roll": "d20 + save_con",
+                          "rollLabel": "Constitution save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "INT",
+                      "sub": "Intelligence",
+                      "value": "int_mod",
+                      "signed": true,
+                      "roll": "d20 + int_mod",
+                      "rollLabel": "Intelligence check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_int",
+                          "signed": true,
+                          "roll": "d20 + save_int",
+                          "rollLabel": "Intelligence save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "WIS",
+                      "sub": "Wisdom",
+                      "value": "wis_mod",
+                      "signed": true,
+                      "roll": "d20 + wis_mod",
+                      "rollLabel": "Wisdom check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_wis",
+                          "signed": true,
+                          "roll": "d20 + save_wis",
+                          "rollLabel": "Wisdom save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "CHA",
+                      "sub": "Charisma",
+                      "value": "cha_mod",
+                      "signed": true,
+                      "roll": "d20 + cha_mod",
+                      "rollLabel": "Charisma check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_cha",
+                          "signed": true,
+                          "roll": "d20 + save_cha",
+                          "rollLabel": "Charisma save"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 1.4,
+              "sections": [
+                {
+                  "title": "ACTIONS",
+                  "items": [
+                    {
+                      "label": "Longsword",
+                      "sub": "Melee, 5 ft, slashing",
+                      "buttons": [
+                        {
+                          "value": "atk_str",
+                          "signed": true,
+                          "label": "hit",
+                          "roll": "d20 + atk_str",
+                          "rollLabel": "Longsword attack"
+                        },
+                        {
+                          "before": "1d8",
+                          "value": "str_mod",
+                          "signed": true,
+                          "roll": "1d8 + str_mod",
+                          "rollLabel": "Longsword damage"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Handaxe",
+                      "sub": "Melee or thrown 20/60 ft",
+                      "buttons": [
+                        {
+                          "value": "atk_str",
+                          "signed": true,
+                          "label": "hit",
+                          "roll": "d20 + atk_str",
+                          "rollLabel": "Handaxe attack"
+                        },
+                        {
+                          "before": "1d6",
+                          "value": "str_mod",
+                          "signed": true,
+                          "roll": "1d6 + str_mod",
+                          "rollLabel": "Handaxe damage"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Light Crossbow",
+                      "sub": "Ranged 80/320 ft, piercing",
+                      "buttons": [
+                        {
+                          "value": "atk_dex",
+                          "signed": true,
+                          "label": "hit",
+                          "roll": "d20 + atk_dex",
+                          "rollLabel": "Crossbow attack"
+                        },
+                        {
+                          "before": "1d8",
+                          "value": "dex_mod",
+                          "signed": true,
+                          "roll": "1d8 + dex_mod",
+                          "rollLabel": "Crossbow damage"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Initiative",
+                      "sub": "Roll for turn order",
+                      "value": "init",
+                      "signed": true,
+                      "roll": "d20 + init",
+                      "rollLabel": "Initiative"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
