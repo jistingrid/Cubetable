@@ -99,6 +99,8 @@ Column types:
 | `roll` | a button showing `value`; clicking rolls `roll`. `rollLabel` may contain `{name}` | nothing |
 | `dice` | the row's own dice text, e.g. `1d8`, as a button. `modifier` is a formula added when rolled | text |
 
+`detail: true` on a column keeps it out of the table: its value is summarised in small text under the row (toggles show their label when on, numbers when not 0) and is edited in the row editor. Use it for setup columns so the main row stays readable, e.g. a weapon row shows name, hit and damage, with `STR - Prof` underneath.
+
 Inside a column formula, `row.<column>` is that row's value: `d20 + pick(row.ability, str_mod, dex_mod) + prof * row.prof`. Everything else (derived values, stored values) works as usual.
 
 Totals over a collection can be used in any formula: `<id>.count`, `<id>.count.<col>` (rows where the column is above 0), `<id>.sum.<col>`, `<id>.max.<col>`, `<id>.sumif.<flagcol>.<col>`, e.g. `gear.sumif.equipped.total`. Rows are added and edited with the **+** button and the **...** button on each row (which also deletes).

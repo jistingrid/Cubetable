@@ -750,17 +750,20 @@ public final class CharacterSheetScreen extends Screen {
 		SheetFormat.Collection coll = sc.format.collections.get(it.collection);
 		if (coll == null) return 13;
 		List<CharacterData.Row> rows = sc.character.collections.getOrDefault(coll.id, List.of());
-		int n = coll.columns.size();
-		int editW = 12;
-		int gap = 2;
+		// the table's own columns; "detail" and "note" columns go on a small second line instead
+		List<SheetFormat.Col> main = new ArrayList<>();
+		for (SheetFormat.Col c : coll.columns) if (!c.detail && !c.type.equals("note")) main.add(c);
+		int n = main.size();
+		int editW = 14;
+		int gap = 3;
 		float total = 0;
-		for (SheetFormat.Col c : coll.columns) total += c.width;
-		int avail = w - 8 - editW - gap * (n - 1);
+		for (SheetFormat.Col c : main) total += c.width;
+		int avail = w - 8 - editW - gap * Math.max(0, n - 1);
 		int[] cx = new int[n];
 		int[] cw = new int[n];
 		int px = x + 4;
 		for (int i = 0; i < n; i++) {
-			cw[i] = Math.max(8, Math.round(avail * coll.columns.get(i).width / total));
+			cw[i] = Math.max(8, Math.round(avail * main.get(i).width / total));
 			cx[i] = px;
 			px += cw[i] + gap;
 		}
@@ -770,11 +773,10 @@ public final class CharacterSheetScreen extends Screen {
 		if (cy + 9 > clipTop && cy < clipBottom) {
 			var ms = g.getMatrices();
 			for (int i = 0; i < n; i++) {
-				if (coll.columns.get(i).type.equals("note")) continue;
 				ms.push();
 				ms.translate(cx[i], cy + 2, 0);
 				ms.scale(0.75f, 0.75f, 1.0f);
-				g.drawText(textRenderer, textRenderer.trimToWidth(tr(coll.columns.get(i).label), (int) (cw[i] / 0.75f)), 0, 0, DIM, false);
+				g.drawText(textRenderer, textRenderer.trimToWidth(tr(main.get(i).label), (int) (cw[i] / 0.75f)), 0, 0, DIM, false);
 				ms.pop();
 			}
 		}
@@ -785,8 +787,8 @@ public final class CharacterSheetScreen extends Screen {
 			CharacterData.Row row = rows.get(ri);
 			StringBuilder note = new StringBuilder();
 			for (SheetFormat.Col c : coll.columns) {
-				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : "";
-				if (!t.isEmpty()) note.append(note.length() > 0 ? " " : "").append(t);
+				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : c.detail ? detailText(sc, coll, row, c) : "";
+				if (!t.isEmpty()) note.append(note.length() > 0 ? (c.type.equals("note") ? "  |  " : "  -  ") : "").append(t);
 			}
 			List<OrderedText> noteLines = note.length() == 0 ? List.of()
 					: textRenderer.wrapLines(StringVisitable.plain(tr(note.toString())), (int) ((w - 12) / 0.75f));
@@ -794,7 +796,7 @@ public final class CharacterSheetScreen extends Screen {
 			if (cy + rh > clipTop && cy < clipBottom) {
 				g.fill(x, cy, x + w, cy + rh, PANEL);
 				g.fill(x, cy, x + 1, cy + rh, EDGE);
-				for (int i = 0; i < n; i++) drawCell(g, sc, coll, row, coll.columns.get(i), cx[i], cw[i], cy);
+				for (int i = 0; i < n; i++) drawCell(g, sc, coll, row, main.get(i), cx[i], cw[i], cy);
 				if (!noteLines.isEmpty()) {
 					var ms = g.getMatrices();
 					ms.push();
@@ -844,6 +846,28 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		cy += 13;
 		return cy - y;
+	}
+
+	/** Short text for a detail column ("STR", "Prof", "+2 Bonus"), or empty when there is nothing worth saying. */
+	private static String detailText(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col) {
+		switch (col.type) {
+			case "toggle":
+				return row.values.getOrDefault(col.id, col.def) > 0 ? tr(col.label) : "";
+			case "choice": {
+				int count = col.options.size();
+				return tr(col.options.get(Math.floorMod((int) Math.round(row.values.getOrDefault(col.id, col.def)), count)));
+			}
+			case "number": {
+				double v = row.values.getOrDefault(col.id, col.def);
+				return v == 0 ? "" : SheetContext.format(v, col.signed) + " " + tr(col.label);
+			}
+			case "computed":
+				return tr(col.label) + " " + SheetContext.format(sc.number(coll, row, col.value), col.signed);
+			case "text":
+				return row.texts.getOrDefault(col.id, "").trim();
+			default:
+				return "";
+		}
 	}
 
 	private void drawCell(DrawContext g, SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col,

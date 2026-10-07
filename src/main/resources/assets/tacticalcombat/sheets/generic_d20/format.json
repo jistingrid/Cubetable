@@ -922,13 +922,13 @@
           "id": "name",
           "label": "Weapon",
           "type": "text",
-          "width": 2.4
+          "width": 2.2
         },
         {
           "id": "hit",
           "label": "Hit",
           "type": "roll",
-          "width": 0.9,
+          "width": 1.0,
           "signed": true,
           "value": "pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + prof * row.prof + row.bonus",
           "roll": "d20 + pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + prof * row.prof + row.bonus",
@@ -938,7 +938,7 @@
           "id": "dmg",
           "label": "Damage",
           "type": "dice",
-          "width": 1.3,
+          "width": 1.5,
           "modifier": "pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + row.bonus",
           "rollLabel": "{name} damage"
         },
@@ -954,21 +954,24 @@
             "INT",
             "WIS",
             "CHA"
-          ]
+          ],
+          "detail": true
         },
         {
           "id": "prof",
           "label": "Prof",
           "type": "toggle",
           "width": 0.5,
-          "default": 1
+          "default": 1,
+          "detail": true
         },
         {
           "id": "bonus",
           "label": "Bonus",
           "type": "number",
           "width": 0.6,
-          "signed": true
+          "signed": true,
+          "detail": true
         },
         {
           "id": "notes",

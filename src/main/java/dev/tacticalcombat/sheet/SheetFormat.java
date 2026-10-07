@@ -61,6 +61,8 @@ public final class SheetFormat {
 		/** Formula: the shown value of a computed column / the number a roll column shows. */
 		public String value;
 		public boolean signed;
+		/** Not a column of the table: its value is summarised in small text under the row (and edited in the row editor). */
+		public boolean detail;
 		/** roll column: the roll formula; {name} in rollLabel becomes the row's name. */
 		public String roll;
 		public String rollLabel = "{name}";
@@ -262,6 +264,7 @@ public final class SheetFormat {
 			col.def = co.has("default") ? co.get("default").getAsDouble() : 0;
 			col.value = str(co, "value", null);
 			col.signed = bool(co, "signed");
+			col.detail = bool(co, "detail");
 			col.roll = str(co, "roll", null);
 			col.rollLabel = str(co, "rollLabel", "{name}");
 			col.modifier = str(co, "modifier", null);
