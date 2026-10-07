@@ -9,10 +9,40 @@
     "hp_max": 11,
     "sanity": 62,
     "sanity_max": 99,
-    "luck": 55,
-    "fighting": 45,
-    "firearms": 35,
-    "spot_hidden": 60,
-    "library_use": 70
+    "luck": 55
+  },
+  "collections": {
+    "skills": [
+      {
+        "name": "Fighting",
+        "value": 45
+      },
+      {
+        "name": "Firearms",
+        "value": 35
+      },
+      {
+        "name": "Spot Hidden",
+        "value": 60
+      },
+      {
+        "name": "Library Use",
+        "value": 70
+      }
+    ],
+    "damage": [
+      {
+        "name": "Unarmed",
+        "dmg": "1d4"
+      },
+      {
+        "name": "Knife",
+        "dmg": "1d4+2"
+      },
+      {
+        "name": "Revolver",
+        "dmg": "1d10"
+      }
+    ]
   }
 }

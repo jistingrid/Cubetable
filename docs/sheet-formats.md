@@ -55,14 +55,57 @@ An **item** is one row: `label`, `sub` (small text), `text` (a wrapped paragraph
 | `counter` | a stored number with -/+ (exhaustion, hit dice...); Shift = 5, Ctrl = 10 | `store`, `max` |
 | `rollmode` | a Normal / Advantage / Disadvantage row for single d20 rolls. Only formats that place it get advantage; others always roll normally | none |
 | `cycle` | a normal row with a clickable proficiency marker that steps through values | `store`, `cycle` (e.g. `[0, 0.5, 1, 2]`) |
+| `table` | a table of rows the character owns (weapons, gear, skills...), see Collections | `collection` (id) |
 
 Every stored name a widget uses should have a `defaults` entry (or a character value).
 
 A **button** has `before` (text before the number), `value` (+ `signed`), `label` (text after), `roll`, `rollLabel`.
 
+## Collections (tables)
+
+A collection is a list of rows the character owns: gear, weapons, spells, skills. The format declares it once; every character stores its own rows. Declare collections at the top level of the format and show one with a `table` widget:
+
+```json
+"collections": [
+  { "id": "gear", "label": "Gear", "addLabel": "Item",
+    "columns": [
+      { "id": "name",   "label": "Item", "type": "text", "width": 2.6 },
+      { "id": "qty",    "label": "Qty",  "type": "number", "default": 1 },
+      { "id": "weight", "label": "Wt",   "type": "number" },
+      { "id": "total",  "label": "Total","type": "computed", "value": "row.qty * row.weight" },
+      { "id": "notes",  "label": "Notes","type": "note" }
+    ],
+    "footer": [ { "label": "Carried", "value": "gear.sum.total", "max": "carry_cap" } ] }
+],
+... { "widget": "table", "collection": "gear" }
+```
+
+and in the character file:
+
+```json
+"collections": { "gear": [ { "name": "Rope", "qty": 2, "weight": 5 } ] }
+```
+
+Column types:
+
+| type | shows | stored |
+| --- | --- | --- |
+| `text` | a short text (the first one is the row's name, or set `nameColumn`) | text |
+| `note` | long text on a second line under the row | text |
+| `number` | a number; click = +1, right-click = -1 (Shift 5, Ctrl 10); `default`, `signed` | number |
+| `toggle` | a checkbox (equipped, proficient...); `default` | 0 / 1 |
+| `choice` | one of `options`, click cycles; stores the option's index | number |
+| `computed` | the result of `value`, a formula | nothing |
+| `roll` | a button showing `value`; clicking rolls `roll`. `rollLabel` may contain `{name}` | nothing |
+| `dice` | the row's own dice text, e.g. `1d8`, as a button. `modifier` is a formula added when rolled | text |
+
+Inside a column formula, `row.<column>` is that row's value: `d20 + pick(row.ability, str_mod, dex_mod) + prof * row.prof`. Everything else (derived values, stored values) works as usual.
+
+Totals over a collection can be used in any formula: `<id>.count`, `<id>.count.<col>` (rows where the column is above 0), `<id>.sum.<col>`, `<id>.max.<col>`, `<id>.sumif.<flagcol>.<col>`, e.g. `gear.sumif.equipped.total`. Rows are added and edited with the **+** button and the **...** button on each row (which also deletes).
+
 ## Formulas
 
-Numbers, names, `+ - * / ( )`, and `floor() ceil() round() abs() min() max()`.
+Numbers, names, `+ - * / ( )`, and `floor() ceil() round() abs() min() max()` (min / max take any number of arguments), and `pick(index, a, b, c...)`, which returns the option at that index (used with `choice` columns).
 
 Roll formulas additionally contain exactly one dice term, which may only be added: `d20 + str_mod + prof`, `2d6 + 3`, `d%`. Dice are d4, d6, d8, d10, d% (d100), d12 and d20. Single d20 rolls obey the window's Normal / Advantage / Disadvantage setting.
 

@@ -79,7 +79,7 @@ public final class CharacterSheetScreen extends Screen {
 	private static int charIndex;
 	private static int pageIndex;
 	private static int rollMode; // 0 normal, 1 advantage, 2 disadvantage
-	private enum View { SHEET, FORMATS, EDITOR }
+	private enum View { SHEET, FORMATS, EDITOR, ROW }
 
 	private static View view = View.SHEET;
 	// character editor state (kept static so a window resize does not lose what was typed)
@@ -94,7 +94,11 @@ public final class CharacterSheetScreen extends Screen {
 	private static boolean customize;
 	private static String editKind = SheetFormat.DEFAULT_KIND;
 
-	private record Hit(int x, int y, int w, int h, Runnable action, String tip) {
+	private record Hit(int x, int y, int w, int h, Runnable action, Runnable alt, String tip) {
+		Hit(int x, int y, int w, int h, Runnable action, String tip) {
+			this(x, y, w, h, action, null, tip);
+		}
+
 		boolean contains(double mx, double my) {
 			return mx >= x && mx < x + w && my >= y && my < y + h;
 		}
@@ -170,6 +174,12 @@ public final class CharacterSheetScreen extends Screen {
 		return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
 	}
 
+	/** Like {@link #hit} with a second action for the right mouse button. */
+	private boolean hit(int x, int y, int w, int h, Runnable action, Runnable alt, String tip) {
+		hits.add(new Hit(x, y, w, h, action, alt, tip));
+		return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
+	}
+
 	// ------------------------------------------------------------------ render
 
 	@Override
@@ -178,7 +188,7 @@ public final class CharacterSheetScreen extends Screen {
 		mouseY = my;
 		hits.clear();
 
-		SheetContext themed = view == View.SHEET ? sheet() : null;
+		SheetContext themed = view == View.SHEET || view == View.ROW ? sheet() : null;
 		applyTheme(SheetLibrary.theme(themed == null ? null
 				: !themed.character.theme.isEmpty() ? themed.character.theme : themed.format.theme));
 
@@ -203,6 +213,8 @@ public final class CharacterSheetScreen extends Screen {
 			drawFormats(g, x, y + TITLE_H, w, h - TITLE_H);
 		} else if (view == View.EDITOR) {
 			drawEditor(g, x, y + TITLE_H, w, h - TITLE_H, delta);
+		} else if (view == View.ROW) {
+			drawRowEditor(g, x, y + TITLE_H, w, h - TITLE_H, delta);
 		} else {
 			SheetContext sc = sheet();
 			if (sc == null) {
@@ -233,7 +245,7 @@ public final class CharacterSheetScreen extends Screen {
 
 		int right = x + w - 3;
 		right -= smallButton(g, right - 12, y + 3, "x", this::close, "Close", 0xFF7A1C27, 0xFFB8323F) + 3;
-		if (view != View.EDITOR) {
+		if (view != View.EDITOR && view != View.ROW) {
 			right -= smallButton(g, right - tw("Reload") - 6, y + 3, "Reload", () -> SheetLibrary.reload(), "Read the sheets and characters folders again", PANEL, 0xFF3B414C) + 3;
 			right -= smallButton(g, right - tw("Formats") - 6, y + 3, view == View.FORMATS ? "Back" : "Formats",
 					() -> view = view == View.FORMATS ? View.SHEET : View.FORMATS, "Installed sheet formats", PANEL, 0xFF3B414C) + 3;
@@ -254,7 +266,8 @@ public final class CharacterSheetScreen extends Screen {
 			smallButton(g, cx, y + 3, ">", () -> { charIndex++; resetScroll(); }, "Next character", PANEL, 0xFF3B414C);
 		} else {
 			String title = view == View.FORMATS ? "Sheet formats"
-					: view == View.EDITOR ? (editChar == null ? "New character" : "Edit " + editChar.displayName()) : name;
+					: view == View.EDITOR ? (editChar == null ? "New character" : "Edit " + editChar.displayName())
+					: view == View.ROW ? (rowIndex < 0 ? "New " : "Edit ") + (rowColl == null ? "entry" : tr(rowColl.label)) : name;
 			g.drawText(textRenderer, textRenderer.trimToWidth(title, Math.max(40, right - cx - 4)), cx, y + 4, 0xFFC9CCD2, false);
 		}
 	}
@@ -605,6 +618,9 @@ public final class CharacterSheetScreen extends Screen {
 		if (it.widget.equals("rollmode")) {
 			return drawRollMode(g, it, x, y, w, clipTop, clipBottom);
 		}
+		if (it.widget.equals("table")) {
+			return drawTable(g, sc, it, x, y, w, clipTop, clipBottom);
+		}
 		boolean hasText = !it.text.isEmpty();
 		List<OrderedText> lines = hasText
 				? textRenderer.wrapLines(StringVisitable.plain(tr(it.text)), (int) ((w - 8) / 0.75f)) : List.of();
@@ -703,6 +719,341 @@ public final class CharacterSheetScreen extends Screen {
 			g.drawText(textRenderer, texts[i], bxs[i] + 3, y + 3, 0xFFFFFFFF, false);
 		}
 		return h;
+	}
+
+	// ------------------------------------------------------------------ collections (tables)
+
+	private static String rowName(SheetFormat.Collection c, CharacterData.Row r) {
+		SheetFormat.Col nc = c.nameCol();
+		String n = nc == null ? "" : r.texts.getOrDefault(nc.id, "");
+		return n.isBlank() ? tr(c.label) : n;
+	}
+
+	private static void setRowValue(SheetContext sc, CharacterData.Row row, String col, double value) {
+		row.values.put(col, value);
+		store(sc.character);
+	}
+
+	/** Dice text of a "dice" column with its optional modifier formula, ready for Expr.roll. */
+	private static String diceFormula(SheetFormat.Col col, CharacterData.Row row) {
+		String text = row.texts.getOrDefault(col.id, "").trim();
+		if (text.isEmpty()) return null;
+		return col.modifier == null ? text : text + " + (" + col.modifier + ")";
+	}
+
+	private void rollRowDice(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, String formula) {
+		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row));
+		rollPlan(sc, label, () -> sc.plan(coll, row, formula));
+	}
+
+	private int drawTable(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
+		SheetFormat.Collection coll = sc.format.collections.get(it.collection);
+		if (coll == null) return 13;
+		List<CharacterData.Row> rows = sc.character.collections.getOrDefault(coll.id, List.of());
+		int n = coll.columns.size();
+		int editW = 12;
+		int gap = 2;
+		float total = 0;
+		for (SheetFormat.Col c : coll.columns) total += c.width;
+		int avail = w - 8 - editW - gap * (n - 1);
+		int[] cx = new int[n];
+		int[] cw = new int[n];
+		int px = x + 4;
+		for (int i = 0; i < n; i++) {
+			cw[i] = Math.max(8, Math.round(avail * coll.columns.get(i).width / total));
+			cx[i] = px;
+			px += cw[i] + gap;
+		}
+
+		int cy = y;
+		// header
+		if (cy + 9 > clipTop && cy < clipBottom) {
+			var ms = g.getMatrices();
+			for (int i = 0; i < n; i++) {
+				if (coll.columns.get(i).type.equals("note")) continue;
+				ms.push();
+				ms.translate(cx[i], cy + 2, 0);
+				ms.scale(0.75f, 0.75f, 1.0f);
+				g.drawText(textRenderer, textRenderer.trimToWidth(tr(coll.columns.get(i).label), (int) (cw[i] / 0.75f)), 0, 0, DIM, false);
+				ms.pop();
+			}
+		}
+		cy += 9;
+
+		for (int ri = 0; ri < rows.size(); ri++) {
+			final int index = ri;
+			CharacterData.Row row = rows.get(ri);
+			StringBuilder note = new StringBuilder();
+			for (SheetFormat.Col c : coll.columns) {
+				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : "";
+				if (!t.isEmpty()) note.append(note.length() > 0 ? " " : "").append(t);
+			}
+			List<OrderedText> noteLines = note.length() == 0 ? List.of()
+					: textRenderer.wrapLines(StringVisitable.plain(tr(note.toString())), (int) ((w - 12) / 0.75f));
+			int rh = 13 + (noteLines.isEmpty() ? 0 : noteLines.size() * 7 + 2);
+			if (cy + rh > clipTop && cy < clipBottom) {
+				g.fill(x, cy, x + w, cy + rh, PANEL);
+				g.fill(x, cy, x + 1, cy + rh, EDGE);
+				for (int i = 0; i < n; i++) drawCell(g, sc, coll, row, coll.columns.get(i), cx[i], cw[i], cy);
+				if (!noteLines.isEmpty()) {
+					var ms = g.getMatrices();
+					ms.push();
+					ms.translate(x + 4, cy + 13, 0);
+					ms.scale(0.75f, 0.75f, 1.0f);
+					int ly = 0;
+					for (OrderedText line : noteLines) {
+						g.drawText(textRenderer, line, 0, ly, MUTED, false);
+						ly += 9;
+					}
+					ms.pop();
+				}
+				int ex = x + w - editW - 2;
+				boolean over = hit(ex, cy + 1, editW, 11, () -> startRow(sc, coll, index), "Edit or delete this entry");
+				g.fill(ex, cy + 1, ex + editW, cy + 12, EDGE);
+				g.fill(ex + 1, cy + 2, ex + editW - 1, cy + 11, over ? PANEL_HOVER : PANEL);
+				g.drawCenteredTextWithShadow(textRenderer, "...", ex + editW / 2, cy + 2, 0xFFFFFFFF);
+			}
+			cy += rh + 1;
+		}
+
+		// add button
+		if (cy + 13 > clipTop && cy < clipBottom) {
+			String add = "+ " + tr(coll.addLabel);
+			int bw = tw(add) + 8;
+			boolean over = hit(x, cy, bw, 12, () -> startRow(sc, coll, -1), "Add an entry to " + tr(coll.label));
+			g.fill(x, cy, x + bw, cy + 12, EDGE);
+			g.fill(x + 1, cy + 1, x + bw - 1, cy + 11, over ? PANEL_HOVER : PANEL);
+			g.drawText(textRenderer, add, x + 4, cy + 2, GOLD, false);
+			if (rows.isEmpty()) g.drawText(textRenderer, "Nothing here yet", x + bw + 6, cy + 2, DIM, false);
+			// footer totals on the right
+			int fx = x + w - 2;
+			for (int i = coll.footers.size() - 1; i >= 0; i--) {
+				SheetFormat.Footer f = coll.footers.get(i);
+				String v = sc.show(f.value(), false);
+				String t = tr(f.label()) + " " + v;
+				boolean bad = false;
+				if (f.max() != null) {
+					double mx = sc.number(f.max());
+					t += " / " + SheetContext.format(mx, false);
+					bad = !Double.isNaN(mx) && sc.number(f.value()) > mx;
+				}
+				fx -= tw(t);
+				g.drawText(textRenderer, t, fx, cy + 2, bad ? 0xFFFF6B6B : MUTED, false);
+				fx -= 8;
+			}
+		}
+		cy += 13;
+		return cy - y;
+	}
+
+	private void drawCell(DrawContext g, SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col,
+			int x, int w, int y) {
+		int white = 0xFFFFFFFF;
+		switch (col.type) {
+			case "text" -> {
+				String t = row.texts.getOrDefault(col.id, "");
+				g.drawText(textRenderer, textRenderer.trimToWidth(tr(t), w), x, y + 3, 0xFFE8E6E1, false);
+			}
+			case "number" -> {
+				double v = row.values.getOrDefault(col.id, col.def);
+				boolean over = hit(x, y, w, 13, () -> setRowValue(sc, row, col.id, v + step()),
+						() -> setRowValue(sc, row, col.id, v - step()), tr(col.label) + ": click +, right-click - (Shift 5, Ctrl 10)");
+				String t = SheetContext.format(v, col.signed);
+				g.drawText(textRenderer, textRenderer.trimToWidth(t, w), x, y + 3, over ? GOLD : white, false);
+			}
+			case "toggle" -> {
+				boolean on = row.values.getOrDefault(col.id, col.def) > 0;
+				hit(x, y, Math.min(w, 14), 13, () -> setRowValue(sc, row, col.id, on ? 0 : 1), tr(col.label) + (on ? ": yes" : ": no"));
+				g.fill(x + 1, y + 3, x + 8, y + 10, on ? GOLD : 0xFF5A616C);
+				if (!on) g.fill(x + 2, y + 4, x + 7, y + 9, PANEL);
+			}
+			case "choice" -> {
+				int count = col.options.size();
+				int cur = Math.floorMod((int) Math.round(row.values.getOrDefault(col.id, col.def)), count);
+				boolean over = hit(x, y, w, 13, () -> setRowValue(sc, row, col.id, (cur + 1) % count),
+						() -> setRowValue(sc, row, col.id, (cur + count - 1) % count), tr(col.label) + ": click for next, right-click for previous");
+				g.drawText(textRenderer, textRenderer.trimToWidth(tr(col.options.get(cur)), w), x, y + 3, over ? GOLD : white, false);
+			}
+			case "computed" -> {
+				double v = sc.number(coll, row, col.value);
+				boolean bad = Double.isNaN(v);
+				g.drawText(textRenderer, textRenderer.trimToWidth(SheetContext.format(v, col.signed), w), x, y + 3, bad ? 0xFFFF6B6B : white, false);
+				if (bad) hit(x, y, w, 13, () -> {}, sc.error(coll, row, col.value));
+			}
+			case "roll" -> {
+				double v = sc.number(coll, row, col.value == null ? "0" : col.value);
+				String t = col.value == null ? "Roll" : SheetContext.format(v, col.signed);
+				int bw = Math.min(w, tw(t) + 8);
+				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, col.roll), "Roll " + col.roll);
+				g.fill(x, y + 1, x + bw, y + 12, ROLL_EDGE);
+				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
+				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
+			}
+			case "dice" -> {
+				String formula = diceFormula(col, row);
+				if (formula == null) {
+					g.drawText(textRenderer, "-", x, y + 3, DIM, false);
+					return;
+				}
+				String t = row.texts.getOrDefault(col.id, "").trim();
+				if (col.modifier != null) {
+					double m = sc.number(coll, row, col.modifier);
+					if (!Double.isNaN(m) && Math.round(m) != 0) t += SheetContext.format(m, true);
+				}
+				int bw = Math.min(w, tw(t) + 8);
+				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, formula), "Roll " + formula);
+				g.fill(x, y + 1, x + bw, y + 12, ROLL_EDGE);
+				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
+				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
+			}
+			default -> {
+				// "note" columns are drawn under the row
+			}
+		}
+	}
+
+	// ------------------------------------------------------------------ row editor
+
+	private static SheetFormat.Collection rowColl;
+	private static int rowIndex = -1;
+	private static CharacterData.Row rowDraft;
+	private static CharacterData rowOwner;
+
+	private record RowBox(SheetFormat.Col col, TextFieldWidget widget, int relY) {}
+
+	private final List<RowBox> rowBoxes = new ArrayList<>();
+
+	private void startRow(SheetContext sc, SheetFormat.Collection coll, int index) {
+		rowColl = coll;
+		rowIndex = index;
+		rowOwner = sc.character;
+		rowDraft = index >= 0 ? sc.character.rows(coll.id).get(index).copy() : new CharacterData.Row();
+		deleteArmed = false;
+		view = View.ROW;
+		rebuildForm();
+	}
+
+	private void cancelRow() {
+		view = View.SHEET;
+		rowColl = null;
+		rowDraft = null;
+		rebuildForm();
+	}
+
+	private void saveRow() {
+		if (rowColl == null || rowDraft == null || rowOwner == null) return;
+		for (SheetFormat.Col col : rowColl.columns) {
+			if (!col.type.equals("dice")) continue;
+			String t = rowDraft.texts.getOrDefault(col.id, "").trim();
+			if (t.isEmpty()) continue;
+			try {
+				Expr.roll(t, n -> 0.0);
+			} catch (RuntimeException e) {
+				say(tr(col.label) + ": '" + t + "' is not dice (try 1d8 or 2d6+1)");
+				return;
+			}
+		}
+		SheetFormat.Col nc = rowColl.nameCol();
+		if (nc != null && rowDraft.texts.getOrDefault(nc.id, "").isBlank()) rowDraft.texts.put(nc.id, "New entry");
+		List<CharacterData.Row> rows = rowOwner.rows(rowColl.id);
+		if (rowIndex >= 0 && rowIndex < rows.size()) rows.set(rowIndex, rowDraft);
+		else rows.add(rowDraft);
+		store(rowOwner);
+		cancelRow();
+	}
+
+	private void deleteRow() {
+		if (rowColl == null || rowOwner == null) return;
+		if (!deleteArmed) {
+			deleteArmed = true;
+			return;
+		}
+		List<CharacterData.Row> rows = rowOwner.rows(rowColl.id);
+		if (rowIndex >= 0 && rowIndex < rows.size()) rows.remove(rowIndex);
+		store(rowOwner);
+		cancelRow();
+	}
+
+	private void buildRowForm() {
+		rowBoxes.clear();
+		if (rowColl == null || rowDraft == null) return;
+		int relY = 0;
+		for (SheetFormat.Col col : rowColl.columns) {
+			if (!col.isStored()) continue;
+			TextFieldWidget box = null;
+			if (col.isText() || col.type.equals("number")) {
+				boolean number = col.type.equals("number");
+				box = new TextFieldWidget(textRenderer, 0, 0, number ? 52 : 220, 12, Text.literal(col.label));
+				box.setMaxLength(number ? 9 : col.type.equals("note") ? 400 : col.type.equals("dice") ? 24 : 60);
+				if (number) box.setTextPredicate(t -> t.matches("-?\\d*\\.?\\d*"));
+				box.setText(number ? numberText(rowDraft.values.getOrDefault(col.id, col.def)) : rowDraft.texts.getOrDefault(col.id, ""));
+				final String id = col.id;
+				if (number) {
+					box.setChangedListener(t -> {
+						try {
+							rowDraft.values.put(id, Double.parseDouble(t));
+						} catch (NumberFormatException e) {
+							rowDraft.values.remove(id);
+						}
+					});
+				} else {
+					box.setChangedListener(t -> rowDraft.texts.put(id, t));
+				}
+				addDrawableChild(box);
+			}
+			rowBoxes.add(new RowBox(col, box, relY));
+			relY += 17;
+		}
+	}
+
+	private void drawRowEditor(DrawContext g, int x, int y, int w, int h, float delta) {
+		if (rowColl == null || rowDraft == null) {
+			cancelRow();
+			return;
+		}
+		g.fill(x, y, x + w, y + 18, 0xFF12151A);
+		g.fill(x, y + 17, x + w, y + 18, EDGE);
+		g.drawText(textRenderer, tr(rowColl.label), x + 8, y + 5, GOLD, false);
+		int rx = x + w - 6;
+		rx -= smallButton(g, rx - tw("Save") - 8, y + 3, "Save", this::saveRow, "Keep this entry", 0xFF1E4A25, 0xFF3CB84A) + 4;
+		rx -= smallButton(g, rx - tw("Cancel") - 6, y + 3, "Cancel", this::cancelRow, "Throw away changes (Esc)", PANEL, 0xFF3B414C) + 4;
+		if (rowIndex >= 0) {
+			smallButton(g, rx - tw("Really delete?") - 6, y + 3, deleteArmed ? "Really delete?" : "Delete", this::deleteRow,
+					"Remove this entry", deleteArmed ? 0xFF7A1C27 : PANEL, 0xFFB8323F);
+		}
+
+		int baseX = x + 8;
+		int baseY = y + 26;
+		for (RowBox rb : rowBoxes) {
+			SheetFormat.Col col = rb.col();
+			int fy = baseY + rb.relY();
+			g.drawText(textRenderer, textRenderer.trimToWidth(tr(col.label), 90), baseX, fy + 2, 0xFFC9CCD2, false);
+			int fx = baseX + 96;
+			if (rb.widget() != null) {
+				rb.widget().setX(fx);
+				rb.widget().setY(fy);
+				rb.widget().render(g, mouseX, mouseY, delta);
+				if (col.type.equals("dice")) g.drawText(textRenderer, "e.g. 1d8", fx + 226, fy + 2, DIM, false);
+				if (col.type.equals("note")) g.drawText(textRenderer, "notes", fx + 226, fy + 2, DIM, false);
+			} else if (col.type.equals("toggle")) {
+				boolean on = rowDraft.values.getOrDefault(col.id, col.def) > 0;
+				boolean over = hit(fx, fy, 60, 12, () -> rowDraft.values.put(col.id, on ? 0.0 : 1.0), null);
+				g.fill(fx, fy + 1, fx + 10, fy + 11, on ? GOLD : 0xFF5A616C);
+				if (!on) g.fill(fx + 1, fy + 2, fx + 9, fy + 10, PANEL);
+				g.drawText(textRenderer, on ? "Yes" : "No", fx + 15, fy + 2, over ? GOLD : 0xFFE8E6E1, false);
+			} else if (col.type.equals("choice")) {
+				int count = col.options.size();
+				int cur = Math.floorMod((int) Math.round(rowDraft.values.getOrDefault(col.id, col.def)), count);
+				int bw = 90;
+				boolean over = hit(fx, fy, bw, 12, () -> rowDraft.values.put(col.id, (double) ((cur + 1) % count)),
+						() -> rowDraft.values.put(col.id, (double) ((cur + count - 1) % count)), "Click for next, right-click for previous");
+				g.fill(fx, fy, fx + bw, fy + 12, EDGE);
+				g.fill(fx + 1, fy + 1, fx + bw - 1, fy + 11, over ? PANEL_HOVER : PANEL);
+				g.drawText(textRenderer, textRenderer.trimToWidth(tr(col.options.get(cur)), bw - 6), fx + 4, fy + 2, 0xFFFFFFFF, false);
+			}
+		}
+		boolean flashing = System.currentTimeMillis() < flashUntil;
+		if (flashing) g.drawText(textRenderer, flash, x + 8, y + h - 12, 0xFFFF6B6B, false);
 	}
 
 	/** Pips (spell slots, inspiration, death saves...) and counters: rows that edit a stored number. */
@@ -984,6 +1335,11 @@ public final class CharacterSheetScreen extends Screen {
 		formItems.clear();
 		formHeads.clear();
 		formScroll = 0;
+		rowBoxes.clear();
+		if (view == View.ROW && textRenderer != null) {
+			buildRowForm();
+			return;
+		}
 		if (view != View.EDITOR || editFormat == null || textRenderer == null) return;
 
 		int w = Math.min(WIN_W, width - 8);
@@ -1110,10 +1466,14 @@ public final class CharacterSheetScreen extends Screen {
 	// ------------------------------------------------------------------ rolling
 
 	private void rollDice(SheetContext sc, String label, String formula) {
+		rollPlan(sc, label, () -> sc.plan(formula));
+	}
+
+	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
 		try {
-			Expr.Roll roll = sc.plan(formula);
+			Expr.Roll roll = planner.get();
 			if (!ClientPlayNetworking.canSend(DiceRequestPayload.ID)) {
 				mc.player.sendMessage(Text.literal("[sheet] This server does not have Tactical Combat, so it can not roll dice.")
 						.formatted(Formatting.RED), false);
@@ -1138,6 +1498,19 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mx, double my, int button) {
+		if (button == 1) {
+			// right click: only controls that define a second action (table numbers and choices) react
+			for (int i = hits.size() - 1; i >= 0; i--) {
+				Hit hit = hits.get(i);
+				if (hit.contains(mx, my)) {
+					if (hit.alt != null) {
+						hit.alt.run();
+						return true;
+					}
+					break;
+				}
+			}
+		}
 		if (button == 0) {
 			for (int i = hits.size() - 1; i >= 0; i--) {
 				Hit hit = hits.get(i);
@@ -1201,7 +1574,11 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		boolean typing = view == View.EDITOR && getFocused() instanceof TextFieldWidget field && field.isFocused();
+		boolean typing = (view == View.EDITOR || view == View.ROW) && getFocused() instanceof TextFieldWidget field && field.isFocused();
+		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && view == View.ROW) {
+			cancelRow();
+			return true;
+		}
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && view == View.EDITOR) {
 			cancelEdit();
 			return true;
