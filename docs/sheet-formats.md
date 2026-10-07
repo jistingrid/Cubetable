@@ -40,6 +40,7 @@ An **item** is one row: `label`, `sub` (small text), `text` (a wrapped paragraph
 | --- | --- | --- |
 | `pips` | a row of squares for a stored number (spell slots, inspiration, death saves...); click a pip to set it | `store`, `max`, `color` |
 | `counter` | a stored number with -/+ (exhaustion, hit dice...); Shift = 5, Ctrl = 10 | `store`, `max` |
+| `rollmode` | a Normal / Advantage / Disadvantage row for single d20 rolls. Only formats that place it get advantage; others always roll normally | none |
 | `cycle` | a normal row with a clickable proficiency marker that steps through values | `store`, `cycle` (e.g. `[0, 0.5, 1, 2]`) |
 
 Every stored name a widget uses should have a `defaults` entry (or a character value).
