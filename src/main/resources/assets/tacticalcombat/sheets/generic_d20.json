@@ -667,6 +667,10 @@
                   "title": "ACTIONS",
                   "items": [
                     {
+                      "label": "Roll mode",
+                      "widget": "rollmode"
+                    },
+                    {
                       "label": "Longsword",
                       "sub": "Melee, 5 ft, slashing",
                       "buttons": [
@@ -1028,6 +1032,10 @@
                 {
                   "title": "ACTIONS",
                   "items": [
+                    {
+                      "label": "Roll mode",
+                      "widget": "rollmode"
+                    },
                     {
                       "label": "Longsword",
                       "sub": "Melee, 5 ft, slashing",
