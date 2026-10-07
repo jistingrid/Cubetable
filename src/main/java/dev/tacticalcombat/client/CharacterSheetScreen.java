@@ -650,7 +650,7 @@ public final class CharacterSheetScreen extends Screen {
 		if (it.roll != null) {
 			final String roll = it.roll;
 			final String label = it.rollLabel;
-			rowHover = hit(x, y, w, h, () -> rollDice(sc, label, roll), "Roll " + roll);
+			rowHover = hit(x, y, w, h, () -> rollDice(sc, label, roll), "Roll " + tr(label));
 		}
 		g.fill(x, y, x + w, y + h, rowHover ? PANEL_HOVER : PANEL);
 		g.fill(x, y, x + 1, y + h, EDGE);
@@ -713,7 +713,7 @@ public final class CharacterSheetScreen extends Screen {
 
 		for (int i = 0; i < count; i++) {
 			SheetFormat.Button b = it.buttons.get(i);
-			boolean over = b.roll != null && hit(bxs[i], y + 1, bws[i], 11, () -> rollDice(sc, b.rollLabel, b.roll), "Roll " + b.roll);
+			boolean over = b.roll != null && hit(bxs[i], y + 1, bws[i], 11, () -> rollDice(sc, b.rollLabel, b.roll), "Roll " + tr(b.rollLabel));
 			g.fill(bxs[i], y + 1, bxs[i] + bws[i], y + 12, ROLL_EDGE);
 			g.fill(bxs[i] + 1, y + 2, bxs[i] + bws[i] - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
 			g.drawText(textRenderer, texts[i], bxs[i] + 3, y + 3, 0xFFFFFFFF, false);
@@ -908,7 +908,7 @@ public final class CharacterSheetScreen extends Screen {
 				double v = sc.number(coll, row, col.value == null ? "0" : col.value);
 				String t = col.value == null ? "Roll" : SheetContext.format(v, col.signed);
 				int bw = Math.min(w, tw(t) + 8);
-				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, col.roll), "Roll " + col.roll);
+				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, col.roll), "Roll " + tr(col.rollLabel).replace("{name}", rowName(coll, row)));
 				g.fill(x, y + 1, x + bw, y + 12, ROLL_EDGE);
 				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
 				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
@@ -925,7 +925,7 @@ public final class CharacterSheetScreen extends Screen {
 					if (!Double.isNaN(m) && Math.round(m) != 0) t += SheetContext.format(m, true);
 				}
 				int bw = Math.min(w, tw(t) + 8);
-				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, formula), "Roll " + formula);
+				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, formula), "Roll " + tr(col.rollLabel).replace("{name}", rowName(coll, row)));
 				g.fill(x, y + 1, x + bw, y + 12, ROLL_EDGE);
 				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
 				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
@@ -1075,6 +1075,37 @@ public final class CharacterSheetScreen extends Screen {
 				g.fill(fx + 1, fy + 1, fx + bw - 1, fy + 11, over ? PANEL_HOVER : PANEL);
 				g.drawText(textRenderer, textRenderer.trimToWidth(tr(col.options.get(cur)), bw - 6), fx + 4, fy + 2, 0xFFFFFFFF, false);
 			}
+		}
+		// the formulas behind this entry's calculated and rolled columns, for reading only
+		int fy = baseY + rowBoxes.size() * 17 + 4;
+		boolean titled = false;
+		for (SheetFormat.Col col : rowColl.columns) {
+			String formula = switch (col.type) {
+				case "roll" -> col.roll;
+				case "computed" -> col.value;
+				case "dice" -> col.modifier == null ? null : "dice + " + col.modifier;
+				default -> null;
+			};
+			if (formula == null) continue;
+			if (!titled) {
+				g.fill(x + 8, fy, x + w - 8, fy + 1, EDGE);
+				g.drawText(textRenderer, "FORMULAS", x + 8, fy + 5, GOLD, false);
+				fy += 17;
+				titled = true;
+			}
+			var ms = g.getMatrices();
+			ms.push();
+			ms.translate(x + 8, fy, 0);
+			ms.scale(0.75f, 0.75f, 1.0f);
+			int ly = 0;
+			String text = tr(col.label) + ": " + formula;
+			for (OrderedText line : textRenderer.wrapLines(StringVisitable.plain(text), (int) ((w - 16) / 0.75f))) {
+				g.drawText(textRenderer, line, 0, ly, MUTED, false);
+				ly += 9;
+			}
+			ms.pop();
+			fy += (int) Math.ceil(ly * 0.75f) + 3;
+			if (fy > y + h - 14) break;
 		}
 		boolean flashing = System.currentTimeMillis() < flashUntil;
 		if (flashing) g.drawText(textRenderer, flash, x + 8, y + h - 12, 0xFFFF6B6B, false);
