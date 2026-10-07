@@ -35,6 +35,8 @@ public final class SheetFormat {
 	public final Map<String, Double> defaults = new LinkedHashMap<>();
 	/** Declared inputs; when a format declares none, they are worked out from the names its formulas use. */
 	public final List<Field> fields = new ArrayList<>();
+	/** Collections (tables of rows such as gear or weapons), by id, in file order. */
+	public final Map<String, Collection> collections = new LinkedHashMap<>();
 	/** kind -> layout, in file order. The first one is the default. */
 	public final Map<String, Layout> layouts = new LinkedHashMap<>();
 	/** Where it came from, for messages ("built in" or a file name). */
@@ -44,6 +46,62 @@ public final class SheetFormat {
 	public record Field(String id, String label, String type, String group, String def) {
 		public boolean isText() {
 			return type.equals("text");
+		}
+	}
+
+	/** One column of a collection. type: text, note, number, toggle, choice, computed, roll, dice. */
+	public static final class Col {
+		public String id = "";
+		public String label = "";
+		public String type = "text";
+		/** Relative width in the table. */
+		public float width = 1.0f;
+		/** Value used when a row does not store one (number, toggle, choice). */
+		public double def = 0;
+		/** Formula: the shown value of a computed column / the number a roll column shows. */
+		public String value;
+		public boolean signed;
+		/** roll column: the roll formula; {name} in rollLabel becomes the row's name. */
+		public String roll;
+		public String rollLabel = "{name}";
+		/** dice column: optional formula added to the dice text when rolled, e.g. an ability modifier. */
+		public String modifier;
+		/** choice column: the labels; the row stores the index. */
+		public final List<String> options = new ArrayList<>();
+
+		public boolean isText() {
+			return type.equals("text") || type.equals("note") || type.equals("dice");
+		}
+
+		public boolean isStored() {
+			return isText() || type.equals("number") || type.equals("toggle") || type.equals("choice");
+		}
+	}
+
+	/** A "total" shown under a table: label, formula, optional maximum ("Carried 40 / 150"). */
+	public record Footer(String label, String value, String max) {}
+
+	/** A table of rows the character owns (inventory, weapons, skills ...). */
+	public static final class Collection {
+		public String id = "";
+		public String label = "";
+		/** Text of the add button. */
+		public String addLabel = "Add";
+		/** Which column holds the row's name (first text column unless "nameColumn" says otherwise). */
+		public String nameColumn = "";
+		public final List<Col> columns = new ArrayList<>();
+		public final List<Footer> footers = new ArrayList<>();
+
+		public Col column(String id) {
+			for (Col c : columns) if (c.id.equals(id)) return c;
+			return null;
+		}
+
+		public Col nameCol() {
+			Col c = column(nameColumn);
+			if (c != null) return c;
+			for (Col x : columns) if (x.type.equals("text")) return x;
+			return null;
 		}
 	}
 
@@ -97,7 +155,9 @@ public final class SheetFormat {
 		public String enabled;
 		public final List<Button> buttons = new ArrayList<>();
 
-		/** "" (plain row), "pips", "counter" or "cycle". */
+		/** Widget "table": the id of the collection drawn as a table. */
+		public String collection;
+		/** "" (plain row), "pips", "counter", "cycle", "rollmode" or "table". */
 		public String widget = "";
 		/** Stored value a widget edits (pips, counter, cycle). */
 		public String store;
@@ -154,6 +214,11 @@ public final class SheetFormat {
 			}
 		}
 
+		for (JsonElement e : arr(o, "collections")) {
+			Collection c = parseCollection(e.getAsJsonObject());
+			f.collections.put(c.id, c);
+		}
+
 		// "sheets": [ {kind, name, header, pages}, ... ]. A format with just top-level header / pages is one
 		// "character" layout (the original, still supported shape).
 		if (o.has("sheets")) {
@@ -165,7 +230,54 @@ public final class SheetFormat {
 			f.layouts.put(DEFAULT_KIND, parseLayout(o));
 		}
 		if (f.layouts.isEmpty()) throw new IllegalArgumentException("no sheets");
+		for (Layout l : f.layouts.values()) for (Page p : l.pages) for (Column c : p.columns) for (Section sec : c.sections) {
+			for (Item i : sec.items) {
+				if (i.widget.equals("table") && (i.collection == null || !f.collections.containsKey(i.collection))) {
+					throw new IllegalArgumentException("table widget in '" + sec.title + "' names an unknown collection '" + i.collection + "'");
+				}
+			}
+		}
 		return f;
+	}
+
+	private static Collection parseCollection(JsonObject o) {
+		Collection c = new Collection();
+		c.id = str(o, "id", "").toLowerCase(Locale.ROOT);
+		if (c.id.isBlank()) throw new IllegalArgumentException("a collection has no \"id\"");
+		if (!c.id.matches("[a-z_][a-z0-9_]*")) throw new IllegalArgumentException("collection id '" + c.id + "' may only use a-z, 0-9 and _");
+		c.label = str(o, "label", c.id);
+		c.addLabel = str(o, "addLabel", "Add");
+		c.nameColumn = str(o, "nameColumn", "").toLowerCase(Locale.ROOT);
+		for (JsonElement e : arr(o, "columns")) {
+			JsonObject co = e.getAsJsonObject();
+			Col col = new Col();
+			col.id = str(co, "id", "").toLowerCase(Locale.ROOT);
+			if (!col.id.matches("[a-z_][a-z0-9_]*")) throw new IllegalArgumentException("collection '" + c.id + "': bad column id '" + col.id + "'");
+			col.label = str(co, "label", col.id);
+			col.type = str(co, "type", "text").toLowerCase(Locale.ROOT);
+			if (!Set.of("text", "note", "number", "toggle", "choice", "computed", "roll", "dice").contains(col.type)) {
+				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "' has unknown type '" + col.type + "'");
+			}
+			col.width = (float) (co.has("width") ? co.get("width").getAsDouble() : (col.type.equals("text") ? 2.5 : 1.0));
+			col.def = co.has("default") ? co.get("default").getAsDouble() : 0;
+			col.value = str(co, "value", null);
+			col.signed = bool(co, "signed");
+			col.roll = str(co, "roll", null);
+			col.rollLabel = str(co, "rollLabel", "{name}");
+			col.modifier = str(co, "modifier", null);
+			for (JsonElement oe : arr(co, "options")) col.options.add(oe.getAsString());
+			if (col.type.equals("choice") && col.options.isEmpty()) throw new IllegalArgumentException("collection '" + c.id + "': choice column '" + col.id + "' has no options");
+			if (col.type.equals("computed") && col.value == null) throw new IllegalArgumentException("collection '" + c.id + "': computed column '" + col.id + "' has no value");
+			if (col.type.equals("roll") && col.roll == null) throw new IllegalArgumentException("collection '" + c.id + "': roll column '" + col.id + "' has no roll");
+			if (c.column(col.id) != null) throw new IllegalArgumentException("collection '" + c.id + "': duplicate column '" + col.id + "'");
+			c.columns.add(col);
+		}
+		if (c.columns.isEmpty()) throw new IllegalArgumentException("collection '" + c.id + "' has no columns");
+		for (JsonElement e : arr(o, "footer")) {
+			JsonObject fo = e.getAsJsonObject();
+			c.footers.add(new Footer(str(fo, "label", ""), str(fo, "value", "0"), str(fo, "max", null)));
+		}
+		return c;
 	}
 
 	private static Layout parseLayout(JsonObject o) {
@@ -227,6 +339,8 @@ public final class SheetFormat {
 		i.rollLabel = str(o, "rollLabel", i.label);
 		i.enabled = str(o, "enabled", null);
 		i.widget = str(o, "widget", "").toLowerCase(Locale.ROOT);
+		i.collection = str(o, "collection", null);
+		if (i.collection != null) i.collection = i.collection.toLowerCase(Locale.ROOT);
 		String store = str(o, "store", null);
 		i.store = store == null ? null : store.toLowerCase(Locale.ROOT);
 		i.max = str(o, "max", null);
@@ -277,8 +391,8 @@ public final class SheetFormat {
 
 	// ------------------------------------------------------------------ editor inputs
 
-	private static final Pattern NAME = Pattern.compile("[a-z_][a-z0-9_]*");
-	private static final Set<String> FUNCTIONS = Set.of("floor", "ceil", "round", "abs", "min", "max");
+	private static final Pattern NAME = Pattern.compile("[a-z_][a-z0-9_.]*");
+	private static final Set<String> FUNCTIONS = Set.of("floor", "ceil", "round", "abs", "min", "max", "pick");
 
 	/** The inputs the editor shows: the declared ones, else name / subtitle plus every name the formulas need. */
 	public List<Field> editableFields() {
@@ -309,7 +423,7 @@ public final class SheetFormat {
 			Matcher m = NAME.matcher(formula.toLowerCase(Locale.ROOT));
 			while (m.find()) {
 				String n = m.group();
-				if (FUNCTIONS.contains(n) || n.matches("d\\d*") || derived.containsKey(n)) continue;
+				if (FUNCTIONS.contains(n) || n.matches("d\\d*") || derived.containsKey(n) || n.contains(".")) continue;
 				names.add(n);
 			}
 		}

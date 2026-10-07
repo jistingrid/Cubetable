@@ -6,7 +6,7 @@ import java.util.Locale;
 import java.util.function.Function;
 
 /**
- * Tiny expression language for sheet formats: numbers, names, + - * / ( ), floor() ceil() round() abs() min() max(),
+ * Tiny expression language for sheet formats: numbers, names, + - * / ( ), floor() ceil() round() abs() min() max() pick(),
  * and (for rolls only) one dice term like d20, 2d6 or d%, which may only be added: {@code d20 + str_mod + prof}.
  */
 public final class Expr {
@@ -150,19 +150,34 @@ public final class Expr {
 	}
 
 	private double call(String fn) {
-		double a = parseExpr();
-		double b = 0;
-		boolean two = accept(',');
-		if (two) b = parseExpr();
+		java.util.List<Double> args = new java.util.ArrayList<>();
+		args.add(parseExpr());
+		while (accept(',')) args.add(parseExpr());
 		if (!accept(')')) throw new ExprException("missing ) after " + fn + "(");
-		return switch (fn) {
-			case "floor" -> Math.floor(a);
-			case "ceil" -> Math.ceil(a);
-			case "round" -> Math.round(a);
-			case "abs" -> Math.abs(a);
-			case "min" -> two ? Math.min(a, b) : a;
-			case "max" -> two ? Math.max(a, b) : a;
-			default -> throw new ExprException("unknown function " + fn + "()");
-		};
+		double a = args.get(0);
+		switch (fn) {
+			case "floor": return Math.floor(a);
+			case "ceil": return Math.ceil(a);
+			case "round": return Math.round(a);
+			case "abs": return Math.abs(a);
+			case "min": {
+				double m = a;
+				for (double d : args) m = Math.min(m, d);
+				return m;
+			}
+			case "max": {
+				double m = a;
+				for (double d : args) m = Math.max(m, d);
+				return m;
+			}
+			case "pick": {
+				// pick(index, first, second, ...): the option at that index (clamped), for "choice" columns
+				if (args.size() < 2) throw new ExprException("pick() needs an index and options in '" + src + "'");
+				int idx = (int) Math.round(a);
+				idx = Math.max(0, Math.min(args.size() - 2, idx));
+				return args.get(idx + 1);
+			}
+			default: throw new ExprException("unknown function " + fn + "()");
+		}
 	}
 }
