@@ -1,0 +1,6 @@
+{
+  "dice_roll": {
+    "category": "master",
+    "sounds": ["tacticalcombat:dice_roll"]
+  }
+}

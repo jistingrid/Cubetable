@@ -7,6 +7,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import dev.tacticalcombat.mixin.client.ChatHudAccessor;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.Identifier;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.client.gui.screen.ChatScreen;
@@ -36,6 +39,8 @@ public final class DiceAnimation {
 
 	private static final ArrayDeque<DiceRollPayload> QUEUE = new ArrayDeque<>();
 	private static DiceRollPayload current;
+	/** The clatter that plays while the dice tumble: assets/tacticalcombat/sounds/dice_roll.ogg (see sounds.json). */
+	public static final SoundEvent DICE_SOUND = SoundEvent.of(Identifier.of("tacticalcombat", "dice_roll"));
 	private static int age;
 	private static boolean printed;
 	private static Random random = new Random();
@@ -62,6 +67,7 @@ public final class DiceAnimation {
 			printed = false;
 			if (current == null) return;
 			random = new Random(System.nanoTime());
+			client.getSoundManager().play(PositionedSoundInstance.master(DICE_SOUND, 1.0f, 1.0f));
 		}
 		age++;
 		if (!printed && age >= TUMBLE_TICKS) {
