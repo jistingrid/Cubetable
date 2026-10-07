@@ -1,0 +1,7 @@
+{
+  "name": "Percentile Skills",
+  "format": "format.json",
+  "characters": [
+    "characters/ines_marlowe.json"
+  ]
+}

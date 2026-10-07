@@ -834,15 +834,15 @@ public final class CharacterSheetScreen extends Screen {
 
 		int by = y + h - 56;
 		g.drawText(textRenderer, "ADD A GAME", px, by, GOLD, false);
-		String help = "Put a .json format file in the sheets folder, a character .json in the characters folder, then press Reload.";
+		String help = "Put a game folder (with a format.json inside) in the packs folder, then press Reload. Characters go in the characters folder.";
 		int hy = by + 11;
 		for (OrderedText line : textRenderer.wrapLines(StringVisitable.plain(help), pw)) {
 			g.drawText(textRenderer, line, px, hy, MUTED, false);
 			hy += 9;
 		}
 		int bx = px;
-		bx += smallButton(g, bx, hy + 3, "Open sheets folder", () -> Util.getOperatingSystem().open(SheetLibrary.sheetsDir().toFile()),
-				SheetLibrary.sheetsDir().toString(), PANEL, 0xFF3B414C) + 4;
+		bx += smallButton(g, bx, hy + 3, "Open packs folder", () -> Util.getOperatingSystem().open(SheetLibrary.packsDir().toFile()),
+				SheetLibrary.packsDir().toString(), PANEL, 0xFF3B414C) + 4;
 		smallButton(g, bx, hy + 3, "Open characters folder", () -> Util.getOperatingSystem().open(SheetLibrary.charactersDir().toFile()),
 				SheetLibrary.charactersDir().toString(), PANEL, 0xFF3B414C);
 

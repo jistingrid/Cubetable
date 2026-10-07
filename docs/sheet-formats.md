@@ -4,8 +4,21 @@ A sheet format is a `.json` file that describes one game's character sheet. The 
 
 Folders (created on first run, under the game's `config/` folder):
 
-- `config/tacticalcombat/sheets/` – your format files. A file with the same `id` as a built-in format replaces it.
+- `config/tacticalcombat/packs/` - **game packs**, one folder per game (see below). A pack whose format has the same `id` as an earlier one replaces it.
+- `config/tacticalcombat/sheets/` and `themes/` - loose format and theme files (the older layout; still read, after the packs).
 - `config/tacticalcombat/characters/` – one `.json` per character. Press **Reload** in the window after adding files. **New** in the window's top bar asks for a format and fills in a character from the format's `fields`; **Edit** changes the open one. Both save to the characters folder.
+
+## Game packs
+
+A game gets its own folder, so adding a game never touches code or anyone else's files:
+
+```
+config/tacticalcombat/packs/my_game/
+  format.json          the sheet format (this document)
+  themes/ember.json    optional colour themes for it
+```
+
+Press **Reload** in the Formats view (the **Open packs folder** button opens the folder). The mod ships its own packs the same way: `core` (themes), `generic_d20` and `percentile`, under `src/main/resources/assets/tacticalcombat/sheets/`. A built-in pack also has a `pack.json` (`name`, `format`, `themes`, `characters` - paths inside the pack) and is listed in `packs.json`; example characters are copied to the characters folder on first run. Copying `generic_d20/` into your packs folder and editing it is the quickest way to start a new game.
 
 ## Character file
 
@@ -53,7 +66,7 @@ Numbers, names, `+ - * / ( )`, and `floor() ceil() round() abs() min() max()`.
 
 Roll formulas additionally contain exactly one dice term, which may only be added: `d20 + str_mod + prof`, `2d6 + 3`, `d%`. Dice are d4, d6, d8, d10, d% (d100), d12 and d20. Single d20 rolls obey the window's Normal / Advantage / Disadvantage setting.
 
-See `src/main/resources/assets/tacticalcombat/sheets/` for two complete examples.
+See `generic_d20/format.json` and `percentile/format.json` under `src/main/resources/assets/tacticalcombat/sheets/` for two complete examples.
 
 ## `enabled`
 
@@ -67,7 +80,7 @@ A theme is a `.json` of colour overrides (`bg`, `panel`, `panel_hover`, `edge`, 
 { "id": "ember", "name": "Ember", "colors": { "banner_a": "#4a1a05", "banner_b": "#b5470f", "accent": "#ffb347" } }
 ```
 
-Put it in `config/tacticalcombat/themes/`. A character uses the theme chosen with **Layout** > **Theme** on the sheet, else its format's `theme`, else crimson. Built in: crimson, forest, azure, violet.
+Put it in a pack's `themes/` folder (or the loose `config/tacticalcombat/themes/`). A character uses the theme chosen with **Layout** > **Theme** on the sheet, else its format's `theme`, else crimson. Built in: crimson, forest, azure, violet.
 
 ## Layout mode
 
