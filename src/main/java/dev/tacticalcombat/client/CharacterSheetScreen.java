@@ -1087,6 +1087,10 @@ public final class CharacterSheetScreen extends Screen {
 	private void drawCell(DrawContext g, SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col,
 			int x, int w, int y) {
 		int white = 0xFFFFFFFF;
+		if (col.enabled != null) {
+			double on = sc.number(coll, row, col.enabled);
+			if (!Double.isNaN(on) && on <= 0) return;
+		}
 		switch (col.type) {
 			case "text" -> {
 				String t = row.texts.getOrDefault(col.id, "");

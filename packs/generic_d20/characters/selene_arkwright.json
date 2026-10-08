@@ -73,7 +73,8 @@
         "range": "120 ft",
         "duration": "Instant",
         "school": "Evocation",
-        "notes": "Ranged spell attack. Fire damage; ignites unattended flammable objects."
+        "notes": "Ranged spell attack. Fire damage; ignites unattended flammable objects.",
+        "attack": 1
       },
       {
         "name": "Mage Hand",
@@ -119,7 +120,8 @@
         "duration": "Instant",
         "school": "Evocation",
         "prepared": 1,
-        "notes": "Three rays, each a ranged spell attack for 2d6 fire damage."
+        "notes": "Three rays, each a ranged spell attack for 2d6 fire damage.",
+        "attack": 1
       },
       {
         "name": "Misty Step",

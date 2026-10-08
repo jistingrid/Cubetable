@@ -65,6 +65,8 @@ public final class SheetFormat {
 		public boolean detail;
 		/** Not shown on the sheet at all, only in the row editor (e.g. a spell's level when the table is grouped by it). */
 		public boolean hidden;
+		/** Row formula; the cell is only shown when it is above 0 (e.g. "row.attack" for a button that needs a switch). */
+		public String enabled;
 		/** roll column: the roll formula; {name} in rollLabel becomes the row's name. */
 		public String roll;
 		public String rollLabel = "{name}";
@@ -280,6 +282,7 @@ public final class SheetFormat {
 			col.signed = bool(co, "signed");
 			col.detail = bool(co, "detail");
 			col.hidden = bool(co, "hidden");
+			col.enabled = str(co, "enabled", null);
 			col.roll = str(co, "roll", null);
 			col.rollLabel = str(co, "rollLabel", "{name}");
 			col.modifier = str(co, "modifier", null);

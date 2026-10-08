@@ -1254,7 +1254,7 @@
           "id": "name",
           "label": "Spell",
           "type": "text",
-          "width": 2.2
+          "width": 2.0
         },
         {
           "id": "level",
@@ -1286,6 +1286,17 @@
             "9th level"
           ],
           "hidden": true
+        },
+        {
+          "id": "hit",
+          "label": "Hit",
+          "type": "roll",
+          "width": 0.7,
+          "signed": true,
+          "value": "spell_atk",
+          "roll": "d20 + spell_atk",
+          "rollLabel": "{name} attack",
+          "enabled": "row.attack"
         },
         {
           "id": "cast",
@@ -1345,6 +1356,12 @@
           "id": "notes",
           "label": "Description",
           "type": "note"
+        },
+        {
+          "id": "attack",
+          "label": "Spell attack roll",
+          "type": "toggle",
+          "hidden": true
         }
       ],
       "footer": [
