@@ -622,6 +622,9 @@ public final class CharacterSheetScreen extends Screen {
 		if (it.widget.equals("rollmode")) {
 			return drawRollMode(g, it, x, y, w, clipTop, clipBottom);
 		}
+		if (it.widget.equals("button")) {
+			return drawActionButton(g, sc, it, x, y, w, clipTop, clipBottom);
+		}
 		if (it.widget.equals("table")) {
 			return drawTable(g, sc, it, x, y, w, clipTop, clipBottom);
 		}
@@ -745,6 +748,41 @@ public final class CharacterSheetScreen extends Screen {
 		return col.modifier == null ? text : text + " + (" + col.modifier + ")";
 	}
 
+	/** Casts a spell: spends one slot of the row's level (cantrips are free), then rolls its dice if it has any. */
+	private void castRow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, boolean higher) {
+		SheetFormat.Col levelCol = coll.column(col.spendLevel);
+		int base = (int) Math.round(row.values.getOrDefault(levelCol.id, levelCol.def));
+		int use = base;
+		if (base > 0) {
+			use = -1;
+			for (int l = higher ? base + 1 : base; l <= 9; l++) {
+				if (stored(sc, col.spend + l) > 0) {
+					use = l;
+					break;
+				}
+			}
+			if (use < 0) {
+				say(higher ? "No higher spell slots left" : "No level " + base + " slots left");
+				return;
+			}
+			setStored(sc, col.spend + use, stored(sc, col.spend + use) - 1);
+		} else if (higher) {
+			return;
+		}
+		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row)) + (use > base ? " (level " + use + ")" : "");
+		SheetFormat.Col diceCol = col.diceCol == null ? null : coll.column(col.diceCol);
+		String formula = diceCol == null ? null : diceFormula(diceCol, row);
+		if (formula != null) {
+			rollPlan(sc, label, () -> sc.plan(coll, row, formula));
+		} else {
+			MinecraftClient mc = MinecraftClient.getInstance();
+			if (mc.player != null) {
+				mc.player.sendMessage(Text.literal("[sheet] " + sc.character.displayName() + " casts " + label
+						+ (use > 0 ? " (level " + use + " slot)" : "")).formatted(Formatting.AQUA), false);
+			}
+		}
+	}
+
 	private void rollRowDice(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, String formula) {
 		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row));
 		rollPlan(sc, label, () -> sc.plan(coll, row, formula));
@@ -856,6 +894,11 @@ public final class CharacterSheetScreen extends Screen {
 			});
 		}
 
+		// groups: stable, so the sort above (or the stored order) still decides inside a group
+		SheetFormat.Col groupCol = coll.groupBy.isEmpty() ? null : coll.column(coll.groupBy);
+		if (groupCol != null) order.sort((a, b) -> compareRows(sc, coll, groupCol, rows.get(a), rows.get(b)));
+		String lastGroup = null;
+
 		int cy = y;
 		// filter box (only for longer tables, or while one is in use)
 		boolean showFilter = rows.size() >= 5 || !filter.isEmpty() || coll.id.equals(filterColl);
@@ -915,6 +958,17 @@ public final class CharacterSheetScreen extends Screen {
 
 		for (int index : order) {
 			CharacterData.Row row = rows.get(index);
+			if (groupCol != null) {
+				String title = groupTitle(groupCol, row);
+				if (!title.equals(lastGroup)) {
+					lastGroup = title;
+					if (cy + 12 > clipTop && cy < clipBottom) {
+						g.drawText(textRenderer, title, x + 2, cy + 2, GOLD, false);
+						g.fill(x, cy + 11, x + w, cy + 12, EDGE);
+					}
+					cy += 13;
+				}
+			}
 			StringBuilder note = new StringBuilder();
 			for (SheetFormat.Col c : coll.columns) {
 				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : c.detail ? detailText(sc, coll, row, c) : "";
@@ -996,6 +1050,18 @@ public final class CharacterSheetScreen extends Screen {
 		return cy - y;
 	}
 
+	private static String groupTitle(SheetFormat.Col col, CharacterData.Row row) {
+		if (col.type.equals("choice")) {
+			int k = Math.floorMod((int) Math.round(row.values.getOrDefault(col.id, col.def)), col.options.size());
+			return tr(k < col.groupLabels.size() ? col.groupLabels.get(k) : col.options.get(k));
+		}
+		if (col.isText()) {
+			String t = row.texts.getOrDefault(col.id, "").trim();
+			return t.isEmpty() ? "-" : t;
+		}
+		return numberText(row.values.getOrDefault(col.id, col.def));
+	}
+
 	/** Short text for a detail column ("STR", "Prof", "+2 Bonus"), or empty when there is nothing worth saying. */
 	private static String detailText(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col) {
 		switch (col.type) {
@@ -1060,6 +1126,21 @@ public final class CharacterSheetScreen extends Screen {
 				g.fill(x, y + 1, x + bw, y + 12, ROLL_EDGE);
 				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
 				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
+			}
+			case "cast" -> {
+				SheetFormat.Col levelCol = coll.column(col.spendLevel);
+				int base = (int) Math.round(row.values.getOrDefault(levelCol.id, levelCol.def));
+				SheetFormat.Col diceCol = col.diceCol == null ? null : coll.column(col.diceCol);
+				String dice = diceCol == null ? "" : row.texts.getOrDefault(diceCol.id, "").trim();
+				String t = dice.isEmpty() ? "Cast" : dice;
+				boolean empty = base > 0 && stored(sc, col.spend + base) <= 0;
+				int bw = Math.min(w, tw(t) + 8);
+				String tip = "Cast " + rowName(coll, row) + (base > 0 ? ": spends a level " + base + " slot"
+						+ (empty ? " (none left)" : "") + ". Right-click: use a higher slot" : " (free)");
+				boolean over = hit(x, y + 1, bw, 11, () -> castRow(sc, coll, row, col, false), () -> castRow(sc, coll, row, col, true), tip);
+				g.fill(x, y + 1, x + bw, y + 12, empty ? EDGE : ROLL_EDGE);
+				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
+				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, empty ? DIM : white, false);
 			}
 			case "dice" -> {
 				String formula = diceFormula(col, row);
@@ -1272,6 +1353,31 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		boolean flashing = System.currentTimeMillis() < flashUntil;
 		if (flashing) g.drawText(textRenderer, flash, x + 8, y + h - 12, 0xFFFF6B6B, false);
+	}
+
+	/** A button that sets stored values from formulas (long rest: spell slots back to their maximum). */
+	private int drawActionButton(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
+		int h = 14;
+		if (y + h <= clipTop || y >= clipBottom) return h;
+		String tip = it.sub.isEmpty() ? "Sets: " + String.join(", ", it.set.keySet()) : tr(it.sub);
+		boolean over = hit(x, y, w, h - 1, () -> applySet(sc, it), tip);
+		g.fill(x, y, x + w, y + h - 1, ROLL_EDGE);
+		g.fill(x + 1, y + 1, x + w - 1, y + h - 2, over ? 0xFF3A2A10 : ROLL_BG);
+		g.drawCenteredTextWithShadow(textRenderer, tr(it.label), x + w / 2, y + 3, 0xFFFFFFFF);
+		return h;
+	}
+
+	private static void applySet(SheetContext sc, SheetFormat.Item it) {
+		int changed = 0;
+		for (Map.Entry<String, String> e : it.set.entrySet()) {
+			double v = sc.number(e.getValue());
+			if (Double.isNaN(v)) continue;
+			v = Math.max(0, v);
+			if (sc.character.values.getOrDefault(e.getKey(), Double.NaN) != v) changed++;
+			sc.character.values.put(e.getKey(), v);
+		}
+		store(sc.character);
+		say(tr(it.label) + (changed == 0 ? ": nothing to restore" : ": done"));
 	}
 
 	/** Pips (spell slots, inspiration, death saves...) and counters: rows that edit a stored number. */

@@ -55,6 +55,7 @@ An **item** is one row: `label`, `sub` (small text), `text` (a wrapped paragraph
 | `counter` | a stored number with -/+ (exhaustion, hit dice...); Shift = 5, Ctrl = 10 | `store`, `max` |
 | `rollmode` | a Normal / Advantage / Disadvantage row for single d20 rolls. Only formats that place it get advantage; others always roll normally | none |
 | `cycle` | a normal row with a clickable proficiency marker that steps through values | `store`, `cycle` (e.g. `[0, 0.5, 1, 2]`) |
+| `button` | a button that sets stored values from formulas when pressed: a rest, a reset. `label`, optional `sub` (tooltip), `set`: `{ "slots_1": "slots_1_max", "hp": "hp_max" }` | `set` |
 | `table` | a table of rows the character owns (weapons, gear, skills...), see Collections | `collection` (id) |
 
 Every stored name a widget uses should have a `defaults` entry (or a character value).
@@ -97,7 +98,10 @@ Column types:
 | `choice` | one of `options`, click cycles; stores the option's index | number |
 | `computed` | the result of `value`, a formula | nothing |
 | `roll` | a button showing `value`; clicking rolls `roll`. `rollLabel` may contain `{name}` | nothing |
+| `cast` | a button that spends a resource, then rolls: `spend` is the stored-value prefix (`"slots_"`), `level` the column holding the row's level (0 = free, a cantrip), optional `dice` the dice column to roll. Left-click spends a slot of that level; right-click the lowest higher slot that is left. With no dice it prints a "casts" line in chat | nothing |
 | `dice` | the row's own dice text, e.g. `1d8`, as a button. `modifier` is a formula added when rolled | text |
+
+A collection can set `groupBy` to a column (usually a `choice`): the table gets a heading per value, in order. On a choice column, `groupLabels` gives the heading for each option ("Cantrips", "1st level", ...).
 
 `detail: true` on a column keeps it out of the table: its value is summarised in small text under the row (toggles show their label when on, numbers when not 0) and is edited in the row editor. Use it for setup columns so the main row stays readable, e.g. a weapon row shows name, hit and damage, with `STR - Prof` underneath.
 

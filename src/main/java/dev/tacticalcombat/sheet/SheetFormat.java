@@ -70,6 +70,14 @@ public final class SheetFormat {
 		public String modifier;
 		/** choice column: the labels; the row stores the index. */
 		public final List<String> options = new ArrayList<>();
+		/** choice column used by "groupBy": a heading per option (else the option itself). */
+		public final List<String> groupLabels = new ArrayList<>();
+		/** cast column: stored-value prefix of the slots it spends ("slots_" -> slots_3 for a level 3 row). */
+		public String spend;
+		/** cast column: the column holding the row's level (0 = free, like a cantrip). */
+		public String spendLevel;
+		/** cast column: optional dice column rolled when casting. */
+		public String diceCol;
 
 		public boolean isText() {
 			return type.equals("text") || type.equals("note") || type.equals("dice");
@@ -91,6 +99,8 @@ public final class SheetFormat {
 		public String addLabel = "Add";
 		/** Which column holds the row's name (first text column unless "nameColumn" says otherwise). */
 		public String nameColumn = "";
+		/** Column whose value splits the table into headed groups (spell level, item type...). */
+		public String groupBy = "";
 		public final List<Col> columns = new ArrayList<>();
 		public final List<Footer> footers = new ArrayList<>();
 
@@ -159,6 +169,8 @@ public final class SheetFormat {
 
 		/** Widget "table": the id of the collection drawn as a table. */
 		public String collection;
+		/** Widget "button": stored values to set when pressed, name -> formula (a rest: slots back to their maximum). */
+		public final Map<String, String> set = new LinkedHashMap<>();
 		/** "" (plain row), "pips", "counter", "cycle", "rollmode" or "table". */
 		public String widget = "";
 		/** Stored value a widget edits (pips, counter, cycle). */
@@ -257,7 +269,7 @@ public final class SheetFormat {
 			if (!col.id.matches("[a-z_][a-z0-9_]*")) throw new IllegalArgumentException("collection '" + c.id + "': bad column id '" + col.id + "'");
 			col.label = str(co, "label", col.id);
 			col.type = str(co, "type", "text").toLowerCase(Locale.ROOT);
-			if (!Set.of("text", "note", "number", "toggle", "choice", "computed", "roll", "dice").contains(col.type)) {
+			if (!Set.of("text", "note", "number", "toggle", "choice", "computed", "roll", "dice", "cast").contains(col.type)) {
 				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "' has unknown type '" + col.type + "'");
 			}
 			col.width = (float) (co.has("width") ? co.get("width").getAsDouble() : (col.type.equals("text") ? 2.5 : 1.0));
@@ -269,6 +281,13 @@ public final class SheetFormat {
 			col.rollLabel = str(co, "rollLabel", "{name}");
 			col.modifier = str(co, "modifier", null);
 			for (JsonElement oe : arr(co, "options")) col.options.add(oe.getAsString());
+			for (JsonElement oe : arr(co, "groupLabels")) col.groupLabels.add(oe.getAsString());
+			col.spend = str(co, "spend", null);
+			col.spendLevel = str(co, "level", null);
+			col.diceCol = str(co, "dice", null);
+			if (col.type.equals("cast") && (col.spend == null || col.spendLevel == null)) {
+				throw new IllegalArgumentException("collection '" + c.id + "': cast column '" + col.id + "' needs \"spend\" and \"level\"");
+			}
 			if (col.type.equals("choice") && col.options.isEmpty()) throw new IllegalArgumentException("collection '" + c.id + "': choice column '" + col.id + "' has no options");
 			if (col.type.equals("computed") && col.value == null) throw new IllegalArgumentException("collection '" + c.id + "': computed column '" + col.id + "' has no value");
 			if (col.type.equals("roll") && col.roll == null) throw new IllegalArgumentException("collection '" + c.id + "': roll column '" + col.id + "' has no roll");
@@ -276,6 +295,15 @@ public final class SheetFormat {
 			c.columns.add(col);
 		}
 		if (c.columns.isEmpty()) throw new IllegalArgumentException("collection '" + c.id + "' has no columns");
+		c.groupBy = str(o, "groupBy", "").toLowerCase(Locale.ROOT);
+		if (!c.groupBy.isEmpty() && c.column(c.groupBy) == null) {
+			throw new IllegalArgumentException("collection '" + c.id + "': groupBy names an unknown column '" + c.groupBy + "'");
+		}
+		for (SheetFormat.Col col : c.columns) {
+			if (col.type.equals("cast") && (c.column(col.spendLevel) == null || col.diceCol != null && c.column(col.diceCol) == null)) {
+				throw new IllegalArgumentException("collection '" + c.id + "': cast column '" + col.id + "' names an unknown level or dice column");
+			}
+		}
 		for (JsonElement e : arr(o, "footer")) {
 			JsonObject fo = e.getAsJsonObject();
 			c.footers.add(new Footer(str(fo, "label", ""), str(fo, "value", "0"), str(fo, "max", null)));
@@ -343,6 +371,11 @@ public final class SheetFormat {
 		i.enabled = str(o, "enabled", null);
 		i.widget = str(o, "widget", "").toLowerCase(Locale.ROOT);
 		i.collection = str(o, "collection", null);
+		if (o.has("set") && o.get("set").isJsonObject()) {
+			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("set").entrySet()) {
+				i.set.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
+			}
+		}
 		if (i.collection != null) i.collection = i.collection.toLowerCase(Locale.ROOT);
 		String store = str(o, "store", null);
 		i.store = store == null ? null : store.toLowerCase(Locale.ROOT);

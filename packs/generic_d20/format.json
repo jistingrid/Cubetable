@@ -723,6 +723,36 @@
                       "widget": "counter",
                       "store": "exhaustion",
                       "max": "6"
+                    },
+                    {
+                      "widget": "button",
+                      "label": "Short rest",
+                      "sub": "Second Wind and Action Surge back",
+                      "set": {
+                        "second_wind": "1",
+                        "action_surge": "1"
+                      }
+                    },
+                    {
+                      "widget": "button",
+                      "label": "Long rest",
+                      "sub": "Hit points, spell slots and short-rest abilities back to full; death saves cleared",
+                      "set": {
+                        "hp": "hp_max",
+                        "second_wind": "1",
+                        "action_surge": "1",
+                        "death_s": "0",
+                        "death_f": "0",
+                        "slots_1": "slots_1_max",
+                        "slots_2": "slots_2_max",
+                        "slots_3": "slots_3_max",
+                        "slots_4": "slots_4_max",
+                        "slots_5": "slots_5_max",
+                        "slots_6": "slots_6_max",
+                        "slots_7": "slots_7_max",
+                        "slots_8": "slots_8_max",
+                        "slots_9": "slots_9_max"
+                      }
                     }
                   ]
                 }
@@ -1243,14 +1273,37 @@
             "7",
             "8",
             "9"
+          ],
+          "groupLabels": [
+            "Cantrips",
+            "1st level",
+            "2nd level",
+            "3rd level",
+            "4th level",
+            "5th level",
+            "6th level",
+            "7th level",
+            "8th level",
+            "9th level"
           ]
+        },
+        {
+          "id": "cast",
+          "label": "Cast",
+          "type": "cast",
+          "width": 1.0,
+          "spend": "slots_",
+          "level": "level",
+          "dice": "dmg",
+          "rollLabel": "{name}"
         },
         {
           "id": "dmg",
           "label": "Dice",
           "type": "dice",
           "width": 1.0,
-          "rollLabel": "{name}"
+          "rollLabel": "{name}",
+          "detail": true
         },
         {
           "id": "prepared",
@@ -1300,7 +1353,8 @@
           "value": "spells.count.prepared",
           "max": "prepared_max"
         }
-      ]
+      ],
+      "groupBy": "level"
     }
   ]
 }
