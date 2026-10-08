@@ -135,7 +135,7 @@ public class TacticalCombatMod implements ModInitializer {
 										.executes(ctx -> {
 											ServerPlayerEntity target = net.minecraft.command.argument.EntityArgumentType.getPlayer(ctx, "player");
 											boolean changed = dev.tacticalcombat.character.Roles.add(target.getUuid());
-											dev.tacticalcombat.character.CharacterSync.sendRole(target);
+											dev.tacticalcombat.character.CharacterSync.resync(target);
 											ctx.getSource().sendFeedback(() -> Text.literal(target.getGameProfile().getName()
 													+ (changed ? " is now a Dungeon Master." : " already is a Dungeon Master.")), true);
 											return 1;
@@ -145,7 +145,7 @@ public class TacticalCombatMod implements ModInitializer {
 										.executes(ctx -> {
 											ServerPlayerEntity target = net.minecraft.command.argument.EntityArgumentType.getPlayer(ctx, "player");
 											boolean changed = dev.tacticalcombat.character.Roles.remove(target.getUuid());
-											dev.tacticalcombat.character.CharacterSync.sendRole(target);
+											dev.tacticalcombat.character.CharacterSync.resync(target);
 											ctx.getSource().sendFeedback(() -> Text.literal(target.getGameProfile().getName()
 													+ (changed ? " is no longer a Dungeon Master." : " was not a Dungeon Master.")), true);
 											return 1;

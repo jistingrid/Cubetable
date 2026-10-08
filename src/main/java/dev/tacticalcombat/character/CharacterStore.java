@@ -32,6 +32,16 @@ public final class CharacterStore {
 		public String ownerName;
 		public long version;
 		public JsonObject json;
+		/** Who besides the owner and the DMs may see it: "" = nobody, "*" = everyone, otherwise comma-separated player uuids. */
+		public String share = "";
+
+		/** Owners and Dungeon Masters always see it; others only when the DM shared it with them. */
+		public boolean visibleTo(UUID player, boolean dm) {
+			if (dm || owner.equals(player)) return true;
+			if (share.equals("*")) return true;
+			for (String s : share.split(",")) if (s.trim().equals(player.toString())) return true;
+			return false;
+		}
 
 		public Entry(String id, UUID owner, String ownerName, long version, JsonObject json) {
 			this.id = id;
@@ -61,6 +71,7 @@ public final class CharacterStore {
 				JsonObject o = e.getAsJsonObject();
 				Entry en = new Entry(o.get("id").getAsString(), UUID.fromString(o.get("owner").getAsString()),
 						o.get("ownerName").getAsString(), o.get("version").getAsLong(), o.getAsJsonObject("data"));
+				if (o.has("share")) en.share = o.get("share").getAsString();
 				ENTRIES.put(en.id, en);
 			}
 		} catch (Exception ex) {
@@ -79,6 +90,7 @@ public final class CharacterStore {
 				o.addProperty("owner", en.owner.toString());
 				o.addProperty("ownerName", en.ownerName);
 				o.addProperty("version", en.version);
+				if (!en.share.isEmpty()) o.addProperty("share", en.share);
 				o.add("data", en.json);
 				arr.add(o);
 			}

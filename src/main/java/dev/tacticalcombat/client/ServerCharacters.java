@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.tacticalcombat.character.Gz;
 import dev.tacticalcombat.net.CharacterDeletePayload;
+import dev.tacticalcombat.net.CharacterHidePayload;
+import dev.tacticalcombat.net.CharacterSharePayload;
 import dev.tacticalcombat.net.CharacterPushPayload;
 import dev.tacticalcombat.net.CharacterRemovePayload;
 import dev.tacticalcombat.net.CharacterUpdatePayload;
@@ -36,6 +38,8 @@ public final class ServerCharacters {
 	private static final Map<String, JsonObject> SERVER_JSON = new HashMap<>();
 	private static final Map<String, Long> SERVER_VERSION = new HashMap<>();
 	private static final Set<String> KNOWN = new HashSet<>();
+	/** Who may see each character besides its owner and the DMs ("" nobody, "*" everyone, else uuids). */
+	private static final Map<String, String> SHARE = new HashMap<>();
 	private static boolean dm;
 
 	private ServerCharacters() {}
@@ -62,6 +66,7 @@ public final class ServerCharacters {
 		SERVER_JSON.clear();
 		SERVER_VERSION.clear();
 		KNOWN.clear();
+		SHARE.clear();
 		dm = false;
 	}
 
@@ -73,6 +78,17 @@ public final class ServerCharacters {
 			return c != 0 ? c : a.displayName().compareToIgnoreCase(b.displayName());
 		});
 		return list;
+	}
+
+	public static String shareOf(String id) {
+		return SHARE.getOrDefault(id, "");
+	}
+
+	/** DM: decide who may see a character ("" nobody, "*" everyone, else comma-separated player uuids). */
+	public static void setShare(String id, String share) {
+		if (!dm || id.isEmpty() || !available()) return;
+		SHARE.put(id, share);
+		ClientPlayNetworking.send(new CharacterSharePayload(id, share));
 	}
 
 	// ------------------------------------------------------------------ sending
@@ -176,6 +192,7 @@ public final class ServerCharacters {
 		}
 		JsonObject norm = normalised(json);
 		KNOWN.add(p.id());
+		SHARE.put(p.id(), p.share());
 		SERVER_JSON.put(p.id(), norm);
 		SERVER_VERSION.put(p.id(), p.version());
 
@@ -214,7 +231,16 @@ public final class ServerCharacters {
 		}
 	}
 
+	/** The character still exists but is not shared with you (any more). */
+	public static void receiveHide(CharacterHidePayload p) {
+		REMOTE.remove(p.id());
+		SERVER_JSON.remove(p.id());
+		SERVER_VERSION.remove(p.id());
+		SHARE.remove(p.id());
+	}
+
 	public static void receiveRemove(CharacterRemovePayload p) {
+		SHARE.remove(p.id());
 		REMOTE.remove(p.id());
 		SERVER_JSON.remove(p.id());
 		SERVER_VERSION.remove(p.id());

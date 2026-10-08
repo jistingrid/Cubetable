@@ -282,6 +282,7 @@ public final class CharacterSheetScreen extends Screen {
 		g.fill(x, y, x + w, y + h, BG);
 
 		String tooltip = null;
+		popupHitStart = Integer.MAX_VALUE;
 		drawTitleBar(g, x, y, w);
 		if (view == View.FORMATS) {
 			drawFormats(g, x, y + TITLE_H, w, h - TITLE_H);
@@ -299,6 +300,12 @@ public final class CharacterSheetScreen extends Screen {
 				drawBody(g, sc, x, y + TITLE_H + BANNER_H + TAB_H, w, h - TITLE_H - BANNER_H - TAB_H - FOOT_H);
 				drawFooter(g, x, y + h - FOOT_H, w);
 			}
+		}
+
+		if (sharePopup && view == View.SHEET && character() != null && !character().link.isEmpty() && ServerCharacters.isDm()) {
+			drawSharePopup(g, x + w - 4, y + TITLE_H + 2, character());
+		} else {
+			sharePopup = false;
 		}
 
 		// resize grip in the bottom-right corner
@@ -322,6 +329,69 @@ public final class CharacterSheetScreen extends Screen {
 		}
 	}
 
+	private boolean sharePopup;
+	private int popupHitStart = Integer.MAX_VALUE;
+
+	/** The DM's "who may see this character" list, anchored under the title bar's right edge. */
+	private void drawSharePopup(DrawContext g, int right, int top, CharacterData c) {
+		String id = c.link;
+		String share = ServerCharacters.shareOf(id);
+		java.util.Set<String> chosen = new java.util.LinkedHashSet<>();
+		if (!share.equals("*")) for (String s : share.split(",")) if (!s.isBlank()) chosen.add(s.trim());
+
+		MinecraftClient mc = MinecraftClient.getInstance();
+		String me = mc.player == null ? "" : mc.player.getUuidAsString();
+		List<String[]> people = new ArrayList<>(); // uuid, name
+		if (mc.getNetworkHandler() != null) {
+			for (net.minecraft.client.network.PlayerListEntry e : mc.getNetworkHandler().getPlayerList()) {
+				String uuid = e.getProfile().getId().toString();
+				String name = e.getProfile().getName();
+				boolean owner = c.remote ? name.equals(c.ownerName) : uuid.equals(me);
+				if (!owner) people.add(new String[] {uuid, name});
+			}
+		}
+		for (String u : chosen) {
+			boolean listed = false;
+			for (String[] p : people) if (p[0].equals(u)) listed = true;
+			if (!listed) people.add(new String[] {u, "(offline player)"});
+		}
+
+		int rowH = 12;
+		int pw = 150;
+		int ph = 8 + rowH * (2 + Math.max(1, people.size())) + 12;
+		int px = right - pw;
+		popupHitStart = hits.size();
+		g.fill(px - 1, top - 1, px + pw + 1, top + ph + 1, 0xFF05060A);
+		g.fill(px, top, px + pw, top + ph, 0xFF1A1D23);
+		int cy = top + 4;
+		cy = shareRow(g, px, cy, pw, "Don't share", share.isEmpty(), () -> ServerCharacters.setShare(id, ""));
+		cy = shareRow(g, px, cy, pw, "Share with all", share.equals("*"), () -> ServerCharacters.setShare(id, "*"));
+		g.fill(px + 4, cy + 1, px + pw - 4, cy + 2, EDGE);
+		cy += 4;
+		if (people.isEmpty()) {
+			g.drawText(textRenderer, "No other players online", px + 6, cy + 2, DIM, false);
+			cy += rowH;
+		}
+		for (String[] p : people) {
+			boolean on = chosen.contains(p[0]);
+			cy = shareRow(g, px, cy, pw, textRenderer.trimToWidth(p[1], pw - 22), on, () -> {
+				java.util.Set<String> next = new java.util.LinkedHashSet<>(chosen);
+				if (!next.remove(p[0])) next.add(p[0]);
+				ServerCharacters.setShare(id, String.join(",", next));
+			});
+		}
+	}
+
+	private int shareRow(DrawContext g, int x, int y, int w, String text, boolean on, Runnable action) {
+		boolean over = hit(x + 2, y, w - 4, 12, action, null);
+		if (over) g.fill(x + 2, y, x + w - 2, y + 12, PANEL_HOVER);
+		g.fill(x + 6, y + 2, x + 15, y + 11, 0xFF3B414C);
+		g.fill(x + 7, y + 3, x + 14, y + 10, 0xFF0F1114);
+		if (on) g.fill(x + 8, y + 4, x + 13, y + 9, GOLD);
+		g.drawText(textRenderer, text, x + 20, y + 2, 0xFFC9CCD2, false);
+		return y + 12;
+	}
+
 	private void drawTitleBar(DrawContext g, int x, int y, int w) {
 		g.fill(x, y, x + w, y + TITLE_H, 0xFF0F1114);
 		g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, EDGE);
@@ -339,6 +409,12 @@ public final class CharacterSheetScreen extends Screen {
 			right -= smallButton(g, right - tw("Reload") - 6, y + 3, "Reload", () -> SheetLibrary.reload(), "Read the sheets and characters folders again", PANEL, 0xFF3B414C) + 3;
 			right -= smallButton(g, right - tw("Formats") - 6, y + 3, view == View.FORMATS ? "Back" : "Formats",
 					() -> view = view == View.FORMATS ? View.SHEET : View.FORMATS, "Installed sheet formats", PANEL, 0xFF3B414C) + 3;
+			if (view == View.SHEET && ServerCharacters.isDm() && character() != null && !character().link.isEmpty()) {
+				String share = ServerCharacters.shareOf(character().link);
+				String label = "Share: " + (share.isEmpty() ? "Private" : share.equals("*") ? "All" : share.split(",").length + (share.split(",").length == 1 ? " player" : " players"));
+				right -= smallButton(g, right - tw(label) - 6, y + 3, label, () -> sharePopup = !sharePopup,
+						"Choose who may see this character (the owner and DMs always can)", sharePopup ? 0xFF6B4E12 : PANEL, 0xFF3B414C) + 3;
+			}
 			if (view == View.SHEET && sheet() != null && canEdit(sheet().character)) {
 				right -= smallButton(g, right - tw("Edit") - 6, y + 3, "Edit", this::startEdit, "Change this character's details", PANEL, 0xFF3B414C) + 3;
 			}
@@ -2060,6 +2136,17 @@ public final class CharacterSheetScreen extends Screen {
 				return true;
 			}
 			deactivateFilter();
+		}
+		if (sharePopup && button == 0 && popupHitStart != Integer.MAX_VALUE) {
+			for (int i = hits.size() - 1; i >= popupHitStart; i--) {
+				Hit hit = hits.get(i);
+				if (hit.contains(mx, my)) {
+					hit.action.run();
+					return true;
+				}
+			}
+			sharePopup = false;
+			if (hits.size() > 0) return true;
 		}
 		if (button == 1) {
 			// right click: only controls that define a second action (table numbers and choices) react

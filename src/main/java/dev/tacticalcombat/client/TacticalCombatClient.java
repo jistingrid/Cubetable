@@ -61,6 +61,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveUpdate(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CharacterRemovePayload.ID,
 				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveRemove(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CharacterHidePayload.ID,
+				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveHide(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.RolePayload.ID,
 				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveRole(payload)));
 

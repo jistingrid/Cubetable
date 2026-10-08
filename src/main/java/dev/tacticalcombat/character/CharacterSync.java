@@ -4,7 +4,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.tacticalcombat.TacticalCombatMod;
 import dev.tacticalcombat.net.CharacterDeletePayload;
+import dev.tacticalcombat.net.CharacterHidePayload;
 import dev.tacticalcombat.net.CharacterPushPayload;
+import dev.tacticalcombat.net.CharacterSharePayload;
 import dev.tacticalcombat.net.CharacterRemovePayload;
 import dev.tacticalcombat.net.CharacterUpdatePayload;
 import dev.tacticalcombat.net.RolePayload;
@@ -31,6 +33,8 @@ public final class CharacterSync {
 		PayloadTypeRegistry.playS2C().register(CharacterUpdatePayload.ID, CharacterUpdatePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterRemovePayload.ID, CharacterRemovePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(CharacterHidePayload.ID, CharacterHidePayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(CharacterSharePayload.ID, CharacterSharePayload.CODEC);
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			CharacterStore.load(server);
@@ -46,6 +50,10 @@ public final class CharacterSync {
 		ServerPlayNetworking.registerGlobalReceiver(CharacterPushPayload.ID, (payload, context) -> {
 			ServerPlayerEntity player = context.player();
 			context.server().execute(() -> push(context.server(), player, payload.id(), payload.data()));
+		});
+		ServerPlayNetworking.registerGlobalReceiver(CharacterSharePayload.ID, (payload, context) -> {
+			ServerPlayerEntity player = context.player();
+			context.server().execute(() -> setShare(context.server(), player, payload.id(), payload.share()));
 		});
 		ServerPlayNetworking.registerGlobalReceiver(CharacterDeletePayload.ID, (payload, context) -> {
 			ServerPlayerEntity player = context.player();
@@ -86,6 +94,41 @@ public final class CharacterSync {
 		}
 	}
 
+	/** A Dungeon Master decides who besides the owner may see a character. */
+	private static void setShare(MinecraftServer server, ServerPlayerEntity player, String id, String share) {
+		if (!Roles.isDm(player.getUuid())) return;
+		CharacterStore.Entry e = CharacterStore.get(id);
+		if (e == null) return;
+		StringBuilder clean = new StringBuilder();
+		if (share.equals("*")) {
+			clean.append('*');
+		} else {
+			for (String part : share.split(",")) {
+				try {
+					String u = java.util.UUID.fromString(part.trim()).toString();
+					if (clean.length() > 0) clean.append(',');
+					clean.append(u);
+				} catch (IllegalArgumentException ignored) {
+					// skip anything that is not a uuid
+				}
+			}
+		}
+		if (e.share.equals(clean.toString())) return;
+		e.share = clean.toString();
+		CharacterStore.save();
+		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) sendTo(p, e);
+	}
+
+	/** Sends the character to a player who may see it, or tells their client to drop it. */
+	private static void sendTo(ServerPlayerEntity p, CharacterStore.Entry e) {
+		if (!ServerPlayNetworking.canSend(p, CharacterUpdatePayload.ID)) return;
+		if (e.visibleTo(p.getUuid(), Roles.isDm(p.getUuid()))) {
+			ServerPlayNetworking.send(p, payloadOf(e, ""));
+		} else {
+			ServerPlayNetworking.send(p, new CharacterHidePayload(e.id));
+		}
+	}
+
 	private static void delete(MinecraftServer server, ServerPlayerEntity player, String id) {
 		CharacterStore.Entry existing = CharacterStore.get(id);
 		if (existing == null || !canChange(player, existing)) return;
@@ -100,14 +143,16 @@ public final class CharacterSync {
 	private static CharacterUpdatePayload payloadOf(CharacterStore.Entry e, String by) {
 		JsonObject copy = e.json.deepCopy();
 		copy.addProperty("version", e.version);
-		return new CharacterUpdatePayload(e.id, e.owner.toString(), e.ownerName, by, e.version, Gz.pack(copy.toString()));
+		return new CharacterUpdatePayload(e.id, e.owner.toString(), e.ownerName, by, e.version, e.share, Gz.pack(copy.toString()));
 	}
 
 	/** A change made by someone (by = their uuid) or by the server (empty), to everyone with the mod. */
 	public static void broadcast(MinecraftServer server, CharacterStore.Entry e, String by) {
 		CharacterUpdatePayload payload = payloadOf(e, by);
 		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
-			if (ServerPlayNetworking.canSend(p, CharacterUpdatePayload.ID)) ServerPlayNetworking.send(p, payload);
+			if (e.visibleTo(p.getUuid(), Roles.isDm(p.getUuid())) && ServerPlayNetworking.canSend(p, CharacterUpdatePayload.ID)) {
+				ServerPlayNetworking.send(p, payload);
+			}
 		}
 	}
 
@@ -124,12 +169,15 @@ public final class CharacterSync {
 		}
 	}
 
-	/** Everything a joining player needs: all characters, then their role (the signal that the sync is complete). */
+	/** Everything a joining player may see, then their role (the signal that the sync is complete). */
 	private static void sendAll(ServerPlayerEntity player) {
+		resync(player);
+	}
+
+	/** Sends what this player may see and drops the rest (also after their role changed), then the role. */
+	public static void resync(ServerPlayerEntity player) {
 		if (!ServerPlayNetworking.canSend(player, CharacterUpdatePayload.ID)) return;
-		for (CharacterStore.Entry e : CharacterStore.all()) {
-			ServerPlayNetworking.send(player, payloadOf(e, ""));
-		}
+		for (CharacterStore.Entry e : CharacterStore.all()) sendTo(player, e);
 		sendRole(player);
 	}
 }

@@ -7,14 +7,14 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
 /** Server -> clients: a character was added or changed. byUuid is who changed it (empty when the server did). */
-public record CharacterUpdatePayload(String id, String ownerUuid, String ownerName, String byUuid, long version, byte[] data) implements CustomPayload {
+public record CharacterUpdatePayload(String id, String ownerUuid, String ownerName, String byUuid, long version, String share, byte[] data) implements CustomPayload {
 	public static final Id<CharacterUpdatePayload> ID =
 			new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "character_update"));
 
 	public static final PacketCodec<RegistryByteBuf, CharacterUpdatePayload> CODEC = new PacketCodec<>() {
 		@Override
 		public CharacterUpdatePayload decode(RegistryByteBuf buf) {
-			return new CharacterUpdatePayload(buf.readString(64), buf.readString(40), buf.readString(32), buf.readString(40), buf.readLong(), buf.readByteArray(900000));
+			return new CharacterUpdatePayload(buf.readString(64), buf.readString(40), buf.readString(32), buf.readString(40), buf.readLong(), buf.readString(2000), buf.readByteArray(900000));
 		}
 
 		@Override
@@ -24,6 +24,7 @@ public record CharacterUpdatePayload(String id, String ownerUuid, String ownerNa
 			buf.writeString(p.ownerName, 32);
 			buf.writeString(p.byUuid, 40);
 			buf.writeLong(p.version);
+			buf.writeString(p.share, 2000);
 			buf.writeByteArray(p.data);
 		}
 	};
