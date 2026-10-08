@@ -211,10 +211,28 @@ public final class CharacterSheetScreen extends Screen {
 
 	// ------------------------------------------------------------------ state helpers
 
+	/** Your own characters followed by the ones other players share through the server. */
+	private static List<CharacterData> allCharacters() {
+		List<CharacterData> remotes = ServerCharacters.remotes();
+		if (remotes.isEmpty()) return SheetLibrary.CHARACTERS;
+		List<CharacterData> all = new ArrayList<>(SheetLibrary.CHARACTERS);
+		all.addAll(remotes);
+		return all;
+	}
+
+	private static boolean canEdit(CharacterData c) {
+		return c != null && (!c.remote || ServerCharacters.isDm());
+	}
+
+	private static String listName(CharacterData c) {
+		return c.remote ? c.displayName() + " (" + c.ownerName + ")" : c.displayName();
+	}
+
 	private CharacterData character() {
-		if (SheetLibrary.CHARACTERS.isEmpty()) return null;
-		charIndex = Math.floorMod(charIndex, SheetLibrary.CHARACTERS.size());
-		return SheetLibrary.CHARACTERS.get(charIndex);
+		List<CharacterData> all = allCharacters();
+		if (all.isEmpty()) return null;
+		charIndex = Math.floorMod(charIndex, all.size());
+		return all.get(charIndex);
 	}
 
 	private SheetContext sheet() {
@@ -310,11 +328,18 @@ public final class CharacterSheetScreen extends Screen {
 
 		int right = x + w - 3;
 		right -= smallButton(g, right - 12, y + 3, "x", this::close, "Close", 0xFF7A1C27, 0xFFB8323F) + 3;
+		if (ServerCharacters.isDm()) {
+			String tag = "DM";
+			g.fill(right - tw(tag) - 8, y + 3, right, y + 14, 0xFF6B4E12);
+			g.drawText(textRenderer, tag, right - tw(tag) - 4, y + 5, GOLD, false);
+			hit(right - tw(tag) - 8, y + 3, tw(tag) + 8, 11, () -> {}, "You are a Dungeon Master: you can see and edit every character");
+			right -= tw(tag) + 11;
+		}
 		if (view != View.EDITOR && view != View.ROW) {
 			right -= smallButton(g, right - tw("Reload") - 6, y + 3, "Reload", () -> SheetLibrary.reload(), "Read the sheets and characters folders again", PANEL, 0xFF3B414C) + 3;
 			right -= smallButton(g, right - tw("Formats") - 6, y + 3, view == View.FORMATS ? "Back" : "Formats",
 					() -> view = view == View.FORMATS ? View.SHEET : View.FORMATS, "Installed sheet formats", PANEL, 0xFF3B414C) + 3;
-			if (view == View.SHEET && sheet() != null) {
+			if (view == View.SHEET && sheet() != null && canEdit(sheet().character)) {
 				right -= smallButton(g, right - tw("Edit") - 6, y + 3, "Edit", this::startEdit, "Change this character's details", PANEL, 0xFF3B414C) + 3;
 			}
 			right -= smallButton(g, right - tw("New") - 6, y + 3, "New", this::startNew, "Create a new character", PANEL, 0xFF3B414C) + 3;
@@ -322,9 +347,9 @@ public final class CharacterSheetScreen extends Screen {
 
 		// character switcher on the left
 		CharacterData c = character();
-		String name = c == null ? "No characters" : textRenderer.trimToWidth(c.displayName(), 90);
+		String name = c == null ? "No characters" : textRenderer.trimToWidth(listName(c), 110);
 		int cx = x + 6;
-		if (view == View.SHEET && SheetLibrary.CHARACTERS.size() > 1) {
+		if (view == View.SHEET && allCharacters().size() > 1) {
 			cx += smallButton(g, cx, y + 3, "<", () -> { charIndex--; resetScroll(); }, "Previous character", PANEL, 0xFF3B414C) + 3;
 			g.drawText(textRenderer, name, cx, y + 4, 0xFFC9CCD2, false);
 			cx += tw(name) + 4;
@@ -459,11 +484,7 @@ public final class CharacterSheetScreen extends Screen {
 		next = Math.max(0, max > 0 ? Math.min(max, next) : next);
 		if (next == cur) return;
 		c.values.put(key, next);
-		try {
-			SheetLibrary.save(c);
-		} catch (IOException e) {
-			say("Could not save: " + e.getMessage());
-		}
+		store(c);
 	}
 
 	/** The small - / + beside a bar: click = 1, Shift = 5, Ctrl = 10. Saves the character straight away. */
@@ -497,6 +518,15 @@ public final class CharacterSheetScreen extends Screen {
 	}
 
 	private static void store(CharacterData c) {
+		if (c.remote) { // someone else's character: only a Dungeon Master may change it
+			if (ServerCharacters.isDm()) {
+				ServerCharacters.push(c);
+			} else {
+				ServerCharacters.revert(c);
+				say("That character belongs to " + c.ownerName + " - you can only look.");
+			}
+			return;
+		}
 		try {
 			SheetLibrary.save(c);
 		} catch (IOException e) {
@@ -1319,6 +1349,10 @@ public final class CharacterSheetScreen extends Screen {
 	private final List<RowBox> rowBoxes = new ArrayList<>();
 
 	private void startRow(SheetContext sc, SheetFormat.Collection coll, int index) {
+		if (!canEdit(sc.character)) {
+			say("That character belongs to " + sc.character.ownerName + " - you can only look.");
+			return;
+		}
 		rowColl = coll;
 		rowIndex = index;
 		rowOwner = sc.character;
@@ -1730,6 +1764,10 @@ public final class CharacterSheetScreen extends Screen {
 		c.file = editChar == null ? "" : editChar.file;
 		c.kind = editKind;
 		if (editChar != null) {
+			c.link = editChar.link;
+			c.linkVersion = editChar.linkVersion;
+			c.remote = editChar.remote;
+			c.ownerName = editChar.ownerName;
 			// editing must not lose the layout choices made on the sheet itself
 			c.theme = editChar.theme;
 			c.hidden.addAll(editChar.hidden);
@@ -1748,15 +1786,38 @@ public final class CharacterSheetScreen extends Screen {
 			}
 		}
 		if (c.texts.getOrDefault("name", "").isBlank()) c.texts.put("name", "Unnamed");
+		if (c.remote) {
+			ServerCharacters.replaceRemote(c);
+			store(c);
+			charIndex = allCharacters().indexOf(c);
+			say("Saved " + c.displayName());
+			cancelEdit();
+			return;
+		}
 		try {
 			SheetLibrary.save(c);
 		} catch (IOException e) {
 			say("Could not save: " + e.getMessage());
 			return;
 		}
-		charIndex = SheetLibrary.CHARACTERS.indexOf(c);
+		charIndex = allCharacters().indexOf(c);
 		say("Saved " + c.file);
 		cancelEdit();
+	}
+
+	private void toggleLink() {
+		if (editChar == null || editChar.remote) return;
+		try {
+			if (editChar.link.isEmpty()) {
+				ServerCharacters.link(editChar);
+				say(editChar.displayName() + " is now shared with the server");
+			} else {
+				ServerCharacters.unlink(editChar);
+				say(editChar.displayName() + " is no longer shared");
+			}
+		} catch (IOException e) {
+			say("Could not save: " + e.getMessage());
+		}
 	}
 
 	private void deleteEdit() {
@@ -1766,8 +1827,13 @@ public final class CharacterSheetScreen extends Screen {
 			return;
 		}
 		try {
-			SheetLibrary.delete(editChar);
-			say("Deleted " + editChar.file);
+			if (editChar.remote) {
+				ServerCharacters.deleteRemote(editChar);
+				say("Deleted " + editChar.displayName() + " from the server");
+			} else {
+				SheetLibrary.delete(editChar);
+				say("Deleted " + editChar.file);
+			}
 		} catch (IOException e) {
 			say("Could not delete: " + e.getMessage());
 		}
@@ -1881,6 +1947,12 @@ public final class CharacterSheetScreen extends Screen {
 		int rx = x + w - 6;
 		rx -= smallButton(g, rx - tw("Save") - 8, y + 3, "Save", this::saveEdit, "Write the character to its file", 0xFF1E4A25, 0xFF3CB84A) + 4;
 		rx -= smallButton(g, rx - tw("Cancel") - 6, y + 3, "Cancel", this::cancelEdit, "Throw away changes (Esc)", PANEL, 0xFF3B414C) + 4;
+		if (editChar != null && !editChar.remote && ServerCharacters.available()) {
+			boolean linked = !editChar.link.isEmpty();
+			rx -= smallButton(g, rx - tw(linked ? "Unlink" : "Link to server") - 6, y + 3, linked ? "Unlink" : "Link to server", this::toggleLink,
+					linked ? "Stop sharing this character with the server (your file stays)" : "Share this character with the Dungeon Master and keep it on the server",
+					linked ? 0xFF1E4A25 : PANEL, linked ? 0xFF3CB84A : 0xFF3B414C) + 4;
+		}
 		if (editChar != null) {
 			smallButton(g, rx - tw("Really delete?") - 6, y + 3, deleteArmed ? "Really delete?" : "Delete", this::deleteEdit,
 					"Remove this character's file", deleteArmed ? 0xFF7A1C27 : PANEL, 0xFFB8323F);

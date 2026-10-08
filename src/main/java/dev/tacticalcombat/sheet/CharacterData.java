@@ -18,6 +18,13 @@ public final class CharacterData {
 	public final java.util.Set<String> hidden = new java.util.LinkedHashSet<>();
 	/** Section order per column ("<page>/<column index>" -> section ids); sections not listed keep their place after. */
 	public final Map<String, java.util.List<String>> order = new java.util.LinkedHashMap<>();
+	/** Server link id; empty = a purely local character. */
+	public String link = "";
+	/** Server version this copy was last in sync with. */
+	public long linkVersion;
+	/** True for someone else's character received from the server (never written to disk). */
+	public boolean remote;
+	public String ownerName = "";
 	public final Map<String, String> texts = new HashMap<>();
 	public final Map<String, Double> values = new HashMap<>();
 
@@ -48,6 +55,8 @@ public final class CharacterData {
 		if (c.format.isBlank()) throw new IllegalArgumentException("missing \"format\"");
 		if (o.has("kind")) c.kind = o.get("kind").getAsString().toLowerCase();
 		if (o.has("theme")) c.theme = o.get("theme").getAsString().toLowerCase();
+		if (o.has("link")) c.link = o.get("link").getAsString();
+		if (o.has("linkVersion")) c.linkVersion = o.get("linkVersion").getAsLong();
 		if (o.has("ui") && o.get("ui").isJsonObject()) {
 			JsonObject ui = o.getAsJsonObject("ui");
 			if (ui.has("hidden")) for (JsonElement e : ui.getAsJsonArray("hidden")) c.hidden.add(e.getAsString());
@@ -97,6 +106,10 @@ public final class CharacterData {
 		o.addProperty("format", format);
 		if (!kind.equals(SheetFormat.DEFAULT_KIND)) o.addProperty("kind", kind);
 		if (!theme.isEmpty()) o.addProperty("theme", theme);
+		if (!link.isEmpty()) {
+			o.addProperty("link", link);
+			o.addProperty("linkVersion", linkVersion);
+		}
 		JsonObject t = new JsonObject();
 		new java.util.TreeMap<>(texts).forEach(t::addProperty);
 		o.add("text", t);

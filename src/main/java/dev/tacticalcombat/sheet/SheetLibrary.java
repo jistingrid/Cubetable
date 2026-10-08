@@ -35,6 +35,9 @@ public final class SheetLibrary {
 	public static final Map<String, SheetFormat> FORMATS = new LinkedHashMap<>();
 	public static final Map<String, Theme> THEMES = new LinkedHashMap<>();
 	public static final List<CharacterData> CHARACTERS = new ArrayList<>();
+	/** Hooks for server sync (client only); skipped while {@link #quiet} is set. */
+	public static java.util.function.Consumer<CharacterData> onSaved, onDeleted;
+	public static boolean quiet;
 	/** Names of the packs that were loaded, in load order (shown in the Formats view). */
 	public static final List<String> PACKS = new ArrayList<>();
 	/** Files that could not be read, with the reason; shown in the window so a typo is easy to find. */
@@ -198,18 +201,21 @@ public final class SheetLibrary {
 		}
 		String json = new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(c.toJson());
 		Files.writeString(charactersDir().resolve(c.file), json, StandardCharsets.UTF_8);
-		for (int i = 0; i < CHARACTERS.size(); i++) {
+		boolean found = false;
+		for (int i = 0; i < CHARACTERS.size() && !found; i++) {
 			if (CHARACTERS.get(i).file.equals(c.file)) {
 				CHARACTERS.set(i, c);
-				return;
+				found = true;
 			}
 		}
-		CHARACTERS.add(c);
+		if (!found) CHARACTERS.add(c);
+		if (!quiet && onSaved != null) onSaved.accept(c);
 	}
 
 	public static void delete(CharacterData c) throws IOException {
 		Files.deleteIfExists(charactersDir().resolve(c.file));
 		CHARACTERS.removeIf(o -> o.file.equals(c.file));
+		if (!quiet && onDeleted != null) onDeleted.accept(c);
 	}
 
 	/** First run: drop the example characters of the built-in packs into the (empty) characters folder. */

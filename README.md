@@ -49,6 +49,13 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 
 Tunables are in `combat/CombatConfig.java`.
 
+## Shared characters and the Dungeon Master
+
+- **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).
+- Everyone sees the characters other players have linked in the sheet's character switcher, as `name (owner)`. They are read-only unless you are a DM. Characters stay visible when their owner is offline.
+- `/tbc dm add|remove|list <player>` (operators) manages Dungeon Masters. A DM sees a "DM" tag in the sheet, may edit or delete any shared character, and later gets the combat controls.
+- A shared character must fit in about 30 KB compressed. There is no validation: the group is trusted.
+
 ## Layout
 
 ```

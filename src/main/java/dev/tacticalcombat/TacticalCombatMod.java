@@ -43,6 +43,7 @@ public class TacticalCombatMod implements ModInitializer {
 		PayloadTypeRegistry.playS2C().register(GridPayload.ID, GridPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(DiceRollPayload.ID, DiceRollPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(DiceRequestPayload.ID, DiceRequestPayload.CODEC);
+		dev.tacticalcombat.character.CharacterSync.register();
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> DiceService.roll(context.player(), payload.label(), payload.type(),
 						payload.count(), payload.modifier(), payload.mode())));
@@ -125,6 +126,39 @@ public class TacticalCombatMod implements ModInitializer {
 										return 0;
 									}
 									DiceService.roll(player, "", spec.type(), spec.count(), spec.modifier(), 0);
+									return 1;
+								})))
+				.then(CommandManager.literal("dm")
+						.requires(src -> src.hasPermissionLevel(2))
+						.then(CommandManager.literal("add")
+								.then(CommandManager.argument("player", net.minecraft.command.argument.EntityArgumentType.player())
+										.executes(ctx -> {
+											ServerPlayerEntity target = net.minecraft.command.argument.EntityArgumentType.getPlayer(ctx, "player");
+											boolean changed = dev.tacticalcombat.character.Roles.add(target.getUuid());
+											dev.tacticalcombat.character.CharacterSync.sendRole(target);
+											ctx.getSource().sendFeedback(() -> Text.literal(target.getGameProfile().getName()
+													+ (changed ? " is now a Dungeon Master." : " already is a Dungeon Master.")), true);
+											return 1;
+										})))
+						.then(CommandManager.literal("remove")
+								.then(CommandManager.argument("player", net.minecraft.command.argument.EntityArgumentType.player())
+										.executes(ctx -> {
+											ServerPlayerEntity target = net.minecraft.command.argument.EntityArgumentType.getPlayer(ctx, "player");
+											boolean changed = dev.tacticalcombat.character.Roles.remove(target.getUuid());
+											dev.tacticalcombat.character.CharacterSync.sendRole(target);
+											ctx.getSource().sendFeedback(() -> Text.literal(target.getGameProfile().getName()
+													+ (changed ? " is no longer a Dungeon Master." : " was not a Dungeon Master.")), true);
+											return 1;
+										})))
+						.then(CommandManager.literal("list")
+								.executes(ctx -> {
+									java.util.List<String> names = new java.util.ArrayList<>();
+									for (java.util.UUID id : dev.tacticalcombat.character.Roles.all()) {
+										ServerPlayerEntity online = ctx.getSource().getServer().getPlayerManager().getPlayer(id);
+										names.add(online != null ? online.getGameProfile().getName() : id.toString());
+									}
+									ctx.getSource().sendFeedback(() -> Text.literal(names.isEmpty() ? "No Dungeon Masters yet. Use /tbc dm add <player>."
+											: "Dungeon Masters: " + String.join(", ", names)), false);
 									return 1;
 								})))
 				.then(CommandManager.literal("endturn")

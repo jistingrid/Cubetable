@@ -56,12 +56,21 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.ShareCardPayload.ID,
 				(payload, context) -> ShareCardHud.receive(payload));
 
+		ServerCharacters.init();
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CharacterUpdatePayload.ID,
+				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveUpdate(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CharacterRemovePayload.ID,
+				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveRemove(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.RolePayload.ID,
+				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveRole(payload)));
+
 		FadeModels.register();
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			ClientCombatState.reset();
 			BlockFade.clear();
 			DiceAnimation.clear();
 			ShareCardHud.clear();
+			ServerCharacters.clear();
 		});
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
