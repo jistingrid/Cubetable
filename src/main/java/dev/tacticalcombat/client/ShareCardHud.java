@@ -37,6 +37,9 @@ public final class ShareCardHud {
 	private static int age;
 	private static boolean persistent;
 	private static int closing; // > 0 while fading out after a dismiss
+	/** The mouse is over the card (only possible while a screen with a cursor is open): its timer waits. */
+	private static boolean hovered;
+	private static int boxX, boxY, boxW, boxH;
 
 	private ShareCardHud() {}
 
@@ -111,7 +114,7 @@ public final class ShareCardHud {
 			if (next != null) start(next, false);
 			return;
 		}
-		age++;
+		if (!hovered || closing > 0) age++;
 		if (closing > 0) {
 			if (--closing == 0) current = null;
 		} else if (!persistent && age >= LIFE_TICKS) {
@@ -129,15 +132,17 @@ public final class ShareCardHud {
 	/** In-game HUD: only when no screen is open (screens draw it themselves, on top, see {@link #drawOverScreen}). */
 	public static void render(DrawContext g, RenderTickCounter tickCounter) {
 		if (MinecraftClient.getInstance().currentScreen != null) return;
+		hovered = false;
 		draw(g, tickCounter.getTickDelta(false));
 	}
 
 	/** After a screen has drawn itself (chat, the sheet window, the combat view...): the card goes above everything. */
-	public static void drawOverScreen(DrawContext g, float partial) {
+	public static void drawOverScreen(DrawContext g, float partial, int mouseX, int mouseY) {
 		g.getMatrices().push();
 		g.getMatrices().translate(0, 0, 500);
 		draw(g, partial);
 		g.getMatrices().pop();
+		hovered = visible() && mouseX >= boxX && mouseX < boxX + boxW && mouseY >= boxY && mouseY < boxY + boxH;
 	}
 
 	private static void draw(DrawContext g, float partial) {
@@ -194,6 +199,10 @@ public final class ShareCardHud {
 		boolean cut = shown < body.size();
 		int h = fixed + shown * bodyLine + (shown > 0 ? 4 : 0);
 
+		boxX = x;
+		boxY = y;
+		boxW = w;
+		boxH = h;
 		g.fill(x - 1, y - 1, x + w + 1, y + h + 1, fade(0xFF05060A, k));
 		g.fill(x, y, x + w, y + h, bg);
 		g.fillGradient(x, y, x + w, y + headerH, banB, banA);
@@ -253,7 +262,7 @@ public final class ShareCardHud {
 
 		// footer: key hint and the time left
 		String key = TacticalCombatClient.DISMISS_CARD_KEY.getBoundKeyLocalizedText().getString();
-		scaled(g, tr, key + ": dismiss", x + 6, y + h - footerH + 2, s, dim, w - 12);
+		scaled(g, tr, key + ": dismiss" + (hovered && !persistent ? "  -  paused" : ""), x + 6, y + h - footerH + 2, s, dim, w - 12);
 		if (!persistent && closing == 0) {
 			float left = 1f - age / (float) LIFE_TICKS;
 			g.fill(x, y + h - 2, x + Math.round(w * Math.max(0f, left)), y + h, accent);
