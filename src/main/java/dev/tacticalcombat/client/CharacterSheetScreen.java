@@ -34,8 +34,18 @@ import java.util.Map;
  * uses, and turns every roll button into a dice request. Not connected to combat (yet).
  */
 public final class CharacterSheetScreen extends Screen {
-	private static final int WIN_W = 420;
-	private static final int WIN_H = 272;
+	private static final int DEFAULT_W = 420;
+	private static final int DEFAULT_H = 272;
+	private static final int MIN_W = 320;
+	private static final int MIN_H = 190;
+	/** Window size, kept between openings and in config/tacticalcombat/window.txt. */
+	private static int sizeW = DEFAULT_W;
+	private static int sizeH = DEFAULT_H;
+	private static boolean sizeLoaded;
+	/** While the edge or corner is being dragged: 1 = width, 2 = height. */
+	private int resizing;
+	private double resizeW;
+	private double resizeH;
 	private static final int TITLE_H = 16;
 	private static final int BANNER_H = 54;
 	private static final int TAB_H = 15;
@@ -125,6 +135,51 @@ public final class CharacterSheetScreen extends Screen {
 
 	public CharacterSheetScreen() {
 		super(Text.literal("Character Sheet"));
+		loadSize();
+	}
+
+	private int winW() {
+		return MathHelper.clamp(sizeW, Math.min(MIN_W, width - 8), Math.max(Math.min(MIN_W, width - 8), width - 8));
+	}
+
+	private int winH() {
+		return MathHelper.clamp(sizeH, Math.min(MIN_H, height - 8), Math.max(Math.min(MIN_H, height - 8), height - 8));
+	}
+
+	private static java.nio.file.Path sizeFile() {
+		return net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("tacticalcombat").resolve("window.txt");
+	}
+
+	private static void loadSize() {
+		if (sizeLoaded) return;
+		sizeLoaded = true;
+		try {
+			String[] p = java.nio.file.Files.readString(sizeFile()).trim().split("\\s+");
+			sizeW = MathHelper.clamp(Integer.parseInt(p[0]), MIN_W, 2000);
+			sizeH = MathHelper.clamp(Integer.parseInt(p[1]), MIN_H, 2000);
+		} catch (Exception e) {
+			// no saved size: the default
+		}
+	}
+
+	private static void saveSize() {
+		try {
+			java.nio.file.Files.createDirectories(sizeFile().getParent());
+			java.nio.file.Files.writeString(sizeFile(), sizeW + " " + sizeH + "\n");
+		} catch (Exception e) {
+			// not important enough to bother the player
+		}
+	}
+
+	/** Which resize zone (1 = right edge, 2 = bottom edge, 3 = corner) the point is in, or 0. */
+	private int resizeZone(double mx, double my) {
+		int w = winW();
+		int h = winH();
+		boolean right = mx >= winX + w - 4 && mx < winX + w + 3 && my >= winY + TITLE_H && my < winY + h + 3;
+		boolean bottom = my >= winY + h - 4 && my < winY + h + 3 && mx >= winX && mx < winX + w + 3;
+		boolean corner = mx >= winX + w - 12 && mx < winX + w + 3 && my >= winY + h - 12 && my < winY + h + 3;
+		if (corner || right && bottom) return 3;
+		return right ? 1 : bottom ? 2 : 0;
 	}
 
 	/** Open from anywhere (a key, a command): it opens on the next client tick, once the chat has closed. */
@@ -193,8 +248,8 @@ public final class CharacterSheetScreen extends Screen {
 		applyTheme(SheetLibrary.theme(themed == null ? null
 				: !themed.character.theme.isEmpty() ? themed.character.theme : themed.format.theme));
 
-		int w = Math.min(WIN_W, width - 8);
-		int h = Math.min(WIN_H, height - 8);
+		int w = winW();
+		int h = winH();
 		if (winX == Integer.MIN_VALUE) {
 			winX = (width - w) / 2;
 			winY = (height - h) / 2;
@@ -228,9 +283,17 @@ public final class CharacterSheetScreen extends Screen {
 			}
 		}
 
+		// resize grip in the bottom-right corner
+		int zone = resizing != 0 ? resizing : resizeZone(mx, my);
+		int gripColor = zone != 0 ? GOLD : DIM;
+		for (int i = 0; i < 3; i++) {
+			g.fill(x + w - 3 - i * 3, y + h - 2, x + w - 2 - i * 3, y + h - 1, gripColor);
+			g.fill(x + w - 2, y + h - 3 - i * 3, x + w - 1, y + h - 2 - i * 3, gripColor);
+		}
+		if (zone != 0 && resizing == 0) tooltip = "Drag to resize";
 		for (int i = hits.size() - 1; i >= 0; i--) {
 			Hit hit = hits.get(i);
-			if (hit.tip != null && hit.contains(mx, my)) {
+			if (tooltip == null && hit.tip != null && hit.contains(mx, my)) {
 				tooltip = hit.tip;
 				break;
 			}
@@ -1762,7 +1825,7 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		if (view != View.EDITOR || editFormat == null || textRenderer == null) return;
 
-		int w = Math.min(WIN_W, width - 8);
+		int w = winW();
 		int colW = (w - 20) / 2;
 		int boxW = 52;
 		int rowY = 0;
@@ -1940,6 +2003,13 @@ public final class CharacterSheetScreen extends Screen {
 			}
 		}
 		if (button == 0) {
+			int zone = resizeZone(mx, my);
+			if (zone != 0) {
+				resizing = zone;
+				resizeW = winW();
+				resizeH = winH();
+				return true;
+			}
 			for (int i = hits.size() - 1; i >= 0; i--) {
 				Hit hit = hits.get(i);
 				if (hit.contains(mx, my)) {
@@ -1947,7 +2017,7 @@ public final class CharacterSheetScreen extends Screen {
 					return true;
 				}
 			}
-			int w = Math.min(WIN_W, width - 8);
+			int w = winW();
 			if (mx >= winX && mx < winX + w && my >= winY && my < winY + TITLE_H) {
 				dragging = true;
 				return true;
@@ -1958,6 +2028,13 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+		if (resizing != 0) {
+			if ((resizing & 1) != 0) resizeW += dx;
+			if ((resizing & 2) != 0) resizeH += dy;
+			sizeW = MathHelper.clamp((int) Math.round(resizeW), MIN_W, Math.max(MIN_W, width - 8));
+			sizeH = MathHelper.clamp((int) Math.round(resizeH), MIN_H, Math.max(MIN_H, height - 8));
+			return true;
+		}
 		if (dragging) {
 			winX += (int) Math.round(dx);
 			winY += (int) Math.round(dy);
@@ -1969,6 +2046,11 @@ public final class CharacterSheetScreen extends Screen {
 	@Override
 	public boolean mouseReleased(double mx, double my, int button) {
 		dragging = false;
+		if (resizing != 0) {
+			resizing = 0;
+			saveSize();
+			rebuildForm(); // text boxes of the editors are laid out for the width
+		}
 		return super.mouseReleased(mx, my, button);
 	}
 
@@ -1985,7 +2067,7 @@ public final class CharacterSheetScreen extends Screen {
 			SheetFormat.Page page = visible.get(MathHelper.clamp(pageIndex, 0, visible.size() - 1));
 			float totalWeight = 0;
 			for (SheetFormat.Column c : page.columns) totalWeight += c.weight;
-			int w = Math.min(WIN_W, width - 8);
+			int w = winW();
 			int usable = w - 8 - 4 * (page.columns.size() - 1);
 			int cx = winX + 4;
 			for (int ci = 0; ci < page.columns.size() && ci < scroll.length; ci++) {
