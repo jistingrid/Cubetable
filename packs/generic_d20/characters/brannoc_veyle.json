@@ -104,5 +104,10 @@
         "notes": "Weapon attacks score a critical hit on a roll of 19 or 20."
       }
     ]
+  },
+  "ui": {
+    "hidden": [
+      "page:spells"
+    ]
   }
 }
