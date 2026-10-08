@@ -1,0 +1,15 @@
+{
+  "id": "violet",
+  "name": "Violet",
+  "colors": {
+    "banner_a": "#2c1450",
+    "banner_b": "#5b2d99",
+    "accent": "#d2a8ff",
+    "roll_bg": "#241a33",
+    "roll_edge": "#6b4a9a",
+    "bg": "#191620",
+    "panel": "#221e2b",
+    "panel_hover": "#2d283a",
+    "edge": "#322c40"
+  }
+}

@@ -1,0 +1,189 @@
+{
+  "id": "percentile",
+  "name": "Percentile Skills",
+  "description": "Roll d% and try to get under the skill. Shows how a different game plugs into the same window.",
+  "derived": {},
+  "header": {
+    "title": "$name",
+    "subtitle": "$subtitle",
+    "bars": [
+      {
+        "label": "HP",
+        "value": "hp",
+        "max": "hp_max",
+        "color": "#3cb84a"
+      },
+      {
+        "label": "SAN",
+        "value": "sanity",
+        "max": "sanity_max",
+        "color": "#4da3ff"
+      }
+    ],
+    "badges": [
+      {
+        "label": "LUCK",
+        "value": "luck"
+      }
+    ]
+  },
+  "pages": [
+    {
+      "title": "Skills",
+      "columns": [
+        {
+          "weight": 1.0,
+          "sections": [
+            {
+              "title": "SKILLS (roll under)",
+              "items": [
+                {
+                  "widget": "table",
+                  "collection": "skills"
+                },
+                {
+                  "label": "Sanity check",
+                  "value": "sanity",
+                  "roll": "d%",
+                  "rollLabel": "Sanity"
+                },
+                {
+                  "label": "Luck",
+                  "value": "luck",
+                  "roll": "d%",
+                  "rollLabel": "Luck"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "weight": 1.0,
+          "sections": [
+            {
+              "title": "DAMAGE",
+              "items": [
+                {
+                  "widget": "table",
+                  "collection": "damage"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "id": "name",
+      "label": "Name",
+      "type": "text",
+      "group": "Identity",
+      "default": "Unnamed"
+    },
+    {
+      "id": "subtitle",
+      "label": "Occupation",
+      "type": "text",
+      "group": "Identity",
+      "default": ""
+    },
+    {
+      "id": "hp",
+      "label": "HP now",
+      "group": "Vitals",
+      "default": 10
+    },
+    {
+      "id": "hp_max",
+      "label": "HP max",
+      "group": "Vitals",
+      "default": 10
+    },
+    {
+      "id": "sanity",
+      "label": "Sanity now",
+      "group": "Vitals",
+      "default": 50
+    },
+    {
+      "id": "sanity_max",
+      "label": "Sanity max",
+      "group": "Vitals",
+      "default": 99
+    },
+    {
+      "id": "luck",
+      "label": "Luck",
+      "group": "Vitals",
+      "default": 50
+    }
+  ],
+  "theme": "azure",
+  "collections": [
+    {
+      "id": "skills",
+      "label": "Skills",
+      "addLabel": "Skill",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Skill",
+          "type": "text",
+          "width": 2.4
+        },
+        {
+          "id": "value",
+          "label": "%",
+          "type": "number",
+          "width": 0.6,
+          "default": 20
+        },
+        {
+          "id": "hard",
+          "label": "Hard",
+          "type": "computed",
+          "width": 0.6,
+          "value": "floor(row.value / 2)"
+        },
+        {
+          "id": "extreme",
+          "label": "Ext",
+          "type": "computed",
+          "width": 0.6,
+          "value": "floor(row.value / 5)"
+        },
+        {
+          "id": "check",
+          "label": "Roll",
+          "type": "roll",
+          "width": 0.8,
+          "value": "row.value",
+          "roll": "d%",
+          "rollLabel": "{name}"
+        }
+      ]
+    },
+    {
+      "id": "damage",
+      "label": "Damage",
+      "addLabel": "Attack",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Attack",
+          "type": "text",
+          "width": 2.4
+        },
+        {
+          "id": "dmg",
+          "label": "Damage",
+          "type": "dice",
+          "width": 1.2,
+          "rollLabel": "{name} damage"
+        }
+      ]
+    }
+  ]
+}

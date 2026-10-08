@@ -1,0 +1,137 @@
+{
+  "format": "generic_d20",
+  "text": {
+    "name": "Selene Arkwright",
+    "subtitle": "Half-elf Wizard 3"
+  },
+  "values": {
+    "str": 8,
+    "dex": 14,
+    "con": 14,
+    "int": 17,
+    "wis": 12,
+    "cha": 10,
+    "prof": 2,
+    "level": 3,
+    "hp": 18,
+    "hp_max": 18,
+    "ac": 12,
+    "sp_int": 1,
+    "sp_wis": 1,
+    "sk_arcana": 1,
+    "sk_history": 1,
+    "sk_investigation": 1,
+    "caster_level": 3,
+    "spell_ability": 0,
+    "slots_1": 4,
+    "slots_2": 2
+  },
+  "collections": {
+    "weapons": [
+      {
+        "name": "Quarterstaff",
+        "ability": 0,
+        "dmg": "1d6",
+        "prof": 1,
+        "notes": "Melee, versatile 1d8"
+      }
+    ],
+    "gear": [
+      {
+        "name": "Quarterstaff",
+        "qty": 1,
+        "weight": 4,
+        "equipped": 1
+      },
+      {
+        "name": "Spellbook",
+        "qty": 1,
+        "weight": 3
+      },
+      {
+        "name": "Component pouch",
+        "qty": 1,
+        "weight": 2
+      },
+      {
+        "name": "Scholar's pack",
+        "qty": 1,
+        "weight": 10
+      }
+    ],
+    "features": [
+      {
+        "name": "Arcane Recovery",
+        "notes": "Once per day on a short rest, recover spell slots with a combined level up to half your wizard level."
+      }
+    ],
+    "spells": [
+      {
+        "name": "Fire Bolt",
+        "level": 0,
+        "dmg": "1d10",
+        "range": "120 ft",
+        "duration": "Instant",
+        "school": "Evocation",
+        "notes": "Ranged spell attack. Fire damage; ignites unattended flammable objects.",
+        "attack": 1
+      },
+      {
+        "name": "Mage Hand",
+        "level": 0,
+        "range": "30 ft",
+        "duration": "1 minute",
+        "school": "Conjuration",
+        "notes": "A spectral hand that can manipulate objects up to 10 lb."
+      },
+      {
+        "name": "Magic Missile",
+        "level": 1,
+        "dmg": "3d4+3",
+        "range": "120 ft",
+        "duration": "Instant",
+        "school": "Evocation",
+        "prepared": 1,
+        "notes": "Three darts of force that always hit. One more dart for each slot level above 1st."
+      },
+      {
+        "name": "Shield",
+        "level": 1,
+        "range": "Self",
+        "duration": "1 round",
+        "school": "Abjuration",
+        "prepared": 1,
+        "notes": "Reaction: +5 AC until the start of your next turn, including against the triggering attack."
+      },
+      {
+        "name": "Sleep",
+        "level": 1,
+        "dmg": "5d8",
+        "range": "90 ft",
+        "duration": "1 minute",
+        "school": "Enchantment",
+        "notes": "Creatures with the fewest hit points fall asleep first, up to the total rolled."
+      },
+      {
+        "name": "Scorching Ray",
+        "level": 2,
+        "dmg": "2d6",
+        "range": "120 ft",
+        "duration": "Instant",
+        "school": "Evocation",
+        "prepared": 1,
+        "notes": "Three rays, each a ranged spell attack for 2d6 fire damage.",
+        "attack": 1
+      },
+      {
+        "name": "Misty Step",
+        "level": 2,
+        "range": "Self",
+        "duration": "Instant",
+        "school": "Conjuration",
+        "prepared": 1,
+        "notes": "Bonus action: teleport up to 30 feet to a space you can see."
+      }
+    ]
+  }
+}

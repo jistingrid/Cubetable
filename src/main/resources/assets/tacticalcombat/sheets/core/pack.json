@@ -1,0 +1,4 @@
+{
+  "name": "Core themes",
+  "themes": ["themes/crimson.json", "themes/forest.json", "themes/azure.json", "themes/violet.json"]
+}

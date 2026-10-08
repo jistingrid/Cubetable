@@ -1,5 +1,6 @@
 {
   "key.tacticalcombat.end_turn": "End Turn",
+  "key.tacticalcombat.sheet": "Character Sheet",
   "key.categories.tacticalcombat": "Tactical Combat",
   "tacticalcombat.msg.combat_start": "Combat begins!",
   "tacticalcombat.msg.combat_end": "Combat ended.",

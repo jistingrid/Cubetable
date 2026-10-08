@@ -1,0 +1,1377 @@
+{
+  "id": "generic_d20",
+  "name": "Generic d20",
+  "description": "Six abilities, skills and weapon attacks. Built in; use it as a starting point for your own format.",
+  "theme": "crimson",
+  "fields": [
+    {
+      "id": "name",
+      "label": "Name",
+      "type": "text",
+      "group": "Identity",
+      "default": "Unnamed"
+    },
+    {
+      "id": "subtitle",
+      "label": "Race / class",
+      "type": "text",
+      "group": "Identity",
+      "default": ""
+    },
+    {
+      "id": "str",
+      "label": "Strength",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "dex",
+      "label": "Dexterity",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "con",
+      "label": "Constitution",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "int",
+      "label": "Intelligence",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "wis",
+      "label": "Wisdom",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "cha",
+      "label": "Charisma",
+      "group": "Abilities",
+      "default": 10
+    },
+    {
+      "id": "level",
+      "label": "Level",
+      "group": "Level and defense",
+      "default": 1
+    },
+    {
+      "id": "prof",
+      "label": "Proficiency bonus",
+      "group": "Level and defense",
+      "default": 2
+    },
+    {
+      "id": "hp",
+      "label": "HP now",
+      "group": "Level and defense",
+      "default": 10
+    },
+    {
+      "id": "hp_max",
+      "label": "HP max",
+      "group": "Level and defense",
+      "default": 10
+    },
+    {
+      "id": "hp_temp",
+      "label": "Temp HP",
+      "group": "Level and defense",
+      "default": 0
+    },
+    {
+      "id": "ac",
+      "label": "Armor class",
+      "group": "Level and defense",
+      "default": 10
+    },
+    {
+      "id": "sp_str",
+      "label": "Strength save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_dex",
+      "label": "Dexterity save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_con",
+      "label": "Constitution save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_int",
+      "label": "Intelligence save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_wis",
+      "label": "Wisdom save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sp_cha",
+      "label": "Charisma save",
+      "group": "Proficient saves (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_acrobatics",
+      "label": "Acrobatics",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_athletics",
+      "label": "Athletics",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_arcana",
+      "label": "Arcana",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_history",
+      "label": "History",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_insight",
+      "label": "Insight",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_intimidation",
+      "label": "Intimidation",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_investigation",
+      "label": "Investigation",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_perception",
+      "label": "Perception",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_persuasion",
+      "label": "Persuasion",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_stealth",
+      "label": "Stealth",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "sk_survival",
+      "label": "Survival",
+      "group": "Proficient skills (1 = yes, 0 = no)",
+      "default": 0
+    },
+    {
+      "id": "caster_level",
+      "label": "Caster level (0 = no spells)",
+      "group": "Spellcasting",
+      "default": 0
+    },
+    {
+      "id": "spell_ability",
+      "label": "Spell ability (0 INT, 1 WIS, 2 CHA)",
+      "group": "Spellcasting",
+      "default": 0
+    }
+  ],
+  "defaults": {
+    "sp_str": 0,
+    "sp_dex": 0,
+    "sp_con": 0,
+    "sp_int": 0,
+    "sp_wis": 0,
+    "sp_cha": 0,
+    "sk_acrobatics": 0,
+    "sk_athletics": 0,
+    "sk_arcana": 0,
+    "sk_history": 0,
+    "sk_insight": 0,
+    "sk_intimidation": 0,
+    "sk_investigation": 0,
+    "sk_perception": 0,
+    "sk_persuasion": 0,
+    "sk_stealth": 0,
+    "sk_survival": 0,
+    "hp_temp": 0,
+    "death_s": 0,
+    "death_f": 0,
+    "inspiration": 0,
+    "exhaustion": 0,
+    "second_wind": 1,
+    "action_surge": 1,
+    "slots_1": 0,
+    "slots_2": 0,
+    "slots_3": 0,
+    "slots_4": 0,
+    "slots_5": 0,
+    "slots_6": 0,
+    "slots_7": 0,
+    "slots_8": 0,
+    "slots_9": 0,
+    "caster_level": 0,
+    "spell_ability": 0
+  },
+  "derived": {
+    "str_mod": "floor((str - 10) / 2)",
+    "dex_mod": "floor((dex - 10) / 2)",
+    "con_mod": "floor((con - 10) / 2)",
+    "int_mod": "floor((int - 10) / 2)",
+    "wis_mod": "floor((wis - 10) / 2)",
+    "cha_mod": "floor((cha - 10) / 2)",
+    "save_str": "str_mod + prof * sp_str",
+    "save_dex": "dex_mod + prof * sp_dex",
+    "save_con": "con_mod + prof * sp_con",
+    "save_int": "int_mod + prof * sp_int",
+    "save_wis": "wis_mod + prof * sp_wis",
+    "save_cha": "cha_mod + prof * sp_cha",
+    "skill_acrobatics": "floor(dex_mod + prof * sk_acrobatics)",
+    "skill_athletics": "floor(str_mod + prof * sk_athletics)",
+    "skill_arcana": "floor(int_mod + prof * sk_arcana)",
+    "skill_history": "floor(int_mod + prof * sk_history)",
+    "skill_insight": "floor(wis_mod + prof * sk_insight)",
+    "skill_intimidation": "floor(cha_mod + prof * sk_intimidation)",
+    "skill_investigation": "floor(int_mod + prof * sk_investigation)",
+    "skill_perception": "floor(wis_mod + prof * sk_perception)",
+    "skill_persuasion": "floor(cha_mod + prof * sk_persuasion)",
+    "skill_stealth": "floor(dex_mod + prof * sk_stealth)",
+    "skill_survival": "floor(wis_mod + prof * sk_survival)",
+    "init": "dex_mod",
+    "atk_str": "str_mod + prof",
+    "atk_dex": "dex_mod + prof",
+    "carry_cap": "str * 15",
+    "slots_1_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)",
+    "slots_2_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)",
+    "slots_3_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)",
+    "slots_4_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)",
+    "slots_5_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3)",
+    "slots_6_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2)",
+    "slots_7_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2)",
+    "slots_8_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1)",
+    "slots_9_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1)",
+    "spell_mod": "pick(spell_ability, int_mod, wis_mod, cha_mod)",
+    "spell_dc": "8 + prof + spell_mod",
+    "spell_atk": "prof + spell_mod",
+    "prepared_max": "max(1, spell_mod + caster_level)"
+  },
+  "sheets": [
+    {
+      "kind": "character",
+      "name": "Character",
+      "header": {
+        "title": "$name",
+        "subtitle": "$subtitle",
+        "bars": [
+          {
+            "label": "HP",
+            "value": "hp",
+            "max": "hp_max",
+            "color": "#3cb84a",
+            "temp": "hp_temp"
+          }
+        ],
+        "badges": [
+          {
+            "label": "ARMOR",
+            "value": "ac"
+          },
+          {
+            "label": "INIT",
+            "value": "init",
+            "signed": true
+          },
+          {
+            "label": "PROF",
+            "value": "prof",
+            "signed": true
+          }
+        ]
+      },
+      "pages": [
+        {
+          "title": "Sheet",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "ABILITIES",
+                  "items": [
+                    {
+                      "label": "STR",
+                      "sub": "Strength",
+                      "value": "str_mod",
+                      "signed": true,
+                      "roll": "d20 + str_mod",
+                      "rollLabel": "Strength check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_str",
+                          "signed": true,
+                          "roll": "d20 + save_str",
+                          "rollLabel": "Strength save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_str",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "DEX",
+                      "sub": "Dexterity",
+                      "value": "dex_mod",
+                      "signed": true,
+                      "roll": "d20 + dex_mod",
+                      "rollLabel": "Dexterity check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_dex",
+                          "signed": true,
+                          "roll": "d20 + save_dex",
+                          "rollLabel": "Dexterity save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_dex",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "CON",
+                      "sub": "Constitution",
+                      "value": "con_mod",
+                      "signed": true,
+                      "roll": "d20 + con_mod",
+                      "rollLabel": "Constitution check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_con",
+                          "signed": true,
+                          "roll": "d20 + save_con",
+                          "rollLabel": "Constitution save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_con",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "INT",
+                      "sub": "Intelligence",
+                      "value": "int_mod",
+                      "signed": true,
+                      "roll": "d20 + int_mod",
+                      "rollLabel": "Intelligence check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_int",
+                          "signed": true,
+                          "roll": "d20 + save_int",
+                          "rollLabel": "Intelligence save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_int",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "WIS",
+                      "sub": "Wisdom",
+                      "value": "wis_mod",
+                      "signed": true,
+                      "roll": "d20 + wis_mod",
+                      "rollLabel": "Wisdom check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_wis",
+                          "signed": true,
+                          "roll": "d20 + save_wis",
+                          "rollLabel": "Wisdom save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_wis",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    },
+                    {
+                      "label": "CHA",
+                      "sub": "Charisma",
+                      "value": "cha_mod",
+                      "signed": true,
+                      "roll": "d20 + cha_mod",
+                      "rollLabel": "Charisma check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_cha",
+                          "signed": true,
+                          "roll": "d20 + save_cha",
+                          "rollLabel": "Charisma save"
+                        }
+                      ],
+                      "widget": "cycle",
+                      "store": "sp_cha",
+                      "cycle": [
+                        0,
+                        1
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 1.1,
+              "sections": [
+                {
+                  "title": "SKILLS",
+                  "items": [
+                    {
+                      "label": "Acrobatics",
+                      "sub": "DEX",
+                      "value": "skill_acrobatics",
+                      "signed": true,
+                      "roll": "d20 + skill_acrobatics",
+                      "rollLabel": "Acrobatics",
+                      "widget": "cycle",
+                      "store": "sk_acrobatics",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Athletics",
+                      "sub": "STR",
+                      "value": "skill_athletics",
+                      "signed": true,
+                      "roll": "d20 + skill_athletics",
+                      "rollLabel": "Athletics",
+                      "widget": "cycle",
+                      "store": "sk_athletics",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Arcana",
+                      "sub": "INT",
+                      "value": "skill_arcana",
+                      "signed": true,
+                      "roll": "d20 + skill_arcana",
+                      "rollLabel": "Arcana",
+                      "widget": "cycle",
+                      "store": "sk_arcana",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "History",
+                      "sub": "INT",
+                      "value": "skill_history",
+                      "signed": true,
+                      "roll": "d20 + skill_history",
+                      "rollLabel": "History",
+                      "widget": "cycle",
+                      "store": "sk_history",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Insight",
+                      "sub": "WIS",
+                      "value": "skill_insight",
+                      "signed": true,
+                      "roll": "d20 + skill_insight",
+                      "rollLabel": "Insight",
+                      "widget": "cycle",
+                      "store": "sk_insight",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Intimidation",
+                      "sub": "CHA",
+                      "value": "skill_intimidation",
+                      "signed": true,
+                      "roll": "d20 + skill_intimidation",
+                      "rollLabel": "Intimidation",
+                      "widget": "cycle",
+                      "store": "sk_intimidation",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Investigation",
+                      "sub": "INT",
+                      "value": "skill_investigation",
+                      "signed": true,
+                      "roll": "d20 + skill_investigation",
+                      "rollLabel": "Investigation",
+                      "widget": "cycle",
+                      "store": "sk_investigation",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Perception",
+                      "sub": "WIS",
+                      "value": "skill_perception",
+                      "signed": true,
+                      "roll": "d20 + skill_perception",
+                      "rollLabel": "Perception",
+                      "widget": "cycle",
+                      "store": "sk_perception",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Persuasion",
+                      "sub": "CHA",
+                      "value": "skill_persuasion",
+                      "signed": true,
+                      "roll": "d20 + skill_persuasion",
+                      "rollLabel": "Persuasion",
+                      "widget": "cycle",
+                      "store": "sk_persuasion",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Stealth",
+                      "sub": "DEX",
+                      "value": "skill_stealth",
+                      "signed": true,
+                      "roll": "d20 + skill_stealth",
+                      "rollLabel": "Stealth",
+                      "widget": "cycle",
+                      "store": "sk_stealth",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    },
+                    {
+                      "label": "Survival",
+                      "sub": "WIS",
+                      "value": "skill_survival",
+                      "signed": true,
+                      "roll": "d20 + skill_survival",
+                      "rollLabel": "Survival",
+                      "widget": "cycle",
+                      "store": "sk_survival",
+                      "cycle": [
+                        0,
+                        0.5,
+                        1,
+                        2
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 1.3,
+              "sections": [
+                {
+                  "title": "ACTIONS",
+                  "items": [
+                    {
+                      "label": "Roll mode",
+                      "widget": "rollmode"
+                    },
+                    {
+                      "widget": "table",
+                      "collection": "weapons"
+                    },
+                    {
+                      "label": "Initiative",
+                      "sub": "Roll for turn order",
+                      "value": "init",
+                      "signed": true,
+                      "roll": "d20 + init",
+                      "rollLabel": "Initiative"
+                    }
+                  ]
+                },
+                {
+                  "title": "RESOURCES",
+                  "id": "resources",
+                  "items": [
+                    {
+                      "label": "Inspiration",
+                      "widget": "pips",
+                      "store": "inspiration",
+                      "max": "1",
+                      "color": "#e0b84c"
+                    },
+                    {
+                      "label": "Second Wind",
+                      "widget": "pips",
+                      "store": "second_wind",
+                      "max": "1",
+                      "color": "#4cd964"
+                    },
+                    {
+                      "label": "Action Surge",
+                      "widget": "pips",
+                      "store": "action_surge",
+                      "max": "1",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "label": "Death save: pass",
+                      "widget": "pips",
+                      "store": "death_s",
+                      "max": "3",
+                      "color": "#4cd964"
+                    },
+                    {
+                      "label": "Death save: fail",
+                      "widget": "pips",
+                      "store": "death_f",
+                      "max": "3",
+                      "color": "#c83232"
+                    },
+                    {
+                      "label": "Exhaustion",
+                      "widget": "counter",
+                      "store": "exhaustion",
+                      "max": "6"
+                    },
+                    {
+                      "widget": "button",
+                      "label": "Short rest",
+                      "sub": "Second Wind and Action Surge back",
+                      "set": {
+                        "second_wind": "1",
+                        "action_surge": "1"
+                      }
+                    },
+                    {
+                      "widget": "button",
+                      "label": "Long rest",
+                      "sub": "Hit points, spell slots and short-rest abilities back to full; death saves cleared",
+                      "set": {
+                        "hp": "hp_max",
+                        "second_wind": "1",
+                        "action_surge": "1",
+                        "death_s": "0",
+                        "death_f": "0",
+                        "slots_1": "slots_1_max",
+                        "slots_2": "slots_2_max",
+                        "slots_3": "slots_3_max",
+                        "slots_4": "slots_4_max",
+                        "slots_5": "slots_5_max",
+                        "slots_6": "slots_6_max",
+                        "slots_7": "slots_7_max",
+                        "slots_8": "slots_8_max",
+                        "slots_9": "slots_9_max"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "sheet"
+        },
+        {
+          "title": "Inventory",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "GEAR",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "gear"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "inventory"
+        },
+        {
+          "id": "spells",
+          "title": "Spells",
+          "columns": [
+            {
+              "weight": 0.8,
+              "sections": [
+                {
+                  "title": "SPELLCASTING",
+                  "items": [
+                    {
+                      "label": "Spell save DC",
+                      "value": "spell_dc"
+                    },
+                    {
+                      "label": "Spell attack",
+                      "value": "spell_atk",
+                      "signed": true,
+                      "roll": "d20 + spell_atk",
+                      "rollLabel": "Spell attack"
+                    },
+                    {
+                      "label": "Caster level",
+                      "value": "caster_level"
+                    }
+                  ]
+                },
+                {
+                  "title": "SPELL SLOTS",
+                  "items": [
+                    {
+                      "widget": "pips",
+                      "label": "Level 1",
+                      "store": "slots_1",
+                      "max": "slots_1_max",
+                      "enabled": "slots_1_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 2",
+                      "store": "slots_2",
+                      "max": "slots_2_max",
+                      "enabled": "slots_2_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 3",
+                      "store": "slots_3",
+                      "max": "slots_3_max",
+                      "enabled": "slots_3_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 4",
+                      "store": "slots_4",
+                      "max": "slots_4_max",
+                      "enabled": "slots_4_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 5",
+                      "store": "slots_5",
+                      "max": "slots_5_max",
+                      "enabled": "slots_5_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 6",
+                      "store": "slots_6",
+                      "max": "slots_6_max",
+                      "enabled": "slots_6_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 7",
+                      "store": "slots_7",
+                      "max": "slots_7_max",
+                      "enabled": "slots_7_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 8",
+                      "store": "slots_8",
+                      "max": "slots_8_max",
+                      "enabled": "slots_8_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 9",
+                      "store": "slots_9",
+                      "max": "slots_9_max",
+                      "enabled": "slots_9_max",
+                      "color": "#4da3ff"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 2.0,
+              "sections": [
+                {
+                  "title": "SPELLS",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "spells"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Features",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "FEATURES",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "features"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "features"
+        }
+      ]
+    },
+    {
+      "kind": "npc",
+      "name": "NPC / monster",
+      "header": {
+        "title": "$name",
+        "subtitle": "$subtitle",
+        "bars": [
+          {
+            "label": "HP",
+            "value": "hp",
+            "max": "hp_max",
+            "temp": "hp_temp",
+            "color": "#c83232"
+          }
+        ],
+        "badges": [
+          {
+            "label": "ARMOR",
+            "value": "ac"
+          },
+          {
+            "label": "INIT",
+            "value": "init",
+            "signed": true
+          }
+        ]
+      },
+      "pages": [
+        {
+          "id": "statblock",
+          "title": "Statblock",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "ABILITIES",
+                  "items": [
+                    {
+                      "label": "STR",
+                      "sub": "Strength",
+                      "value": "str_mod",
+                      "signed": true,
+                      "roll": "d20 + str_mod",
+                      "rollLabel": "Strength check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_str",
+                          "signed": true,
+                          "roll": "d20 + save_str",
+                          "rollLabel": "Strength save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "DEX",
+                      "sub": "Dexterity",
+                      "value": "dex_mod",
+                      "signed": true,
+                      "roll": "d20 + dex_mod",
+                      "rollLabel": "Dexterity check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_dex",
+                          "signed": true,
+                          "roll": "d20 + save_dex",
+                          "rollLabel": "Dexterity save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "CON",
+                      "sub": "Constitution",
+                      "value": "con_mod",
+                      "signed": true,
+                      "roll": "d20 + con_mod",
+                      "rollLabel": "Constitution check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_con",
+                          "signed": true,
+                          "roll": "d20 + save_con",
+                          "rollLabel": "Constitution save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "INT",
+                      "sub": "Intelligence",
+                      "value": "int_mod",
+                      "signed": true,
+                      "roll": "d20 + int_mod",
+                      "rollLabel": "Intelligence check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_int",
+                          "signed": true,
+                          "roll": "d20 + save_int",
+                          "rollLabel": "Intelligence save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "WIS",
+                      "sub": "Wisdom",
+                      "value": "wis_mod",
+                      "signed": true,
+                      "roll": "d20 + wis_mod",
+                      "rollLabel": "Wisdom check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_wis",
+                          "signed": true,
+                          "roll": "d20 + save_wis",
+                          "rollLabel": "Wisdom save"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "CHA",
+                      "sub": "Charisma",
+                      "value": "cha_mod",
+                      "signed": true,
+                      "roll": "d20 + cha_mod",
+                      "rollLabel": "Charisma check",
+                      "buttons": [
+                        {
+                          "label": "Save",
+                          "value": "save_cha",
+                          "signed": true,
+                          "roll": "d20 + save_cha",
+                          "rollLabel": "Charisma save"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 1.4,
+              "sections": [
+                {
+                  "title": "ACTIONS",
+                  "items": [
+                    {
+                      "label": "Roll mode",
+                      "widget": "rollmode"
+                    },
+                    {
+                      "widget": "table",
+                      "collection": "weapons"
+                    },
+                    {
+                      "label": "Initiative",
+                      "sub": "Roll for turn order",
+                      "value": "init",
+                      "signed": true,
+                      "roll": "d20 + init",
+                      "rollLabel": "Initiative"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "collections": [
+    {
+      "id": "weapons",
+      "label": "Weapons",
+      "addLabel": "Weapon",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Weapon",
+          "type": "text",
+          "width": 2.2
+        },
+        {
+          "id": "hit",
+          "label": "Hit",
+          "type": "roll",
+          "width": 1.0,
+          "signed": true,
+          "value": "pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + prof * row.prof + row.bonus",
+          "roll": "d20 + pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + prof * row.prof + row.bonus",
+          "rollLabel": "{name} attack"
+        },
+        {
+          "id": "dmg",
+          "label": "Damage",
+          "type": "dice",
+          "width": 1.5,
+          "modifier": "pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + row.bonus",
+          "rollLabel": "{name} damage"
+        },
+        {
+          "id": "ability",
+          "label": "Ability",
+          "type": "choice",
+          "width": 0.8,
+          "options": [
+            "STR",
+            "DEX",
+            "CON",
+            "INT",
+            "WIS",
+            "CHA"
+          ],
+          "detail": true
+        },
+        {
+          "id": "prof",
+          "label": "Prof",
+          "type": "toggle",
+          "width": 0.5,
+          "default": 1,
+          "detail": true
+        },
+        {
+          "id": "bonus",
+          "label": "Bonus",
+          "type": "number",
+          "width": 0.6,
+          "signed": true,
+          "detail": true
+        },
+        {
+          "id": "notes",
+          "label": "Notes",
+          "type": "note"
+        }
+      ]
+    },
+    {
+      "id": "gear",
+      "label": "Gear",
+      "addLabel": "Item",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Item",
+          "type": "text",
+          "width": 2.6
+        },
+        {
+          "id": "qty",
+          "label": "Qty",
+          "type": "number",
+          "width": 0.6,
+          "default": 1
+        },
+        {
+          "id": "weight",
+          "label": "Wt",
+          "type": "number",
+          "width": 0.6
+        },
+        {
+          "id": "line_weight",
+          "label": "Total",
+          "type": "computed",
+          "width": 0.7,
+          "value": "row.qty * row.weight"
+        },
+        {
+          "id": "equipped",
+          "label": "Worn",
+          "type": "toggle",
+          "width": 0.5
+        },
+        {
+          "id": "notes",
+          "label": "Notes",
+          "type": "note"
+        }
+      ],
+      "footer": [
+        {
+          "label": "Carried",
+          "value": "gear.sum.line_weight",
+          "max": "carry_cap"
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "label": "Features",
+      "addLabel": "Feature",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Feature",
+          "type": "text",
+          "width": 2.4
+        },
+        {
+          "id": "roll",
+          "label": "Roll",
+          "type": "dice",
+          "width": 1.0,
+          "modifier": "level",
+          "rollLabel": "{name}"
+        },
+        {
+          "id": "notes",
+          "label": "Description",
+          "type": "note"
+        }
+      ]
+    },
+    {
+      "id": "spells",
+      "label": "Spells",
+      "addLabel": "Spell",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Spell",
+          "type": "text",
+          "width": 2.0
+        },
+        {
+          "id": "level",
+          "label": "Lv",
+          "type": "choice",
+          "width": 0.7,
+          "options": [
+            "Cantrip",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "groupLabels": [
+            "Cantrips",
+            "1st level",
+            "2nd level",
+            "3rd level",
+            "4th level",
+            "5th level",
+            "6th level",
+            "7th level",
+            "8th level",
+            "9th level"
+          ],
+          "hidden": true
+        },
+        {
+          "id": "hit",
+          "label": "Hit",
+          "type": "roll",
+          "width": 0.7,
+          "signed": true,
+          "value": "spell_atk",
+          "roll": "d20 + spell_atk",
+          "rollLabel": "{name} attack",
+          "enabled": "row.attack"
+        },
+        {
+          "id": "cast",
+          "label": "Cast",
+          "type": "cast",
+          "width": 1.0,
+          "spend": "slots_",
+          "level": "level",
+          "dice": "dmg",
+          "rollLabel": "{name}"
+        },
+        {
+          "id": "dmg",
+          "label": "Dice",
+          "type": "dice",
+          "width": 1.0,
+          "rollLabel": "{name}",
+          "detail": true
+        },
+        {
+          "id": "prepared",
+          "label": "Prep",
+          "type": "toggle",
+          "width": 0.5
+        },
+        {
+          "id": "school",
+          "label": "School",
+          "type": "text",
+          "detail": true
+        },
+        {
+          "id": "range",
+          "label": "Range",
+          "type": "text",
+          "detail": true
+        },
+        {
+          "id": "duration",
+          "label": "Duration",
+          "type": "text",
+          "detail": true
+        },
+        {
+          "id": "conc",
+          "label": "Concentration",
+          "type": "toggle",
+          "detail": true
+        },
+        {
+          "id": "ritual",
+          "label": "Ritual",
+          "type": "toggle",
+          "detail": true
+        },
+        {
+          "id": "notes",
+          "label": "Description",
+          "type": "note"
+        },
+        {
+          "id": "attack",
+          "label": "Spell attack roll",
+          "type": "toggle",
+          "hidden": true
+        }
+      ],
+      "footer": [
+        {
+          "label": "Prepared",
+          "value": "spells.count.prepared",
+          "max": "prepared_max"
+        }
+      ],
+      "groupBy": "level"
+    }
+  ]
+}

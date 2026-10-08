@@ -1,0 +1,15 @@
+{
+  "id": "forest",
+  "name": "Forest",
+  "colors": {
+    "banner_a": "#13351f",
+    "banner_b": "#2c6b3f",
+    "accent": "#9be08a",
+    "roll_bg": "#16261a",
+    "roll_edge": "#3f7a4b",
+    "bg": "#161b18",
+    "panel": "#1d2420",
+    "panel_hover": "#27322b",
+    "edge": "#2b362f"
+  }
+}

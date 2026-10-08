@@ -1,0 +1,113 @@
+{
+  "format": "generic_d20",
+  "text": {
+    "name": "Brannoc Veyle",
+    "subtitle": "Human Fighter 3"
+  },
+  "values": {
+    "str": 16,
+    "dex": 14,
+    "con": 15,
+    "int": 10,
+    "wis": 12,
+    "cha": 8,
+    "prof": 2,
+    "level": 3,
+    "hp": 25,
+    "hp_max": 32,
+    "ac": 16,
+    "sp_str": 1,
+    "sp_con": 1,
+    "sk_athletics": 1,
+    "sk_intimidation": 1,
+    "sk_perception": 1,
+    "sk_survival": 1
+  },
+  "collections": {
+    "weapons": [
+      {
+        "name": "Longsword",
+        "ability": 0,
+        "dmg": "1d8",
+        "prof": 1,
+        "notes": "Melee, 5 ft, slashing"
+      },
+      {
+        "name": "Handaxe",
+        "ability": 0,
+        "dmg": "1d6",
+        "prof": 1,
+        "notes": "Melee or thrown 20/60 ft"
+      },
+      {
+        "name": "Light Crossbow",
+        "ability": 1,
+        "dmg": "1d8",
+        "prof": 1,
+        "notes": "Ranged 80/320 ft, piercing"
+      }
+    ],
+    "gear": [
+      {
+        "name": "Longsword",
+        "qty": 1,
+        "weight": 3,
+        "equipped": 1
+      },
+      {
+        "name": "Handaxe",
+        "qty": 2,
+        "weight": 2,
+        "equipped": 1
+      },
+      {
+        "name": "Chain Mail",
+        "qty": 1,
+        "weight": 55,
+        "equipped": 1,
+        "notes": "Worn, AC 16"
+      },
+      {
+        "name": "Light Crossbow",
+        "qty": 1,
+        "weight": 5
+      },
+      {
+        "name": "Bolts",
+        "qty": 18,
+        "weight": 0.075
+      },
+      {
+        "name": "Healing Potion",
+        "qty": 2,
+        "weight": 0.5,
+        "notes": "Heals 2d4+2"
+      },
+      {
+        "name": "Torch",
+        "qty": 4,
+        "weight": 1
+      }
+    ],
+    "features": [
+      {
+        "name": "Second Wind",
+        "roll": "1d10",
+        "notes": "Once per short rest, as a bonus action, regain 1d10 + level hit points."
+      },
+      {
+        "name": "Action Surge",
+        "notes": "Once per short rest, take one additional action on your turn."
+      },
+      {
+        "name": "Improved Critical",
+        "notes": "Weapon attacks score a critical hit on a roll of 19 or 20."
+      }
+    ]
+  },
+  "ui": {
+    "hidden": [
+      "page:spells"
+    ]
+  }
+}
