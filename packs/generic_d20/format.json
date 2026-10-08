@@ -191,6 +191,18 @@
       "label": "Survival",
       "group": "Proficient skills (1 = yes, 0 = no)",
       "default": 0
+    },
+    {
+      "id": "caster_level",
+      "label": "Caster level (0 = no spells)",
+      "group": "Spellcasting",
+      "default": 0
+    },
+    {
+      "id": "spell_ability",
+      "label": "Spell ability (0 INT, 1 WIS, 2 CHA)",
+      "group": "Spellcasting",
+      "default": 0
     }
   ],
   "defaults": {
@@ -217,7 +229,18 @@
     "inspiration": 0,
     "exhaustion": 0,
     "second_wind": 1,
-    "action_surge": 1
+    "action_surge": 1,
+    "slots_1": 0,
+    "slots_2": 0,
+    "slots_3": 0,
+    "slots_4": 0,
+    "slots_5": 0,
+    "slots_6": 0,
+    "slots_7": 0,
+    "slots_8": 0,
+    "slots_9": 0,
+    "caster_level": 0,
+    "spell_ability": 0
   },
   "derived": {
     "str_mod": "floor((str - 10) / 2)",
@@ -246,7 +269,20 @@
     "init": "dex_mod",
     "atk_str": "str_mod + prof",
     "atk_dex": "dex_mod + prof",
-    "carry_cap": "str * 15"
+    "carry_cap": "str * 15",
+    "slots_1_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)",
+    "slots_2_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)",
+    "slots_3_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)",
+    "slots_4_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)",
+    "slots_5_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3)",
+    "slots_6_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2)",
+    "slots_7_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2)",
+    "slots_8_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1)",
+    "slots_9_max": "min(caster_level, 1) * pick(min(caster_level, 20) - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1)",
+    "spell_mod": "pick(spell_ability, int_mod, wis_mod, cha_mod)",
+    "spell_dc": "8 + prof + spell_mod",
+    "spell_atk": "prof + spell_mod",
+    "prepared_max": "max(1, spell_mod + caster_level)"
   },
   "sheets": [
     {
@@ -716,6 +752,129 @@
           "id": "inventory"
         },
         {
+          "id": "spells",
+          "title": "Spells",
+          "enabled": "caster_level",
+          "columns": [
+            {
+              "weight": 0.8,
+              "sections": [
+                {
+                  "title": "SPELLCASTING",
+                  "items": [
+                    {
+                      "label": "Spell save DC",
+                      "value": "spell_dc"
+                    },
+                    {
+                      "label": "Spell attack",
+                      "value": "spell_atk",
+                      "signed": true,
+                      "roll": "d20 + spell_atk",
+                      "rollLabel": "Spell attack"
+                    },
+                    {
+                      "label": "Caster level",
+                      "value": "caster_level"
+                    }
+                  ]
+                },
+                {
+                  "title": "SPELL SLOTS",
+                  "items": [
+                    {
+                      "widget": "pips",
+                      "label": "Level 1",
+                      "store": "slots_1",
+                      "max": "slots_1_max",
+                      "enabled": "slots_1_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 2",
+                      "store": "slots_2",
+                      "max": "slots_2_max",
+                      "enabled": "slots_2_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 3",
+                      "store": "slots_3",
+                      "max": "slots_3_max",
+                      "enabled": "slots_3_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 4",
+                      "store": "slots_4",
+                      "max": "slots_4_max",
+                      "enabled": "slots_4_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 5",
+                      "store": "slots_5",
+                      "max": "slots_5_max",
+                      "enabled": "slots_5_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 6",
+                      "store": "slots_6",
+                      "max": "slots_6_max",
+                      "enabled": "slots_6_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 7",
+                      "store": "slots_7",
+                      "max": "slots_7_max",
+                      "enabled": "slots_7_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 8",
+                      "store": "slots_8",
+                      "max": "slots_8_max",
+                      "enabled": "slots_8_max",
+                      "color": "#4da3ff"
+                    },
+                    {
+                      "widget": "pips",
+                      "label": "Level 9",
+                      "store": "slots_9",
+                      "max": "slots_9_max",
+                      "enabled": "slots_9_max",
+                      "color": "#4da3ff"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "weight": 2.0,
+              "sections": [
+                {
+                  "title": "SPELLS",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "spells"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
           "title": "Features",
           "columns": [
             {
@@ -1054,6 +1213,92 @@
           "id": "notes",
           "label": "Description",
           "type": "note"
+        }
+      ]
+    },
+    {
+      "id": "spells",
+      "label": "Spells",
+      "addLabel": "Spell",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Spell",
+          "type": "text",
+          "width": 2.2
+        },
+        {
+          "id": "level",
+          "label": "Lv",
+          "type": "choice",
+          "width": 0.7,
+          "options": [
+            "Cantrip",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        },
+        {
+          "id": "dmg",
+          "label": "Dice",
+          "type": "dice",
+          "width": 1.0,
+          "rollLabel": "{name}"
+        },
+        {
+          "id": "prepared",
+          "label": "Prep",
+          "type": "toggle",
+          "width": 0.5
+        },
+        {
+          "id": "school",
+          "label": "School",
+          "type": "text",
+          "detail": true
+        },
+        {
+          "id": "range",
+          "label": "Range",
+          "type": "text",
+          "detail": true
+        },
+        {
+          "id": "duration",
+          "label": "Duration",
+          "type": "text",
+          "detail": true
+        },
+        {
+          "id": "conc",
+          "label": "Concentration",
+          "type": "toggle",
+          "detail": true
+        },
+        {
+          "id": "ritual",
+          "label": "Ritual",
+          "type": "toggle",
+          "detail": true
+        },
+        {
+          "id": "notes",
+          "label": "Description",
+          "type": "note"
+        }
+      ],
+      "footer": [
+        {
+          "label": "Prepared",
+          "value": "spells.count.prepared",
+          "max": "prepared_max"
         }
       ]
     }
