@@ -126,13 +126,26 @@ public final class ShareCardHud {
 		return (a << 24) | (argb & 0xFFFFFF);
 	}
 
+	/** In-game HUD: only when no screen is open (screens draw it themselves, on top, see {@link #drawOverScreen}). */
 	public static void render(DrawContext g, RenderTickCounter tickCounter) {
+		if (MinecraftClient.getInstance().currentScreen != null) return;
+		draw(g, tickCounter.getTickDelta(false));
+	}
+
+	/** After a screen has drawn itself (chat, the sheet window, the combat view...): the card goes above everything. */
+	public static void drawOverScreen(DrawContext g, float partial) {
+		g.getMatrices().push();
+		g.getMatrices().translate(0, 0, 500);
+		draw(g, partial);
+		g.getMatrices().pop();
+	}
+
+	private static void draw(DrawContext g, float partial) {
 		Entry e = current;
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (e == null || mc.player == null) return;
 		TextRenderer tr = mc.textRenderer;
 		ShareCard c = e.card;
-		float partial = tickCounter.getTickDelta(false);
 		float k = Math.min(1f, (age + partial) / FADE_TICKS);
 		if (closing > 0) k = Math.min(k, (closing - partial) / FADE_TICKS);
 		if (k < 0.06f) return;
@@ -143,8 +156,8 @@ public final class ShareCardHud {
 		int white = fade(0xFFFFFFFF, k);
 
 		int w = Math.min(210, g.getScaledWindowWidth() / 2);
-		int x = g.getScaledWindowWidth() - w - 8;
-		int y = 28;
+		int x = 8;
+		int y = 8;
 		int maxBottom = g.getScaledWindowHeight() - 14;
 
 		// content, so the panel can be sized to it (body and stats are drawn at 3/4 size)

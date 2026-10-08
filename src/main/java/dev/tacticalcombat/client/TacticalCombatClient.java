@@ -80,6 +80,9 @@ public class TacticalCombatClient implements ClientModInitializer {
 		HudRenderCallback.EVENT.register(CombatHud::render);
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
 		HudRenderCallback.EVENT.register(ShareCardHud::render);
+		net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) ->
+				net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterRender(screen).register(
+						(s, ctx, mouseX, mouseY, delta) -> ShareCardHud.drawOverScreen(ctx, delta)));
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
