@@ -725,6 +725,12 @@
                       "max": "6"
                     },
                     {
+                      "widget": "counter",
+                      "label": "Caster level (adds a Spells tab)",
+                      "store": "caster_level",
+                      "max": "20"
+                    },
+                    {
                       "widget": "button",
                       "label": "Short rest",
                       "sub": "Second Wind and Action Surge back",
