@@ -28,7 +28,7 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 | Mouse wheel | zoom |
 | Middle mouse drag / Left-Right arrows | rotate (drag up/down also tilts) |
 | 1-9, E, T, / , Esc | hotbar, inventory, chat, command, pause menu still work |
-| `K` (rebindable) or `/sheet` | open the character sheet window (draggable; works in and out of combat; New / Edit create and change characters and save them to disk). Games are not built in: they are packs in `config/tacticalcombat/packs/<game>/` (copy the ones you want from this repo's `packs/` folder: `generic_d20`, `percentile`); characters in `config/tacticalcombat/characters/`, tables of items / weapons / skills with their own columns and roll buttons; see [docs/sheet-formats.md](docs/sheet-formats.md) |
+| `K` (rebindable) or `/sheet` | open the character sheet window (draggable and resizable; works in and out of combat; New / Edit create and change characters and save them to disk). Games are not built in: they are packs in `config/tacticalcombat/packs/<game>/` (copy the ones you want from this repo's `packs/` folder: `generic_d20`, `percentile`); characters in `config/tacticalcombat/characters/`, tables of items / weapons / skills with their own columns and roll buttons; see [docs/sheet-formats.md](docs/sheet-formats.md) |
 | `/tbc roll <dice>` | roll dice, e.g. `d20`, `d%`, `2d6`, `d20+5` (d4 d6 d8 d10 d% d12 d20, up to 10 at once); a 2D tumbling animation plays on every player's screen, then the result is printed in chat |
 | `/tbc start`, `/tbc end` (op) | force a fight with nearby hostiles / end it |
 
