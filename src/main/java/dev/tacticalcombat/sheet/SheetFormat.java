@@ -63,6 +63,8 @@ public final class SheetFormat {
 		public boolean signed;
 		/** Not a column of the table: its value is summarised in small text under the row (and edited in the row editor). */
 		public boolean detail;
+		/** Not shown on the sheet at all, only in the row editor (e.g. a spell's level when the table is grouped by it). */
+		public boolean hidden;
 		/** roll column: the roll formula; {name} in rollLabel becomes the row's name. */
 		public String roll;
 		public String rollLabel = "{name}";
@@ -277,6 +279,7 @@ public final class SheetFormat {
 			col.value = str(co, "value", null);
 			col.signed = bool(co, "signed");
 			col.detail = bool(co, "detail");
+			col.hidden = bool(co, "hidden");
 			col.roll = str(co, "roll", null);
 			col.rollLabel = str(co, "rollLabel", "{name}");
 			col.modifier = str(co, "modifier", null);

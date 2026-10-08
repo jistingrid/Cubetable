@@ -863,7 +863,7 @@ public final class CharacterSheetScreen extends Screen {
 		List<CharacterData.Row> rows = sc.character.collections.getOrDefault(coll.id, List.of());
 		// the table's own columns; "detail" and "note" columns go on a small second line instead
 		List<SheetFormat.Col> main = new ArrayList<>();
-		for (SheetFormat.Col c : coll.columns) if (!c.detail && !c.type.equals("note")) main.add(c);
+		for (SheetFormat.Col c : coll.columns) if (!c.detail && !c.hidden && !c.type.equals("note")) main.add(c);
 		int n = main.size();
 		int editW = 14;
 		int gap = 3;
@@ -971,7 +971,7 @@ public final class CharacterSheetScreen extends Screen {
 			}
 			StringBuilder note = new StringBuilder();
 			for (SheetFormat.Col c : coll.columns) {
-				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : c.detail ? detailText(sc, coll, row, c) : "";
+				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : c.detail && !c.hidden ? detailText(sc, coll, row, c) : "";
 				if (!t.isEmpty()) note.append(note.length() > 0 ? (c.type.equals("note") ? "  |  " : "  -  ") : "").append(t);
 			}
 			List<OrderedText> noteLines = note.length() == 0 ? List.of()

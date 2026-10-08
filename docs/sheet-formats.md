@@ -103,6 +103,8 @@ Column types:
 
 A collection can set `groupBy` to a column (usually a `choice`): the table gets a heading per value, in order. On a choice column, `groupLabels` gives the heading for each option ("Cantrips", "1st level", ...).
 
+`hidden: true` on a column removes it from the sheet entirely (it is only in the entry editor), e.g. a spell's level when the table is already grouped by level.
+
 `detail: true` on a column keeps it out of the table: its value is summarised in small text under the row (toggles show their label when on, numbers when not 0) and is edited in the row editor. Use it for setup columns so the main row stays readable, e.g. a weapon row shows name, hit and damage, with `STR - Prof` underneath.
 
 Tables are also tools for the player (nothing to declare in the format, none of it is saved):
