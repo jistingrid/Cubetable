@@ -1321,6 +1321,8 @@ public final class CharacterSheetScreen extends Screen {
 			c.theme = editChar.theme;
 			c.hidden.addAll(editChar.hidden);
 			c.order.putAll(editChar.order);
+			// the tables (weapons, gear...) are not in the form; keep every row
+			c.collections.putAll(editChar.collections);
 			// values the form does not offer (trackers such as death saves) stay as they were
 			for (Map.Entry<String, Double> e : editChar.values.entrySet()) c.values.putIfAbsent(e.getKey(), e.getValue());
 		}
