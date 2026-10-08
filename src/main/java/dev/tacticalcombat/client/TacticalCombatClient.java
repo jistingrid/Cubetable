@@ -33,6 +33,12 @@ public class TacticalCombatClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_K,
 			"key.categories.tacticalcombat"));
 
+	public static final KeyBinding DISMISS_CARD_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.tacticalcombat.dismiss_card",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_H,
+			"key.categories.tacticalcombat"));
+
 	private static final double PAN_SPEED = 0.35;
 	private static final double PAN_LIMIT = 24.0;
 	private static final float ROTATE_SPEED = 4.0f;
@@ -47,11 +53,15 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(DiceRollPayload.ID,
 				(payload, context) -> DiceAnimation.enqueue(payload));
 
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.ShareCardPayload.ID,
+				(payload, context) -> ShareCardHud.receive(payload));
+
 		FadeModels.register();
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			ClientCombatState.reset();
 			BlockFade.clear();
 			DiceAnimation.clear();
+			ShareCardHud.clear();
 		});
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -59,9 +69,20 @@ public class TacticalCombatClient implements ClientModInitializer {
 					CharacterSheetScreen.requestOpen();
 					return 1;
 				})));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+				dispatcher.register(ClientCommandManager.literal("tcard")
+						.then(ClientCommandManager.argument("id", com.mojang.brigadier.arguments.LongArgumentType.longArg())
+								.executes(ctx -> {
+									ShareCardHud.recall(com.mojang.brigadier.arguments.LongArgumentType.getLong(ctx, "id"));
+									return 1;
+								}))));
 
 		HudRenderCallback.EVENT.register(CombatHud::render);
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
+		HudRenderCallback.EVENT.register(ShareCardHud::render);
+		net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) ->
+				net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterRender(screen).register(
+						(s, ctx, mouseX, mouseY, delta) -> ShareCardHud.drawOverScreen(ctx, delta, mouseX, mouseY)));
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -69,10 +90,14 @@ public class TacticalCombatClient implements ClientModInitializer {
 			BlockFade.tick(client);
 			WalkAnimation.tick(client);
 			DiceAnimation.tick(client);
+			ShareCardHud.tick(client);
 			CharacterSheetScreen.tick(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {
 				pollCameraKeys(client);
+			}
+			while (DISMISS_CARD_KEY.wasPressed()) {
+				ShareCardHud.dismiss();
 			}
 			while (SHEET_KEY.wasPressed()) {
 				CharacterSheetScreen.requestOpen();

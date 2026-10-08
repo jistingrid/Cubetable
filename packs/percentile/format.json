@@ -163,7 +163,8 @@
           "roll": "d%",
           "rollLabel": "{name}"
         }
-      ]
+      ],
+      "share": true
     },
     {
       "id": "damage",
@@ -183,7 +184,8 @@
           "width": 1.2,
           "rollLabel": "{name} damage"
         }
-      ]
+      ],
+      "share": true
     }
   ]
 }

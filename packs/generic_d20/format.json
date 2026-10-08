@@ -1166,7 +1166,8 @@
           "label": "Notes",
           "type": "note"
         }
-      ]
+      ],
+      "share": true
     },
     {
       "id": "gear",
@@ -1217,7 +1218,8 @@
           "value": "gear.sum.line_weight",
           "max": "carry_cap"
         }
-      ]
+      ],
+      "share": true
     },
     {
       "id": "features",
@@ -1243,7 +1245,8 @@
           "label": "Description",
           "type": "note"
         }
-      ]
+      ],
+      "share": true
     },
     {
       "id": "spells",
@@ -1258,7 +1261,7 @@
         },
         {
           "id": "level",
-          "label": "Lv",
+          "label": "Level",
           "type": "choice",
           "width": 0.7,
           "options": [
@@ -1371,7 +1374,8 @@
           "max": "prepared_max"
         }
       ],
-      "groupBy": "level"
+      "groupBy": "level",
+      "share": true
     }
   ]
 }
