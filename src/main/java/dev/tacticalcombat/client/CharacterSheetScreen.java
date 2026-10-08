@@ -187,6 +187,7 @@ public final class CharacterSheetScreen extends Screen {
 		mouseX = mx;
 		mouseY = my;
 		hits.clear();
+		filterDrawn = false;
 
 		SheetContext themed = view == View.SHEET || view == View.ROW ? sheet() : null;
 		applyTheme(SheetLibrary.theme(themed == null ? null
@@ -234,6 +235,7 @@ public final class CharacterSheetScreen extends Screen {
 				break;
 			}
 		}
+		if (filterColl != null && !filterDrawn) deactivateFilter(); // its table scrolled away or the page changed
 		if (tooltip != null) {
 			g.drawTooltip(textRenderer, Text.literal(tooltip), mx, my);
 		}
@@ -748,6 +750,75 @@ public final class CharacterSheetScreen extends Screen {
 		rollPlan(sc, label, () -> sc.plan(coll, row, formula));
 	}
 
+	// view state of tables (not saved): filter text, sort column ("col" or "-col") and opened rows
+	private static final Map<String, String> TABLE_FILTER = new java.util.HashMap<>();
+	private static final Map<String, String> TABLE_SORT = new java.util.HashMap<>();
+	private static final java.util.Set<CharacterData.Row> EXPANDED = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+	/** Collection whose filter box has the keyboard, or null. */
+	private static String filterColl;
+	private TextFieldWidget filterBox;
+	private boolean filterDrawn;
+	private int[] filterRect;
+
+	private void activateFilter(String collId) {
+		if (filterBox == null) return;
+		filterColl = collId;
+		filterBox.setChangedListener(null);
+		filterBox.setText(TABLE_FILTER.getOrDefault(collId, ""));
+		filterBox.setChangedListener(t -> TABLE_FILTER.put(collId, t));
+		filterBox.visible = true;
+		filterBox.active = true;
+		setFocused(filterBox);
+		filterBox.setFocused(true);
+	}
+
+	private void deactivateFilter() {
+		filterColl = null;
+		filterRect = null;
+		if (filterBox != null) {
+			filterBox.setFocused(false);
+			filterBox.visible = false;
+			filterBox.active = false;
+		}
+		if (getFocused() == filterBox) setFocused(null);
+	}
+
+	private static boolean matches(SheetFormat.Collection c, CharacterData.Row r, String query) {
+		String q = query.trim().toLowerCase();
+		if (q.isEmpty()) return true;
+		for (SheetFormat.Col col : c.columns) {
+			if (col.isText() && r.texts.getOrDefault(col.id, "").toLowerCase().contains(q)) return true;
+			if (col.type.equals("choice")) {
+				int k = Math.floorMod((int) Math.round(r.values.getOrDefault(col.id, col.def)), col.options.size());
+				if (tr(col.options.get(k)).toLowerCase().contains(q)) return true;
+			}
+		}
+		return false;
+	}
+
+	private static int compareRows(SheetContext sc, SheetFormat.Collection c, SheetFormat.Col col, CharacterData.Row a, CharacterData.Row b) {
+		if (col.isText()) {
+			return a.texts.getOrDefault(col.id, "").compareToIgnoreCase(b.texts.getOrDefault(col.id, ""));
+		}
+		return Double.compare(sortNumber(sc, c, a, col), sortNumber(sc, c, b, col));
+	}
+
+	private static double sortNumber(SheetContext sc, SheetFormat.Collection c, CharacterData.Row r, SheetFormat.Col col) {
+		try {
+			return sc.columnNumber(c, r, col.id);
+		} catch (RuntimeException e) {
+			return 0;
+		}
+	}
+
+	/** none -> ascending -> descending -> none */
+	private static void cycleSort(String collId, String colId) {
+		String cur = TABLE_SORT.get(collId);
+		if (cur == null || !cur.replace("-", "").equals(colId)) TABLE_SORT.put(collId, colId);
+		else if (!cur.startsWith("-")) TABLE_SORT.put(collId, "-" + colId);
+		else TABLE_SORT.remove(collId);
+	}
+
 	private int drawTable(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
 		SheetFormat.Collection coll = sc.format.collections.get(it.collection);
 		if (coll == null) return 13;
@@ -770,46 +841,120 @@ public final class CharacterSheetScreen extends Screen {
 			px += cw[i] + gap;
 		}
 
+		// which rows, in which order (the stored order is never changed by sorting)
+		String filter = TABLE_FILTER.getOrDefault(coll.id, "");
+		List<Integer> order = new ArrayList<>();
+		for (int i = 0; i < rows.size(); i++) if (matches(coll, rows.get(i), filter)) order.add(i);
+		String sort = TABLE_SORT.get(coll.id);
+		SheetFormat.Col sortCol = sort == null ? null : coll.column(sort.replace("-", ""));
+		if (sortCol != null) {
+			final boolean desc = sort.startsWith("-");
+			final SheetFormat.Col sc2 = sortCol;
+			order.sort((a, b) -> {
+				int r = compareRows(sc, coll, sc2, rows.get(a), rows.get(b));
+				return desc ? -r : r;
+			});
+		}
+
 		int cy = y;
-		// header
+		// filter box (only for longer tables, or while one is in use)
+		boolean showFilter = rows.size() >= 5 || !filter.isEmpty() || coll.id.equals(filterColl);
+		if (showFilter) {
+			if (cy + 13 > clipTop && cy < clipBottom) {
+				int fw = Math.min(110, w - 40);
+				boolean active = coll.id.equals(filterColl) && filterBox != null;
+				g.drawText(textRenderer, "Filter", x + 4, cy + 2, DIM, false);
+				int fx = x + 4 + tw("Filter") + 4;
+				if (active) {
+					filterBox.setX(fx);
+					filterBox.setY(cy);
+					filterBox.setWidth(fw);
+					filterBox.visible = true;
+					filterBox.render(g, mouseX, mouseY, 0f);
+					filterRect = new int[]{fx, cy, fw, 12};
+					filterDrawn = true;
+				} else {
+					boolean over = hit(fx, cy, fw, 12, () -> activateFilter(coll.id), "Type to show only matching entries");
+					g.fill(fx, cy, fx + fw, cy + 12, EDGE);
+					g.fill(fx + 1, cy + 1, fx + fw - 1, cy + 11, over ? PANEL_HOVER : PANEL);
+					g.drawText(textRenderer, textRenderer.trimToWidth(filter.isEmpty() ? "..." : filter, fw - 6), fx + 3, cy + 2,
+							filter.isEmpty() ? DIM : 0xFFFFFFFF, false);
+				}
+				if (!filter.isEmpty()) {
+					String count = order.size() + " / " + rows.size();
+					g.drawText(textRenderer, count, fx + fw + 6, cy + 2, MUTED, false);
+					int xw = tw("x") + 6;
+					int clearX = fx + fw + 6 + tw(count) + 4;
+					boolean over = hit(clearX, cy, xw, 12, () -> {
+						TABLE_FILTER.remove(coll.id);
+						if (coll.id.equals(filterColl)) deactivateFilter();
+					}, "Clear the filter");
+					g.drawText(textRenderer, "x", clearX + 3, cy + 2, over ? 0xFFFFFFFF : MUTED, false);
+				}
+			}
+			cy += 14;
+		}
+
+		// header: click a column to sort by it
 		if (cy + 9 > clipTop && cy < clipBottom) {
 			var ms = g.getMatrices();
 			for (int i = 0; i < n; i++) {
+				SheetFormat.Col col = main.get(i);
+				boolean on = col == sortCol;
+				String label = tr(col.label) + (on ? (sort.startsWith("-") ? " v" : " ^") : "");
+				final String colId = col.id;
+				boolean over = hit(cx[i], cy, cw[i], 9, () -> cycleSort(coll.id, colId), "Click to sort by " + tr(col.label));
 				ms.push();
 				ms.translate(cx[i], cy + 2, 0);
 				ms.scale(0.75f, 0.75f, 1.0f);
-				g.drawText(textRenderer, textRenderer.trimToWidth(tr(main.get(i).label), (int) (cw[i] / 0.75f)), 0, 0, DIM, false);
+				g.drawText(textRenderer, textRenderer.trimToWidth(label, (int) (cw[i] / 0.75f)), 0, 0, on ? GOLD : over ? 0xFFFFFFFF : DIM, false);
 				ms.pop();
 			}
 		}
 		cy += 9;
 
-		for (int ri = 0; ri < rows.size(); ri++) {
-			final int index = ri;
-			CharacterData.Row row = rows.get(ri);
+		for (int index : order) {
+			CharacterData.Row row = rows.get(index);
 			StringBuilder note = new StringBuilder();
 			for (SheetFormat.Col c : coll.columns) {
 				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : c.detail ? detailText(sc, coll, row, c) : "";
 				if (!t.isEmpty()) note.append(note.length() > 0 ? (c.type.equals("note") ? "  |  " : "  -  ") : "").append(t);
 			}
 			List<OrderedText> noteLines = note.length() == 0 ? List.of()
-					: textRenderer.wrapLines(StringVisitable.plain(tr(note.toString())), (int) ((w - 12) / 0.75f));
-			int rh = 13 + (noteLines.isEmpty() ? 0 : noteLines.size() * 7 + 2);
+					: textRenderer.wrapLines(StringVisitable.plain(tr(note.toString())), (int) ((w - 22) / 0.75f));
+			// longer text starts folded to one line; click the row's second line (or its name) to open it
+			boolean foldable = noteLines.size() > 1;
+			boolean open = !foldable || EXPANDED.contains(row);
+			int shown = noteLines.isEmpty() ? 0 : open ? noteLines.size() : 1;
+			int rh = 13 + (shown == 0 ? 0 : shown * 7 + 2);
 			if (cy + rh > clipTop && cy < clipBottom) {
 				g.fill(x, cy, x + w, cy + rh, PANEL);
 				g.fill(x, cy, x + 1, cy + rh, EDGE);
+				if (foldable) {
+					Runnable toggle = () -> {
+						if (!EXPANDED.remove(row)) EXPANDED.add(row);
+					};
+					// the name cell and the text line below act as the fold button; cells on top keep their own clicks
+					hit(x, cy + 13, w - editW - 4, rh - 13, toggle, open ? "Click to fold" : "Click to read all");
+					SheetFormat.Col nm = coll.nameCol();
+					if (nm != null) {
+						int ni = main.indexOf(nm);
+						if (ni >= 0) hit(cx[ni], cy, cw[ni], 13, toggle, open ? "Click to fold" : "Click to read all");
+					}
+				}
 				for (int i = 0; i < n; i++) drawCell(g, sc, coll, row, main.get(i), cx[i], cw[i], cy);
-				if (!noteLines.isEmpty()) {
+				if (shown > 0) {
 					var ms = g.getMatrices();
 					ms.push();
 					ms.translate(x + 4, cy + 13, 0);
 					ms.scale(0.75f, 0.75f, 1.0f);
 					int ly = 0;
-					for (OrderedText line : noteLines) {
-						g.drawText(textRenderer, line, 0, ly, MUTED, false);
+					for (int li = 0; li < shown; li++) {
+						g.drawText(textRenderer, noteLines.get(li), 0, ly, MUTED, false);
 						ly += 9;
 					}
 					ms.pop();
+					if (foldable) g.drawText(textRenderer, open ? "-" : "+", x + w - editW - 10, cy + 13, GOLD, false);
 				}
 				int ex = x + w - editW - 2;
 				boolean over = hit(ex, cy + 1, editW, 11, () -> startRow(sc, coll, index), "Edit or delete this entry");
@@ -829,6 +974,7 @@ public final class CharacterSheetScreen extends Screen {
 			g.fill(x + 1, cy + 1, x + bw - 1, cy + 11, over ? PANEL_HOVER : PANEL);
 			g.drawText(textRenderer, add, x + 4, cy + 2, GOLD, false);
 			if (rows.isEmpty()) g.drawText(textRenderer, "Nothing here yet", x + bw + 6, cy + 2, DIM, false);
+			else if (order.isEmpty()) g.drawText(textRenderer, "Nothing matches the filter", x + bw + 6, cy + 2, DIM, false);
 			// footer totals on the right
 			int fx = x + w - 2;
 			for (int i = coll.footers.size() - 1; i >= 0; i--) {
@@ -988,6 +1134,19 @@ public final class CharacterSheetScreen extends Screen {
 		cancelRow();
 	}
 
+	/** Changes the stored order of the entry being edited (what the sheet shows when no sort is chosen). */
+	private void moveRow(int delta) {
+		if (rowColl == null || rowOwner == null || rowIndex < 0) return;
+		List<CharacterData.Row> rows = rowOwner.rows(rowColl.id);
+		int to = rowIndex + delta;
+		if (to < 0 || to >= rows.size()) return;
+		CharacterData.Row other = rows.get(to);
+		rows.set(to, rows.get(rowIndex));
+		rows.set(rowIndex, other);
+		rowIndex = to;
+		store(rowOwner);
+	}
+
 	private void deleteRow() {
 		if (rowColl == null || rowOwner == null) return;
 		if (!deleteArmed) {
@@ -1044,6 +1203,8 @@ public final class CharacterSheetScreen extends Screen {
 		rx -= smallButton(g, rx - tw("Save") - 8, y + 3, "Save", this::saveRow, "Keep this entry", 0xFF1E4A25, 0xFF3CB84A) + 4;
 		rx -= smallButton(g, rx - tw("Cancel") - 6, y + 3, "Cancel", this::cancelRow, "Throw away changes (Esc)", PANEL, 0xFF3B414C) + 4;
 		if (rowIndex >= 0) {
+			rx -= smallButton(g, rx - tw("v") - 6, y + 3, "v", () -> moveRow(1), "Move this entry down the list", PANEL, 0xFF3B414C) + 2;
+			rx -= smallButton(g, rx - tw("^") - 6, y + 3, "^", () -> moveRow(-1), "Move this entry up the list", PANEL, 0xFF3B414C) + 4;
 			smallButton(g, rx - tw("Really delete?") - 6, y + 3, deleteArmed ? "Really delete?" : "Delete", this::deleteRow,
 					"Remove this entry", deleteArmed ? 0xFF7A1C27 : PANEL, 0xFFB8323F);
 		}
@@ -1395,6 +1556,17 @@ public final class CharacterSheetScreen extends Screen {
 		formHeads.clear();
 		formScroll = 0;
 		rowBoxes.clear();
+		filterBox = null;
+		filterRect = null;
+		if (view != View.SHEET) filterColl = null;
+		if (textRenderer != null) {
+			filterBox = new TextFieldWidget(textRenderer, 0, 0, 100, 12, Text.literal("Filter"));
+			filterBox.setMaxLength(30);
+			filterBox.visible = false;
+			filterBox.active = false;
+			addDrawableChild(filterBox);
+			if (filterColl != null) activateFilter(filterColl);
+		}
 		if (view == View.ROW && textRenderer != null) {
 			buildRowForm();
 			return;
@@ -1557,6 +1729,14 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mx, double my, int button) {
+		if (filterColl != null) {
+			if (filterRect != null && mx >= filterRect[0] && mx < filterRect[0] + filterRect[2]
+					&& my >= filterRect[1] && my < filterRect[1] + filterRect[3]) {
+				filterBox.mouseClicked(mx, my, button);
+				return true;
+			}
+			deactivateFilter();
+		}
 		if (button == 1) {
 			// right click: only controls that define a second action (table numbers and choices) react
 			for (int i = hits.size() - 1; i >= 0; i--) {
@@ -1633,7 +1813,13 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		boolean typing = (view == View.EDITOR || view == View.ROW) && getFocused() instanceof TextFieldWidget field && field.isFocused();
+		if (filterColl != null && (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE || keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER
+				|| keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER)) {
+			deactivateFilter();
+			return true;
+		}
+		boolean typing = filterColl != null
+				|| (view == View.EDITOR || view == View.ROW) && getFocused() instanceof TextFieldWidget field && field.isFocused();
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && view == View.ROW) {
 			cancelRow();
 			return true;

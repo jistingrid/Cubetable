@@ -101,6 +101,13 @@ Column types:
 
 `detail: true` on a column keeps it out of the table: its value is summarised in small text under the row (toggles show their label when on, numbers when not 0) and is edited in the row editor. Use it for setup columns so the main row stays readable, e.g. a weapon row shows name, hit and damage, with `STR - Prof` underneath.
 
+Tables are also tools for the player (nothing to declare in the format, none of it is saved):
+
+- **Filter** - a table with 5 or more entries gets a Filter box; click it and type to show only entries whose text (or choice) matches. Enter / Esc / clicking elsewhere leaves the box, `x` clears it.
+- **Sort** - click a column header to sort by it (ascending, then descending, then back to the stored order). Sorting only changes what is shown.
+- **Fold** - when an entry's second line (details and notes) is longer than one line, it starts folded to one line; click the line or the entry's name to read all of it (`+` / `-` at the end of the line).
+- **Order** - the `^` / `v` buttons in the entry editor change the stored order.
+
 Inside a column formula, `row.<column>` is that row's value: `d20 + pick(row.ability, str_mod, dex_mod) + prof * row.prof`. Everything else (derived values, stored values) works as usual.
 
 Totals over a collection can be used in any formula: `<id>.count`, `<id>.count.<col>` (rows where the column is above 0), `<id>.sum.<col>`, `<id>.max.<col>`, `<id>.sumif.<flagcol>.<col>`, e.g. `gear.sumif.equipped.total`. Rows are added and edited with the **+** button and the **...** button on each row (which also deletes).
