@@ -46,6 +46,10 @@ public class TacticalCombatMod implements ModInitializer {
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> DiceService.roll(context.player(), payload.label(), payload.type(),
 						payload.count(), payload.modifier(), payload.mode())));
+		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.ShareCardPayload.ID, dev.tacticalcombat.net.ShareCardPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.ShareCardRequestPayload.ID, dev.tacticalcombat.net.ShareCardRequestPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.ShareCardRequestPayload.ID, (payload, context) ->
+				context.server().execute(() -> dev.tacticalcombat.card.CardService.share(context.player(), payload.card())));
 		PayloadTypeRegistry.playC2S().register(EndTurnPayload.ID, EndTurnPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(MoveRequestPayload.ID, MoveRequestPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(AttackRequestPayload.ID, AttackRequestPayload.CODEC);

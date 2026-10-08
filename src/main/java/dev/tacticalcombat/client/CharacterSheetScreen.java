@@ -748,6 +748,72 @@ public final class CharacterSheetScreen extends Screen {
 		return col.modifier == null ? text : text + " + (" + col.modifier + ")";
 	}
 
+	/** What the entry looks like on a shown card: its columns as "Label: value" lines, notes as the text. */
+	private static dev.tacticalcombat.card.ShareCard buildCard(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row) {
+		List<String> stats = new ArrayList<>();
+		StringBuilder body = new StringBuilder();
+		SheetFormat.Col nameCol = coll.nameCol();
+		for (SheetFormat.Col col : coll.columns) {
+			if (col == nameCol || col.type.equals("cast")) continue;
+			if (col.enabled != null) {
+				double on = sc.number(coll, row, col.enabled);
+				if (!Double.isNaN(on) && on <= 0) continue;
+			}
+			String label = tr(col.label);
+			switch (col.type) {
+				case "note" -> {
+					String t = row.texts.getOrDefault(col.id, "").trim();
+					if (!t.isEmpty()) body.append(body.length() > 0 ? "\n" : "").append(tr(t));
+				}
+				case "text" -> {
+					String t = row.texts.getOrDefault(col.id, "").trim();
+					if (!t.isEmpty()) stats.add(label + ": " + t);
+				}
+				case "dice" -> {
+					String t = row.texts.getOrDefault(col.id, "").trim();
+					if (t.isEmpty()) break;
+					if (col.modifier != null) {
+						double m = sc.number(coll, row, col.modifier);
+						if (!Double.isNaN(m) && Math.round(m) != 0) t += SheetContext.format(m, true);
+					}
+					stats.add(label + ": " + t);
+				}
+				case "number" -> {
+					double v = row.values.getOrDefault(col.id, col.def);
+					if (v != 0) stats.add(label + ": " + SheetContext.format(v, col.signed));
+				}
+				case "toggle" -> {
+					if (row.values.getOrDefault(col.id, col.def) > 0) stats.add(label);
+				}
+				case "choice" -> {
+					int k = Math.floorMod((int) Math.round(row.values.getOrDefault(col.id, col.def)), col.options.size());
+					stats.add(label + ": " + tr(col.options.get(k)));
+				}
+				case "computed", "roll" -> {
+					if (col.value != null) stats.add(label + ": " + SheetContext.format(sc.number(coll, row, col.value), col.signed));
+				}
+				default -> {
+				}
+			}
+		}
+		int[] colors = {BG, PANEL, EDGE, GOLD, MUTED, DIM, CRIMSON_A, CRIMSON_B};
+		return new dev.tacticalcombat.card.ShareCard(sc.character.displayName(), tr(coll.addLabel), rowName(coll, row), stats,
+				body.toString(), colors);
+	}
+
+	/** The "show" button: everyone with the mod sees the entry as a card, with a link in chat to bring it back. */
+	private static void shareRow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row) {
+		if (!ClientPlayNetworking.canSend(dev.tacticalcombat.net.ShareCardRequestPayload.ID)) {
+			say("This server does not have Tactical Combat, so nothing can be shown.");
+			return;
+		}
+		dev.tacticalcombat.card.ShareCard card = buildCard(sc, coll, row);
+		boolean cut = card.body().length() > dev.tacticalcombat.card.ShareCard.MAX_BODY
+				|| card.stats().size() > dev.tacticalcombat.card.ShareCard.MAX_STATS;
+		ClientPlayNetworking.send(new dev.tacticalcombat.net.ShareCardRequestPayload(card.cleaned()));
+		say("Shown to everyone" + (cut ? " (text shortened to fit the card)" : ""));
+	}
+
 	/** Casts a spell: spends one slot of the row's level (cantrips are free), then rolls its dice if it has any. */
 	private void castRow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, boolean higher) {
 		SheetFormat.Col levelCol = coll.column(col.spendLevel);
@@ -865,7 +931,8 @@ public final class CharacterSheetScreen extends Screen {
 		List<SheetFormat.Col> main = new ArrayList<>();
 		for (SheetFormat.Col c : coll.columns) if (!c.detail && !c.hidden && !c.type.equals("note")) main.add(c);
 		int n = main.size();
-		int editW = 14;
+		int btn = 14;
+		int editW = coll.share ? btn * 2 + 2 : btn;
 		int gap = 3;
 		float total = 0;
 		for (SheetFormat.Col c : main) total += c.width;
@@ -1010,11 +1077,19 @@ public final class CharacterSheetScreen extends Screen {
 					ms.pop();
 					if (foldable) g.drawText(textRenderer, open ? "-" : "+", x + w - editW - 10, cy + 13, GOLD, false);
 				}
-				int ex = x + w - editW - 2;
-				boolean over = hit(ex, cy + 1, editW, 11, () -> startRow(sc, coll, index), "Edit or delete this entry");
-				g.fill(ex, cy + 1, ex + editW, cy + 12, EDGE);
-				g.fill(ex + 1, cy + 2, ex + editW - 1, cy + 11, over ? PANEL_HOVER : PANEL);
-				g.drawCenteredTextWithShadow(textRenderer, "...", ex + editW / 2, cy + 2, 0xFFFFFFFF);
+				int ex = x + w - btn - 2;
+				boolean over = hit(ex, cy + 1, btn, 11, () -> startRow(sc, coll, index), "Edit or delete this entry");
+				g.fill(ex, cy + 1, ex + btn, cy + 12, EDGE);
+				g.fill(ex + 1, cy + 2, ex + btn - 1, cy + 11, over ? PANEL_HOVER : PANEL);
+				g.drawCenteredTextWithShadow(textRenderer, "...", ex + btn / 2, cy + 2, 0xFFFFFFFF);
+				if (coll.share) {
+					int sx = ex - btn - 2;
+					boolean eye = hit(sx, cy + 1, btn, 11, () -> shareRow(sc, coll, row), "Show this to everyone");
+					g.fill(sx, cy + 1, sx + btn, cy + 12, EDGE);
+					g.fill(sx + 1, cy + 2, sx + btn - 1, cy + 11, eye ? PANEL_HOVER : PANEL);
+					g.fill(sx + 3, cy + 4, sx + 11, cy + 9, eye ? 0xFFFFFFFF : 0xFFC9CCD2);
+					g.fill(sx + 6, cy + 5, sx + 8, cy + 8, 0xFF14161A);
+				}
 			}
 			cy += rh + 1;
 		}
@@ -1287,6 +1362,10 @@ public final class CharacterSheetScreen extends Screen {
 		int rx = x + w - 6;
 		rx -= smallButton(g, rx - tw("Save") - 8, y + 3, "Save", this::saveRow, "Keep this entry", 0xFF1E4A25, 0xFF3CB84A) + 4;
 		rx -= smallButton(g, rx - tw("Cancel") - 6, y + 3, "Cancel", this::cancelRow, "Throw away changes (Esc)", PANEL, 0xFF3B414C) + 4;
+		if (rowColl.share) {
+			rx -= smallButton(g, rx - tw("Show") - 6, y + 3, "Show", () -> shareRow(sheet(), rowColl, rowDraft),
+					"Show this entry to everyone", PANEL, 0xFF3B414C) + 4;
+		}
 		if (rowIndex >= 0) {
 			rx -= smallButton(g, rx - tw("v") - 6, y + 3, "v", () -> moveRow(1), "Move this entry down the list", PANEL, 0xFF3B414C) + 2;
 			rx -= smallButton(g, rx - tw("^") - 6, y + 3, "^", () -> moveRow(-1), "Move this entry up the list", PANEL, 0xFF3B414C) + 4;
@@ -1936,6 +2015,10 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && view == View.EDITOR) {
 			cancelEdit();
+			return true;
+		}
+		if (!typing && ShareCardHud.visible() && TacticalCombatClient.DISMISS_CARD_KEY.matchesKey(keyCode, scanCode)) {
+			ShareCardHud.dismiss();
 			return true;
 		}
 		if (!typing && TacticalCombatClient.SHEET_KEY.matchesKey(keyCode, scanCode)) {

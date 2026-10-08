@@ -105,6 +105,8 @@ public final class SheetFormat {
 		public String nameColumn = "";
 		/** Column whose value splits the table into headed groups (spell level, item type...). */
 		public String groupBy = "";
+		/** Entries get a "show to everyone" button. */
+		public boolean share;
 		public final List<Col> columns = new ArrayList<>();
 		public final List<Footer> footers = new ArrayList<>();
 
@@ -301,6 +303,7 @@ public final class SheetFormat {
 			c.columns.add(col);
 		}
 		if (c.columns.isEmpty()) throw new IllegalArgumentException("collection '" + c.id + "' has no columns");
+		c.share = bool(o, "share");
 		c.groupBy = str(o, "groupBy", "").toLowerCase(Locale.ROOT);
 		if (!c.groupBy.isEmpty() && c.column(c.groupBy) == null) {
 			throw new IllegalArgumentException("collection '" + c.id + "': groupBy names an unknown column '" + c.groupBy + "'");
