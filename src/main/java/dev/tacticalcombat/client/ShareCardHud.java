@@ -166,7 +166,26 @@ public final class ShareCardHud {
 				: tr.wrapLines(StringVisitable.plain(c.body()), (int) ((w - 14) / s));
 		int headerH = 22;
 		int whoH = 12;
-		int statsH = c.stats().size() * 9 + (c.stats().isEmpty() ? 0 : 3);
+		// stats flow left to right and wrap, so they use as little height as possible
+		int[][] spot = new int[c.stats().size()][2];
+		int statRows = 0;
+		{
+			int sx = 0;
+			int row = 0;
+			int maxW = w - 12;
+			for (int i = 0; i < c.stats().size(); i++) {
+				int iw = (int) Math.ceil(statWidth(tr, c.stats().get(i)) * s);
+				if (sx > 0 && sx + iw > maxW) {
+					row++;
+					sx = 0;
+				}
+				spot[i][0] = sx;
+				spot[i][1] = row;
+				sx += iw + 8;
+			}
+			statRows = c.stats().isEmpty() ? 0 : row + 1;
+		}
+		int statsH = statRows * 9 + (c.stats().isEmpty() ? 0 : 3);
 		int bodyLine = 8;
 		int footerH = 12;
 		int fixed = headerH + whoH + statsH + footerH + 6;
@@ -189,17 +208,19 @@ public final class ShareCardHud {
 		if (!c.stats().isEmpty()) {
 			g.fill(x + 6, cy, x + w - 6, cy + 1, edge);
 			cy += 3;
-			for (String line : c.stats()) {
+			for (int i = 0; i < c.stats().size(); i++) {
+				String line = c.stats().get(i);
+				int lx = x + 6 + spot[i][0];
+				int ly = cy + spot[i][1] * 9;
 				int split = line.indexOf(": ");
 				if (split > 0) {
-					scaled(g, tr, line.substring(0, split), x + 6, cy, s, dim, w / 2);
-					scaled(g, tr, line.substring(split + 2), x + 6 + (int) ((tr.getWidth(line.substring(0, split)) + 6) * s), cy, s, white, w - 12);
+					scaled(g, tr, line.substring(0, split), lx, ly, s, dim, w - 12);
+					scaled(g, tr, line.substring(split + 2), lx + (int) ((tr.getWidth(line.substring(0, split)) + 3) * s), ly, s, white, w - 12);
 				} else {
-					scaled(g, tr, line, x + 6, cy, s, accent, w - 12);
+					scaled(g, tr, line, lx, ly, s, accent, w - 12);
 				}
-				cy += 9;
 			}
-			cy += 2;
+			cy += statRows * 9 + 2;
 		}
 
 		if (shown > 0) {
@@ -237,6 +258,12 @@ public final class ShareCardHud {
 			float left = 1f - age / (float) LIFE_TICKS;
 			g.fill(x, y + h - 2, x + Math.round(w * Math.max(0f, left)), y + h, accent);
 		}
+	}
+
+	/** Unscaled width of one stat ("Label: value" or a lone flag). */
+	private static int statWidth(TextRenderer tr, String line) {
+		int split = line.indexOf(": ");
+		return split > 0 ? tr.getWidth(line.substring(0, split)) + 3 + tr.getWidth(line.substring(split + 2)) : tr.getWidth(line);
 	}
 
 	private static void scaled(DrawContext g, TextRenderer tr, String text, int x, int y, float s, int color, int maxWidth) {
