@@ -55,11 +55,12 @@ A format's `combat` block says how its sheets drive combat: distance per square,
 per-turn resources (D&D's action + bonus action, Pathfinder 2e's three actions) and how to buy more movement
 (Dash, Stride). See [docs/combat-rules.md](docs/combat-rules.md).
 
-## Hit points
+## Bars and hit points
 
-A format's `combat.hp` block names the sheet value that holds hit points. A player with an Active Actor uses it
-instead of Minecraft health: damage lowers the sheet, and the vanilla bar shows the percentage left. See
-[docs/combat-rules.md](docs/combat-rules.md#hit-points).
+A format's `combat` block names the sheet values that are tracked as bars: `hp` for the health bar, `bars` for
+any others (sanity, stamina, mana ...). A player with an Active Actor uses the health bar instead of Minecraft
+health: damage lowers the sheet, and the vanilla bar shows the percentage left. See
+[docs/combat-rules.md](docs/combat-rules.md#bars-hit-points-sanity-stamina-).
 
 ## Encounter window
 

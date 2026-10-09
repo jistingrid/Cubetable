@@ -909,19 +909,26 @@ public final class Combat {
 		for (Combatant c : order) {
 			LivingEntity e = c.entity;
 			boolean player = e instanceof ServerPlayerEntity;
-			SheetHealth.Hp sheetHp = e instanceof ServerPlayerEntity hp ? SheetHealth.of(hp) : null; // the sheet's hit points, when there are any
+			List<SheetHealth.BarValue> sheetBars = e instanceof ServerPlayerEntity bp ? SheetHealth.barsOf(bp) : List.of();
+			SheetHealth.BarValue vital = null; // the sheet's health bar replaces Minecraft health
+			List<CombatStatePayload.Bar> bars = new ArrayList<>();
+			for (SheetHealth.BarValue b : sheetBars) {
+				if (b.vital()) vital = b;
+				bars.add(new CombatStatePayload.Bar(b.id(), b.label(), (float) b.now(), (float) b.max(), b.color(), b.vital()));
+			}
 			entries.add(new CombatStatePayload.Entry(
 					e.getId(),
 					Registries.ENTITY_TYPE.getId(e.getType()),
 					player ? e.getName().getString() : "",
-					sheetHp != null ? (float) sheetHp.now() : e.getHealth(),
-					sheetHp != null ? (float) sheetHp.max() : e.getMaxHealth(),
+					vital != null ? (float) vital.now() : e.getHealth(),
+					vital != null ? (float) vital.max() : e.getMaxHealth(),
 					!player,
 					c.initiative,
 					c.rolled,
 					c.rule.hasRoll(),
 					e instanceof ServerPlayerEntity sp && dev.tacticalcombat.character.Actors.entryOf(sp.getUuid()) != null
-							? dev.tacticalcombat.character.Actors.get(sp.getUuid()) : ""));
+							? dev.tacticalcombat.character.Actors.get(sp.getUuid()) : "",
+					bars));
 		}
 
 		Combatant cur = current();

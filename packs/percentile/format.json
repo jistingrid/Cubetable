@@ -6,6 +6,7 @@
     "grid": { "square": 1, "unit": "m" },
     "resources": { "action": "1" },
     "hp": { "now": "hp", "max": "hp_max" },
+    "bars": [ { "id": "sanity", "label": "Sanity", "now": "sanity", "max": "sanity_max", "color": "purple" } ],
     "movement": { "speed": "mov", "pool": "mov" }
   },
   "derived": {},

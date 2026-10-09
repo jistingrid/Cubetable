@@ -95,15 +95,28 @@ public record CombatStatePayload(
 	/** A per-turn resource of the active combatant (action, bonus, ...). */
 	public record Res(String id, int left, int max) {}
 
+	/** A tracked bar of a combatant (hit points, sanity, stamina ...). */
+	public record Bar(String id, String label, float now, float max, int color, boolean vital) {}
+
 	/** A way to buy more movement that the player triggers with a button (cost is shown as text, e.g. "1 action"). */
 	public record MoveButton(String id, String label, String cost, boolean enabled) {}
 
 	/** One slot of the initiative bar. */
 	public record Entry(int entityId, Identifier typeId, String playerName, float health, float maxHealth,
-						boolean hostile, int initiative, boolean rolled, boolean rollable, String sheetId) {
+						boolean hostile, int initiative, boolean rolled, boolean rollable, String sheetId,
+						List<Bar> bars) {
 		static Entry read(PacketByteBuf buf) {
 			return new Entry(buf.readVarInt(), buf.readIdentifier(), buf.readString(), buf.readFloat(),
-					buf.readFloat(), buf.readBoolean(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean(), buf.readString(64));
+					buf.readFloat(), buf.readBoolean(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean(), buf.readString(64), readBars(buf));
+		}
+
+		private static List<Bar> readBars(PacketByteBuf buf) {
+			int n = buf.readVarInt();
+			List<Bar> out = new ArrayList<>(n);
+			for (int i = 0; i < n; i++) {
+				out.add(new Bar(buf.readString(32), buf.readString(32), buf.readFloat(), buf.readFloat(), buf.readInt(), buf.readBoolean()));
+			}
+			return out;
 		}
 
 		void write(PacketByteBuf buf) {
@@ -117,6 +130,15 @@ public record CombatStatePayload(
 			buf.writeBoolean(rolled);
 			buf.writeBoolean(rollable);
 			buf.writeString(sheetId, 64);
+			buf.writeVarInt(bars.size());
+			for (Bar b : bars) {
+				buf.writeString(b.id, 32);
+				buf.writeString(b.label, 32);
+				buf.writeFloat(b.now);
+				buf.writeFloat(b.max);
+				buf.writeInt(b.color);
+				buf.writeBoolean(b.vital);
+			}
 		}
 	}
 }

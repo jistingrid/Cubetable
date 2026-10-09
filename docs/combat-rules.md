@@ -29,28 +29,43 @@ per-turn resources; attacks, defense and hit points come in later steps.
 | `movement.pool` | Formula: distance you may walk as soon as the turn starts. Default: the speed. Use `"0"` when you must pay to move. |
 | `movement.moves` | Ways to buy more movement with resources (see below). |
 
-## Hit points
+## Bars (hit points, sanity, stamina ...)
+
+A game can have as many tracked bars as it needs. `hp` is the shorthand for the one health bar; `bars` lists
+any others:
 
 ```json
-"hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" }
+"hp":   { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
+"bars": [
+  { "id": "sanity",  "label": "Sanity",  "now": "sanity",  "max": "sanity_max", "color": "purple" },
+  { "id": "stamina", "label": "Stamina", "now": "stam",    "max": "stam_max",   "color": "#33CC99" }
+]
 ```
 
 | Key | Meaning |
 |---|---|
-| `now` | Id of the stored sheet value that holds current hit points. This is the value combat changes. |
+| `id` | Name of the bar (what effects refer to). `hp` always has the id `hp`. |
+| `label` | Shown next to the bar (default: the id). |
+| `now` | Id of the stored sheet value that holds the current amount. This is the value combat changes. |
 | `max` | Formula for the maximum. |
-| `temp` | Optional id of a stored value of temporary hit points; damage drains it first. |
+| `temp` | Optional id of a stored value of temporary points; losses drain it first. |
+| `color` | `red`, `green`, `blue`, `purple`, `gold`, `orange`, `gray` or `#RRGGBB`. |
+| `vital` | `true` on the bar that is the character's health (the `hp` shorthand is vital). Only one is; a later one replaces an earlier one. |
 
-A player with an **Active Actor** whose format has this block uses the sheet value as their hit points, in and
-out of combat, **instead of Minecraft health**:
+A player with an **Active Actor** gets all of their format's bars tracked, in and out of combat:
 
-- Damage of any kind (mobs, falls, fire ...) lowers the sheet value, temp first, and the change is saved on the
-  server and sent to the player's own sheet. The usual hurt flash plays, but Minecraft takes no damage.
-- The vanilla health bar shows the share left (never fully empty), and is re-synced every second, so a DM who
-  edits the sheet changes the bar too. The initiative bar and the DM's list show the sheet values.
-- At 0 the sheet value stays at 0; dying, healing and rests come later.
-- Without an Active Actor, or in a format with no `hp` block, Minecraft health applies as before.
-- For now every point of Minecraft damage is one hit point of the sheet (a zombie hit of 3 costs 3); attack
+- The **vital** bar is their hit points and replaces **Minecraft health**. Damage of any kind (mobs, falls,
+  fire ...) lowers the sheet value, temp first, and the change is saved on the server and sent to the player's
+  own sheet. The usual hurt flash plays, but Minecraft takes no damage. The vanilla health bar shows the share
+  left (never fully empty) and is re-synced every second, so a DM editing the sheet changes the bar too.
+- **All bars** are drawn bottom right on the combat HUD for the player. The initiative bar and the DM's list
+  show the vital bar.
+- Other bars change through `SheetHealth.change(server, player, barId, amount)` (negative = loss, positive =
+  gain up to the maximum); spells and conditions in later steps will use it. A bar can also be edited on the
+  sheet like any value.
+- At 0 a bar stays at 0; dying, healing and rests come later.
+- Without an Active Actor, or in a format with no `hp` / `bars`, Minecraft health applies as before.
+- For now every point of Minecraft damage is one point off the vital bar (a zombie hit of 3 costs 3); attack
   rolls and rolled damage replace that in the next step.
 
 ## Initiative

@@ -8,27 +8,34 @@ import dev.tacticalcombat.sheet.CombatRules;
 import dev.tacticalcombat.sheet.SheetContext;
 import dev.tacticalcombat.sheet.SheetFormat;
 import dev.tacticalcombat.sheet.SheetLibrary;
-import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * A player with an Active Actor whose game names its hit point value ({@code combat.hp}) uses that sheet value as
- * their hit points, in and out of combat. Damage lowers the sheet (temporary hit points first) instead of the
- * Minecraft health, and the vanilla health bar only shows the percentage that is left.
+ * The bars a game tracks for a character (hit points, sanity, stamina ...), read from the player's Active Actor.
+ * The format's vital bar replaces Minecraft health: damage lowers the sheet (temporary points first) and the
+ * vanilla health bar only shows the percentage that is left. Other bars are tracked and shown, and changed by
+ * {@link #change}.
  */
 public final class SheetHealth {
 	private SheetHealth() {}
 
-	/** Current and maximum hit points of a sheet. */
+	/** Current and maximum of one bar. */
 	public record Hp(double now, double max) {}
 
-	private record Cached(String entryId, long version, Hp hp) {}
+	/** One tracked bar with its values. */
+	public record BarValue(String id, String label, double now, double max, int color, boolean vital) {}
+
+	private record Cached(String entryId, long version, List<BarValue> bars) {}
 
 	private static final Map<UUID, Cached> CACHE = new HashMap<>();
 
@@ -36,61 +43,113 @@ public final class SheetHealth {
 		CACHE.clear();
 	}
 
-	private static CombatRules.Hp rulesOf(CharacterStore.Entry e) {
-		SheetFormat f = SheetLibrary.FORMATS.get(e.json.has("format") ? e.json.get("format").getAsString() : "");
-		return f == null || f.combat == null ? null : f.combat.hp;
+	private static SheetFormat formatOf(CharacterStore.Entry e) {
+		return SheetLibrary.FORMATS.get(e.json.has("format") ? e.json.get("format").getAsString() : "");
 	}
 
-	/** Pure calculation on a sheet. */
-	public static Hp read(SheetFormat format, CharacterData c) {
-		CombatRules.Hp rules = format.combat.hp;
+	private static CombatRules.Bar vitalOf(CharacterStore.Entry e) {
+		SheetFormat f = formatOf(e);
+		return f == null || f.combat == null ? null : f.combat.vital();
+	}
+
+	public static int color(String name) {
+		return switch (name.toLowerCase(Locale.ROOT)) {
+			case "red" -> 0xFFE04040;
+			case "green" -> 0xFF50D060;
+			case "blue" -> 0xFF4DA3FF;
+			case "purple" -> 0xFFB48CFF;
+			case "gold", "yellow" -> 0xFFE0B84C;
+			case "orange" -> 0xFFFF9F2E;
+			case "gray", "grey" -> 0xFF9AA0A8;
+			default -> {
+				try {
+					yield 0xFF000000 | Integer.parseInt(name.replace("#", ""), 16);
+				} catch (NumberFormatException ex) {
+					yield 0xFF4DA3FF;
+				}
+			}
+		};
+	}
+
+	private static double stored(SheetFormat f, CharacterData c, String key) {
+		return c.values.getOrDefault(key, f.defaults.getOrDefault(key, 0.0));
+	}
+
+	/** Pure calculation: every tracked bar of a sheet. */
+	public static List<BarValue> readAll(SheetFormat format, CharacterData c) {
+		List<BarValue> out = new ArrayList<>();
+		if (format.combat == null) return out;
 		SheetContext sc = new SheetContext(format, c);
-		double now = c.values.getOrDefault(rules.now(), format.defaults.getOrDefault(rules.now(), 0.0));
-		double max = rules.max().isBlank() ? Math.max(now, 1) : sc.number(rules.max());
-		return new Hp(now, max);
+		for (CombatRules.Bar b : format.combat.bars) {
+			double now = stored(format, c, b.now());
+			double max = b.max().isBlank() ? Math.max(now, 1) : sc.number(b.max());
+			out.add(new BarValue(b.id(), b.label(), now, max, color(b.color()), b.vital()));
+		}
+		return out;
 	}
 
-	/** The player's hit points from their Active Actor, or null when they have none (Minecraft health then applies). */
-	public static Hp of(ServerPlayerEntity player) {
+	/** Pure calculation: the health bar of a sheet. */
+	public static Hp read(SheetFormat format, CharacterData c) {
+		for (BarValue b : readAll(format, c)) if (b.vital()) return new Hp(b.now(), b.max());
+		return null;
+	}
+
+	/** Every tracked bar of the player's Active Actor; empty when they have none. */
+	public static List<BarValue> barsOf(ServerPlayerEntity player) {
 		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
-		if (e == null || rulesOf(e) == null) {
+		SheetFormat f = e == null ? null : formatOf(e);
+		if (f == null || f.combat == null || f.combat.bars.isEmpty()) {
 			CACHE.remove(player.getUuid());
-			return null;
+			return List.of();
 		}
 		Cached c = CACHE.get(player.getUuid());
-		if (c != null && c.entryId().equals(e.id) && c.version() == e.version) return c.hp();
+		if (c != null && c.entryId().equals(e.id) && c.version() == e.version) return c.bars();
 		try {
-			SheetFormat f = SheetLibrary.FORMATS.get(e.json.get("format").getAsString());
-			Hp hp = read(f, CharacterData.parse(e.json.deepCopy(), ""));
-			CACHE.put(player.getUuid(), new Cached(e.id, e.version, hp));
-			return hp;
+			List<BarValue> bars = readAll(f, CharacterData.parse(e.json.deepCopy(), ""));
+			CACHE.put(player.getUuid(), new Cached(e.id, e.version, bars));
+			return bars;
 		} catch (RuntimeException ex) {
-			return null;
+			return List.of();
 		}
 	}
 
-	/** Takes hit points off the sheet; temporary hit points are used up first. Returns false when this player has no sheet hp. */
-	public static boolean damage(MinecraftServer server, ServerPlayerEntity player, double amount) {
+	/** The player's hit points from their Active Actor, or null when their game has no health bar there. */
+	public static Hp of(ServerPlayerEntity player) {
+		for (BarValue b : barsOf(player)) if (b.vital()) return new Hp(b.now(), b.max());
+		return null;
+	}
+
+	/**
+	 * Changes one bar of the player's Active Actor: a negative amount is a loss (temporary points go first), a
+	 * positive one a gain up to the maximum. Saved on the server and sent to the owner's sheet. Returns false when
+	 * the player has no such bar.
+	 */
+	public static boolean change(MinecraftServer server, ServerPlayerEntity player, String barId, double amount) {
 		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
-		if (e == null || rulesOf(e) == null) return false;
-		SheetFormat f = SheetLibrary.FORMATS.get(e.json.get("format").getAsString());
-		CombatRules.Hp rules = f.combat.hp;
+		SheetFormat f = e == null ? null : formatOf(e);
+		if (f == null || f.combat == null) return false;
+		CombatRules.Bar bar = null;
+		for (CombatRules.Bar b : f.combat.bars) if (b.id().equalsIgnoreCase(barId)) bar = b;
+		if (bar == null) return false;
 		CharacterData c;
 		try {
 			c = CharacterData.parse(e.json.deepCopy(), "");
 		} catch (RuntimeException ex) {
 			return false;
 		}
-		double left = amount;
-		if (!rules.temp().isBlank()) {
-			double temp = c.values.getOrDefault(rules.temp(), f.defaults.getOrDefault(rules.temp(), 0.0));
-			double soaked = Math.min(temp, left);
-			if (soaked > 0) c.values.put(rules.temp(), temp - soaked);
-			left -= soaked;
-		}
-		if (left > 0) {
-			double now = c.values.getOrDefault(rules.now(), f.defaults.getOrDefault(rules.now(), 0.0));
-			c.values.put(rules.now(), Math.max(0, now - left));
+		double now = stored(f, c, bar.now());
+		if (amount < 0) {
+			double loss = -amount;
+			if (!bar.temp().isBlank()) {
+				double temp = stored(f, c, bar.temp());
+				double soaked = Math.min(temp, loss);
+				if (soaked > 0) c.values.put(bar.temp(), temp - soaked);
+				loss -= soaked;
+			}
+			c.values.put(bar.now(), Math.max(0, now - loss));
+		} else {
+			double max = bar.max().isBlank() ? Double.MAX_VALUE : new SheetContext(f, c).number(bar.max());
+			c.values.put(bar.now(), Math.min(Math.max(max, now), now + amount));
 		}
 		com.google.gson.JsonObject json = c.toJson();
 		json.addProperty("id", e.id);
@@ -99,7 +158,14 @@ public final class SheetHealth {
 		return true;
 	}
 
-	/** ALLOW_DAMAGE hook: damage to a player with sheet hit points goes to the sheet, not to Minecraft health. */
+	/** Damage to the character's health bar. */
+	public static boolean damage(MinecraftServer server, ServerPlayerEntity player, double amount) {
+		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
+		CombatRules.Bar vital = e == null ? null : vitalOf(e);
+		return vital != null && change(server, player, vital.id(), -amount);
+	}
+
+	/** ALLOW_DAMAGE hook: damage to a player with a sheet health bar goes to the sheet, not to Minecraft health. */
 	public static boolean allowDamage(LivingEntity victim, DamageSource source, float amount) {
 		if (!(victim instanceof ServerPlayerEntity player) || amount <= 0 || player.getServer() == null) return true;
 		if (of(player) == null) return true;

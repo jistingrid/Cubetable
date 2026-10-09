@@ -48,6 +48,33 @@ public final class CombatHud {
 
 		drawInitiativeBar(ctx, font, screenW, entries);
 		drawTurnPanel(ctx, mc, font, screenW, screenH, entries);
+		drawOwnBars(ctx, mc, font, screenW, screenH, entries);
+	}
+
+	/** The bars the game tracks for your own character (hit points, sanity, stamina ...), bottom right. */
+	private static void drawOwnBars(DrawContext ctx, MinecraftClient mc, TextRenderer font, int screenW, int screenH,
+									List<CombatStatePayload.Entry> entries) {
+		CombatStatePayload.Entry mine = null;
+		for (CombatStatePayload.Entry e : entries) if (e.entityId() == mc.player.getId()) mine = e;
+		if (mine == null || mine.bars().isEmpty()) return;
+
+		int labelW = 0;
+		for (CombatStatePayload.Bar b : mine.bars()) labelW = Math.max(labelW, font.getWidth(b.label()));
+		int barW = 62;
+		int w = labelW + 6 + barW + 6 + font.getWidth("000 / 000");
+		int x = Math.max(screenW / 2 + 100, screenW - w - 8);
+		int rowH = 12;
+		int y = screenH - 30 - mine.bars().size() * rowH;
+		for (CombatStatePayload.Bar b : mine.bars()) {
+			ctx.drawTextWithShadow(font, b.label(), x, y + 2, 0xFFDDDDDD);
+			int bx = x + labelW + 6;
+			float frac = b.max() <= 0 ? 0 : Math.max(0f, Math.min(1f, b.now() / b.max()));
+			ctx.fill(bx - 1, y + 1, bx + barW + 1, y + 10, 0xFF000000);
+			ctx.fill(bx, y + 2, bx + barW, y + 9, 0xFF2A2A2A);
+			ctx.fill(bx, y + 2, bx + Math.round(barW * frac), y + 9, b.color());
+			ctx.drawTextWithShadow(font, Math.round(b.now()) + " / " + Math.round(b.max()), bx + barW + 6, y + 2, 0xFFFFFFFF);
+			y += rowH;
+		}
 	}
 
 	private static void drawInitiativeBar(DrawContext ctx, TextRenderer font, int screenW, List<CombatStatePayload.Entry> entries) {

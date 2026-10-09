@@ -18,7 +18,8 @@ import java.util.Map;
  * "combat": {
  *   "grid": { "square": 5, "unit": "ft" },                // one grid square = 5 ft (one block in the world)
  *   "resources": { "action": "1", "bonus": "1" },         // refilled every turn (formulas)
- *   "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },   // stored values that are the hit points
+ *   "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },   // the health bar (shorthand)
+ *   "bars": [ { "id": "sanity", "label": "Sanity", "now": "sanity", "max": "sanity_max", "color": "purple" } ],
  *   "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
  *   "movement": {
  *     "speed": "speed",                                   // distance of one full move, in grid units
@@ -40,15 +41,32 @@ public final class CombatRules {
 	/** Formula: distance available as soon as the turn starts. Empty = the speed. */
 	public String pool = "";
 	public final List<Move> moves = new ArrayList<>();
-	/** Which stored values are the hit points; null = combat leaves hit points to Minecraft. */
-	public Hp hp;
+	/** Every bar combat tracks (hit points, sanity, stamina, mana ...), in display order. */
+	public final List<Bar> bars = new ArrayList<>();
 
 	/**
-	 * @param now  id of the stored value holding current hit points (the one combat changes)
-	 * @param max  formula for the maximum
-	 * @param temp id of a stored value of temporary hit points, damage drains it first (empty = none)
+	 * One tracked bar.
+	 *
+	 * @param id    name of the bar (what effects refer to)
+	 * @param label shown next to it
+	 * @param now   id of the stored value holding the current amount (the one combat changes)
+	 * @param max   formula for the maximum
+	 * @param temp  id of a stored value of temporary points that losses drain first (empty = none)
+	 * @param color "red", "green", "blue", "purple", "gold", "gray" or "#RRGGBB"
+	 * @param vital the bar that is the character's health: damage hits it, and it replaces Minecraft health
 	 */
-	public record Hp(String now, String max, String temp) {}
+	public record Bar(String id, String label, String now, String max, String temp, String color, boolean vital) {}
+
+	/** The health bar, or null when the game leaves health to Minecraft. */
+	public Bar vital() {
+		for (Bar b : bars) if (b.vital()) return b;
+		return null;
+	}
+
+	/** Same as {@link #vital()}: the hit point bar. */
+	public Bar hp() {
+		return vital();
+	}
 
 	/** How this game decides who goes first; null = no initiative roll (the Dungeon Master orders the turns). */
 	public Initiative initiative;
@@ -69,6 +87,15 @@ public final class CombatRules {
 	 * @param keep    true: distance left over stays usable; false: whatever is not used in that move is lost
 	 */
 	public record Move(String id, String label, Map<String, Integer> cost, String grants, boolean auto, boolean keep) {}
+
+	private static Bar parseBar(JsonObject h, String id, String label, String color, boolean vital) {
+		String now = h.has("now") ? h.get("now").getAsString().toLowerCase(Locale.ROOT) : "";
+		if (now.isBlank()) return null;
+		return new Bar(id, h.has("label") ? h.get("label").getAsString() : label, now,
+				h.has("max") ? h.get("max").getAsString() : "",
+				h.has("temp") ? h.get("temp").getAsString().toLowerCase(Locale.ROOT) : "",
+				h.has("color") ? h.get("color").getAsString() : color, vital);
+	}
 
 	public static CombatRules parse(JsonObject o) {
 		CombatRules r = new CombatRules();
@@ -91,12 +118,22 @@ public final class CombatRules {
 						i.has("tiebreak") ? i.get("tiebreak").getAsString() : "");
 			}
 		}
-		if (o.has("hp") && o.get("hp").isJsonObject()) {
-			JsonObject h = o.getAsJsonObject("hp");
-			String now = h.has("now") ? h.get("now").getAsString().toLowerCase(Locale.ROOT) : "";
-			if (!now.isBlank()) {
-				r.hp = new Hp(now, h.has("max") ? h.get("max").getAsString() : "",
-						h.has("temp") ? h.get("temp").getAsString().toLowerCase(Locale.ROOT) : "");
+		if (o.has("hp") && o.get("hp").isJsonObject()) { // shorthand for the one health bar
+			Bar b = parseBar(o.getAsJsonObject("hp"), "hp", "HP", "red", true);
+			if (b != null) r.bars.add(b);
+		}
+		if (o.has("bars") && o.get("bars").isJsonArray()) {
+			for (JsonElement e : o.getAsJsonArray("bars")) {
+				if (!e.isJsonObject()) continue;
+				JsonObject bo = e.getAsJsonObject();
+				String id = bo.has("id") ? bo.get("id").getAsString().toLowerCase(Locale.ROOT) : "";
+				if (id.isBlank()) continue;
+				boolean vital = bo.has("vital") && bo.get("vital").getAsBoolean();
+				Bar b = parseBar(bo, id, id, "blue", vital);
+				if (b != null) {
+					r.bars.removeIf(x -> x.id().equals(b.id()) || vital && x.vital());
+					r.bars.add(b);
+				}
 			}
 		}
 		if (o.has("movement") && o.get("movement").isJsonObject()) {
