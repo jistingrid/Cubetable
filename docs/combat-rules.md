@@ -67,7 +67,8 @@ Clicking a square pays for a Stride by itself; clicking again after the walk pay
 
 - The server needs the pack too (packs are read from `config/tacticalcombat/packs` on the server as well).
   Use `/tbc reload` after editing a pack on a running server.
-- Players use the character they have linked to the server; with several, the first one whose format has a
-  `combat` block is used for now. Characters without a `combat` block, and mobs, use 8 / 6 squares with one
+- Players use their **Active Actor**: the character chosen with the *Active Actor* button in the sheet's title bar
+  (it has to be linked to the server). Without one, the first of their characters whose format has a
+  `combat` block is used. Characters without a `combat` block, and mobs, use 8 / 6 squares with one
   action and one bonus action.
 - Not here yet: initiative, attacks and damage, conditions, diagonal and difficult-terrain costs.

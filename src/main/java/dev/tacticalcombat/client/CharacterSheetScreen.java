@@ -409,6 +409,12 @@ public final class CharacterSheetScreen extends Screen {
 			right -= smallButton(g, right - tw("Reload") - 6, y + 3, "Reload", () -> SheetLibrary.reload(), "Read the sheets and characters folders again", PANEL, 0xFF3B414C) + 3;
 			right -= smallButton(g, right - tw("Formats") - 6, y + 3, view == View.FORMATS ? "Back" : "Formats",
 					() -> view = view == View.FORMATS ? View.SHEET : View.FORMATS, "Installed sheet formats", PANEL, 0xFF3B414C) + 3;
+			if (view == View.SHEET && character() != null && !character().remote && !character().link.isEmpty()) {
+				boolean active = ServerCharacters.isActive(character());
+				right -= smallButton(g, right - tw("Active Actor") - 6, y + 3, "Active Actor", () -> ServerCharacters.toggleActive(character()),
+						active ? "Your model stands for this character in and out of combat (click to clear)" : "Make your model stand for this character in and out of combat",
+						active ? 0xFF6B4E12 : PANEL, active ? GOLD : 0xFF3B414C) + 3;
+			}
 			if (view == View.SHEET && ServerCharacters.isDm() && character() != null && !character().link.isEmpty()) {
 				String share = ServerCharacters.shareOf(character().link);
 				String label = "Share: " + (share.isEmpty() ? "Private" : share.equals("*") ? "All" : share.split(",").length + (share.split(",").length == 1 ? " player" : " players"));

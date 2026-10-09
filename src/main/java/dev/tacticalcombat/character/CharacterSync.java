@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.tacticalcombat.TacticalCombatMod;
 import dev.tacticalcombat.net.CharacterDeletePayload;
+import dev.tacticalcombat.net.ActiveActorPayload;
+import dev.tacticalcombat.net.ActiveActorStatePayload;
 import dev.tacticalcombat.net.CharacterHidePayload;
 import dev.tacticalcombat.net.CharacterPushPayload;
 import dev.tacticalcombat.net.CharacterSharePayload;
@@ -34,22 +36,35 @@ public final class CharacterSync {
 		PayloadTypeRegistry.playS2C().register(CharacterRemovePayload.ID, CharacterRemovePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(RolePayload.ID, RolePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterHidePayload.ID, CharacterHidePayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(ActiveActorPayload.ID, ActiveActorPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(ActiveActorStatePayload.ID, ActiveActorStatePayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(CharacterSharePayload.ID, CharacterSharePayload.CODEC);
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			CharacterStore.load(server);
 			Roles.load(server);
+			Actors.load(server);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			CharacterStore.save();
 			CharacterStore.clear();
 			Roles.clear();
+			Actors.clear();
 		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendAll(handler.player));
 
 		ServerPlayNetworking.registerGlobalReceiver(CharacterPushPayload.ID, (payload, context) -> {
 			ServerPlayerEntity player = context.player();
 			context.server().execute(() -> push(context.server(), player, payload.id(), payload.data()));
+		});
+		ServerPlayNetworking.registerGlobalReceiver(ActiveActorPayload.ID, (payload, context) -> {
+			ServerPlayerEntity player = context.player();
+			context.server().execute(() -> {
+				CharacterStore.Entry e = CharacterStore.get(payload.id());
+				if (!payload.id().isEmpty() && (e == null || !e.owner.equals(player.getUuid()))) return; // only your own characters
+				Actors.set(player.getUuid(), payload.id());
+				sendActor(player);
+			});
 		});
 		ServerPlayNetworking.registerGlobalReceiver(CharacterSharePayload.ID, (payload, context) -> {
 			ServerPlayerEntity player = context.player();
@@ -134,6 +149,10 @@ public final class CharacterSync {
 		if (existing == null || !canChange(player, existing)) return;
 		CharacterStore.remove(id);
 		CharacterStore.save();
+		for (java.util.UUID u : Actors.forget(id)) {
+			ServerPlayerEntity owner = server.getPlayerManager().getPlayer(u);
+			if (owner != null) sendActor(owner);
+		}
 		CharacterRemovePayload payload = new CharacterRemovePayload(id);
 		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
 			if (ServerPlayNetworking.canSend(p, CharacterRemovePayload.ID)) ServerPlayNetworking.send(p, payload);
@@ -163,6 +182,12 @@ public final class CharacterSync {
 		broadcast(server, e, "");
 	}
 
+	public static void sendActor(ServerPlayerEntity player) {
+		if (ServerPlayNetworking.canSend(player, ActiveActorStatePayload.ID)) {
+			ServerPlayNetworking.send(player, new ActiveActorStatePayload(Actors.get(player.getUuid())));
+		}
+	}
+
 	public static void sendRole(ServerPlayerEntity player) {
 		if (ServerPlayNetworking.canSend(player, RolePayload.ID)) {
 			ServerPlayNetworking.send(player, new RolePayload(Roles.isDm(player.getUuid())));
@@ -178,6 +203,7 @@ public final class CharacterSync {
 	public static void resync(ServerPlayerEntity player) {
 		if (!ServerPlayNetworking.canSend(player, CharacterUpdatePayload.ID)) return;
 		for (CharacterStore.Entry e : CharacterStore.all()) sendTo(player, e);
+		sendActor(player);
 		sendRole(player);
 	}
 }

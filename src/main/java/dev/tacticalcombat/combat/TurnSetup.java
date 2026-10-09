@@ -1,5 +1,6 @@
 package dev.tacticalcombat.combat;
 
+import dev.tacticalcombat.character.Actors;
 import dev.tacticalcombat.character.CharacterStore;
 import dev.tacticalcombat.sheet.CharacterData;
 import dev.tacticalcombat.sheet.CombatRules;
@@ -45,8 +46,12 @@ public final class TurnSetup {
 
 	/** The setup for a player: from the character they own on the server, else the defaults. */
 	public static TurnSetup of(ServerPlayerEntity player) {
-		for (CharacterStore.Entry e : CharacterStore.all()) {
-			if (!e.owner.equals(player.getUuid())) continue;
+		// the player's Active Actor first; without one, any character of theirs that the game's pack can use
+		java.util.List<CharacterStore.Entry> candidates = new ArrayList<>();
+		CharacterStore.Entry active = Actors.entryOf(player.getUuid());
+		if (active != null) candidates.add(active);
+		for (CharacterStore.Entry e : CharacterStore.all()) if (e != active && e.owner.equals(player.getUuid())) candidates.add(e);
+		for (CharacterStore.Entry e : candidates) {
 			SheetFormat f = SheetLibrary.FORMATS.get(e.json.has("format") ? e.json.get("format").getAsString() : "");
 			if (f == null || f.combat == null) continue;
 			try {

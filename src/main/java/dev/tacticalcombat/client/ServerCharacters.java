@@ -3,6 +3,8 @@ package dev.tacticalcombat.client;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.tacticalcombat.character.Gz;
+import dev.tacticalcombat.net.ActiveActorPayload;
+import dev.tacticalcombat.net.ActiveActorStatePayload;
 import dev.tacticalcombat.net.CharacterDeletePayload;
 import dev.tacticalcombat.net.CharacterHidePayload;
 import dev.tacticalcombat.net.CharacterSharePayload;
@@ -41,6 +43,8 @@ public final class ServerCharacters {
 	/** Who may see each character besides its owner and the DMs ("" nobody, "*" everyone, else uuids). */
 	private static final Map<String, String> SHARE = new HashMap<>();
 	private static boolean dm;
+	/** Server id of the character this player's model stands for ("" = none). */
+	private static String activeId = "";
 
 	private ServerCharacters() {}
 
@@ -57,6 +61,20 @@ public final class ServerCharacters {
 		return ClientPlayNetworking.canSend(CharacterPushPayload.ID);
 	}
 
+	public static boolean isActive(CharacterData c) {
+		return !c.link.isEmpty() && !c.remote && c.link.equals(activeId);
+	}
+
+	/** Makes one of your linked characters the Active Actor, or clears it when it already is. */
+	public static void toggleActive(CharacterData c) {
+		if (c.link.isEmpty() || c.remote || !available()) return;
+		ClientPlayNetworking.send(new ActiveActorPayload(isActive(c) ? "" : c.link));
+	}
+
+	public static void receiveActor(ActiveActorStatePayload p) {
+		activeId = p.id();
+	}
+
 	public static boolean isDm() {
 		return dm;
 	}
@@ -67,6 +85,7 @@ public final class ServerCharacters {
 		SERVER_VERSION.clear();
 		KNOWN.clear();
 		SHARE.clear();
+		activeId = "";
 		dm = false;
 	}
 

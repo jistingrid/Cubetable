@@ -60,6 +60,7 @@ per-turn resources (D&D's action + bonus action, Pathfinder 2e's three actions) 
 - **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).
 - Everyone sees the characters other players have linked in the sheet's character switcher, as `name (owner)`. They are read-only unless you are a DM. Characters stay visible when their owner is offline.
 - `/tbc dm add|remove|list <player>` (operators) manages Dungeon Masters. A DM sees a "DM" tag in the sheet, may edit or delete any shared character, and later gets the combat controls.
+- **Active Actor:** the *Active Actor* button (title bar, for your own linked characters) makes your player model stand for that character in and out of combat. Combat reads its numbers from it. Click again to clear.
 - **Who sees what:** by default a player only sees the characters they own. A DM sees everything, and uses the **Share** button in the title bar (shown for linked characters) to choose *Don't share*, *Share with all*, or specific online players. Players it is shared with see the sheet read-only; the server only sends a character to those allowed to see it.
 - A shared character must fit in about 30 KB compressed. There is no validation: the group is trusted.
 
