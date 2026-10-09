@@ -18,6 +18,7 @@ import java.util.Map;
  * "combat": {
  *   "grid": { "square": 5, "unit": "ft" },                // one grid square = 5 ft (one block in the world)
  *   "resources": { "action": "1", "bonus": "1" },         // refilled every turn (formulas)
+ *   "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
  *   "movement": {
  *     "speed": "speed",                                   // distance of one full move, in grid units
  *     "pool": "speed",                                    // distance granted when the turn starts (default: speed)
@@ -38,6 +39,16 @@ public final class CombatRules {
 	/** Formula: distance available as soon as the turn starts. Empty = the speed. */
 	public String pool = "";
 	public final List<Move> moves = new ArrayList<>();
+	/** How this game decides who goes first; null = no initiative roll (the Dungeon Master orders the turns). */
+	public Initiative initiative;
+
+	/**
+	 * @param roll     formula the player rolls ("d20 + init"); a formula without dice is simply calculated
+	 * @param mob      formula for creatures without a sheet (default "d20")
+	 * @param low      true: the lowest result goes first
+	 * @param tiebreak formula; on equal results the higher value goes first (may be empty)
+	 */
+	public record Initiative(String roll, String mob, boolean low, String tiebreak) {}
 
 	/**
 	 * A way to spend resources on more movement.
@@ -58,6 +69,15 @@ public final class CombatRules {
 		if (o.has("resources") && o.get("resources").isJsonObject()) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("resources").entrySet()) {
 				r.resources.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
+			}
+		}
+		if (o.has("initiative") && o.get("initiative").isJsonObject()) {
+			JsonObject i = o.getAsJsonObject("initiative");
+			String roll = i.has("roll") ? i.get("roll").getAsString() : "";
+			if (!roll.isBlank()) {
+				r.initiative = new Initiative(roll, i.has("mob") ? i.get("mob").getAsString() : "d20",
+						i.has("order") && i.get("order").getAsString().equalsIgnoreCase("low"),
+						i.has("tiebreak") ? i.get("tiebreak").getAsString() : "");
 			}
 		}
 		if (o.has("movement") && o.get("movement").isJsonObject()) {

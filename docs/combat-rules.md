@@ -29,6 +29,37 @@ per-turn resources; attacks, defense and hit points come in later steps.
 | `movement.pool` | Formula: distance you may walk as soon as the turn starts. Default: the speed. Use `"0"` when you must pay to move. |
 | `movement.moves` | Ways to buy more movement with resources (see below). |
 
+## Initiative
+
+```json
+"initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" }
+```
+
+| Key | Meaning |
+|---|---|
+| `roll` | Formula the player rolls for their initiative (dice are shown to everyone). A formula without dice, such as `"dex"`, is just calculated. |
+| `mob` | Formula for creatures that have no sheet (default `"d20"`). |
+| `order` | `"high"` (default): highest result goes first. `"low"`: lowest first. |
+| `tiebreak` | Formula; on equal results the higher value goes first. Players go before enemies after that. |
+
+**No `initiative` block = this game has no initiative roll.** The encounter window shows no roll buttons
+and the Dungeon Master puts everyone in order by hand (see the `percentile` pack).
+
+### The encounter window
+
+When a fight starts, an encounter window opens (`J`, or `/encounter`, opens it again later): the party on the
+left, the enemies on the right, and the turn order along the bottom.
+
+- **Players** press *Roll* for their own initiative (only if the pack has a roll).
+- **The Dungeon Master** presses *Roll enemies*, can change any value with `-` / `+` (Shift = 5), moves
+  anyone earlier or later in the order with `<` `>`, and presses *Start combat*. Moving someone by hand
+  freezes the order against later rolls until *Sort by initiative* is pressed (or a value is changed).
+- Everyone waits in place until the turns start. Anyone who has not rolled stays at the end of the order.
+- With **no Dungeon Master online** the server rolls the enemies itself and starts the fight as soon as every
+  player who has a roll has rolled.
+- Someone who joins a fight that is already running rolls automatically when their game has a roll, and
+  otherwise goes last.
+
 ## Moves you can buy
 
 Each entry of `moves`:

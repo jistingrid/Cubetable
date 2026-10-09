@@ -20,6 +20,10 @@ public final class ClientCombatState {
 	public static int activeIndex;
 	public static float moveUsed;
 	public static float moveBudget;
+	/** Initiative is being rolled: the encounter window is up and nobody has a turn yet. */
+	public static boolean planning;
+	/** Set when a fight enters its planning phase: the encounter window opens once. */
+	public static boolean openEncounterPending;
 	/** Size of one grid square in the game's own unit (feet, metres ...) and the unit's name. */
 	public static float square = 1f;
 	public static String unit = "";
@@ -48,7 +52,10 @@ public final class ClientCombatState {
 	private ClientCombatState() {}
 
 	public static void apply(CombatStatePayload p) {
+		boolean wasPlanning = planning;
 		active = p.active();
+		planning = active && p.planning();
+		if (planning && !wasPlanning) openEncounterPending = true;
 		round = p.round();
 		activeIndex = p.activeIndex();
 		moveUsed = p.moveUsed();
@@ -158,7 +165,7 @@ public final class ClientCombatState {
 
 	public static boolean isMyTurn() {
 		MinecraftClient mc = MinecraftClient.getInstance();
-		if (!active || mc.player == null || activeIndex < 0 || activeIndex >= entries.size()) return false;
+		if (!active || planning || mc.player == null || activeIndex < 0 || activeIndex >= entries.size()) return false;
 		return entries.get(activeIndex).entityId() == mc.player.getId();
 	}
 

@@ -13,6 +13,7 @@ import java.util.List;
 /** Server -> client: full snapshot of the combat the receiving player takes part in. */
 public record CombatStatePayload(
 		boolean active,
+		boolean planning,
 		int round,
 		int activeIndex,
 		float moveUsed,
@@ -31,6 +32,7 @@ public record CombatStatePayload(
 		@Override
 		public CombatStatePayload decode(RegistryByteBuf buf) {
 			boolean active = buf.readBoolean();
+			boolean planning = buf.readBoolean();
 			int round = buf.readVarInt();
 			int activeIndex = buf.readVarInt();
 			float moveUsed = buf.readFloat();
@@ -48,12 +50,13 @@ public record CombatStatePayload(
 			for (int i = 0; i < n; i++) {
 				entries.add(Entry.read(buf));
 			}
-			return new CombatStatePayload(active, round, activeIndex, moveUsed, moveBudget, square, unit, resources, moves, entries);
+			return new CombatStatePayload(active, planning, round, activeIndex, moveUsed, moveBudget, square, unit, resources, moves, entries);
 		}
 
 		@Override
 		public void encode(RegistryByteBuf buf, CombatStatePayload p) {
 			buf.writeBoolean(p.active);
+			buf.writeBoolean(p.planning);
 			buf.writeVarInt(p.round);
 			buf.writeVarInt(p.activeIndex);
 			buf.writeFloat(p.moveUsed);
@@ -81,7 +84,7 @@ public record CombatStatePayload(
 	};
 
 	public static CombatStatePayload inactive() {
-		return new CombatStatePayload(false, 0, 0, 0f, 0f, 1f, "", List.of(), List.of(), List.of());
+		return new CombatStatePayload(false, false, 0, 0, 0f, 0f, 1f, "", List.of(), List.of(), List.of());
 	}
 
 	@Override
@@ -97,10 +100,10 @@ public record CombatStatePayload(
 
 	/** One slot of the initiative bar. */
 	public record Entry(int entityId, Identifier typeId, String playerName, float health, float maxHealth,
-						boolean hostile, int initiative) {
+						boolean hostile, int initiative, boolean rolled, boolean rollable) {
 		static Entry read(PacketByteBuf buf) {
 			return new Entry(buf.readVarInt(), buf.readIdentifier(), buf.readString(), buf.readFloat(),
-					buf.readFloat(), buf.readBoolean(), buf.readVarInt());
+					buf.readFloat(), buf.readBoolean(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean());
 		}
 
 		void write(PacketByteBuf buf) {
@@ -111,6 +114,8 @@ public record CombatStatePayload(
 			buf.writeFloat(maxHealth);
 			buf.writeBoolean(hostile);
 			buf.writeVarInt(initiative);
+			buf.writeBoolean(rolled);
+			buf.writeBoolean(rollable);
 		}
 	}
 }

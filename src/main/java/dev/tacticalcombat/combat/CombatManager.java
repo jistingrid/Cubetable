@@ -162,12 +162,18 @@ public final class CombatManager {
 		}
 	}
 
-	/** A player clicked a grid square to walk to. */
+	/** The encounter window asked for something (roll initiative, reorder, start ...). */
+	public static void requestEncounter(ServerPlayerEntity player, int op, int entityId, int value) {
+		Combat combat = get(player);
+		if (combat != null) combat.encounterAction(player, op, entityId, value);
+	}
+
 	public static void requestBuyMove(ServerPlayerEntity player, String id) {
 		Combat combat = get(player);
 		if (combat != null) combat.requestBuyMove(player, id);
 	}
 
+	/** A player clicked a grid square to walk to. */
 	public static void requestMove(ServerPlayerEntity player, BlockPos target) {
 		Combat combat = get(player);
 		if (combat != null) combat.requestMove(player, target);

@@ -252,6 +252,7 @@
   "combat": {
     "grid": { "square": 5, "unit": "ft" },
     "resources": { "action": "1", "bonus": "1" },
+    "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
     "movement": {
       "speed": "speed",
       "pool": "speed",

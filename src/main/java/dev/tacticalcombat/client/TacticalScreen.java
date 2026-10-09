@@ -133,6 +133,10 @@ public final class TacticalScreen extends Screen {
 			CharacterSheetScreen.requestOpen();
 			return true;
 		}
+		if (TacticalCombatClient.ENCOUNTER_KEY.matchesKey(keyCode, scanCode)) {
+			EncounterScreen.requestOpen();
+			return true;
+		}
 		if (TacticalCombatClient.END_TURN_KEY.matchesKey(keyCode, scanCode)) {
 			TacticalCombatClient.sendEndTurn();
 			return true;

@@ -58,7 +58,7 @@ public final class CombatHud {
 
 		for (int i = 0; i < n; i++) {
 			CombatStatePayload.Entry e = entries.get(i);
-			boolean active = i == ClientCombatState.activeIndex;
+			boolean active = !ClientCombatState.planning && i == ClientCombatState.activeIndex;
 			int x = x0 + i * (SLOT + GAP);
 			int y = active ? y0 + 5 : y0;
 
@@ -69,7 +69,7 @@ public final class CombatHud {
 			ctx.drawItem(iconFor(e), x + (SLOT - 16) / 2, y + (SLOT - 16) / 2);
 
 			// initiative roll, small, in the corner
-			ctx.drawTextWithShadow(font, String.valueOf(e.initiative()), x + 2, y + 2, 0xFFFFFFFF);
+			ctx.drawTextWithShadow(font, e.rolled() ? String.valueOf(e.initiative()) : "-", x + 2, y + 2, 0xFFFFFFFF);
 
 			// health bar
 			float frac = e.maxHealth() <= 0 ? 0 : Math.max(0f, Math.min(1f, e.health() / e.maxHealth()));
@@ -93,6 +93,10 @@ public final class CombatHud {
 		int cx = screenW / 2;
 		int y = screenH - 78;
 
+		if (ClientCombatState.planning) {
+			ctx.drawCenteredTextWithShadow(font, Text.translatable("tacticalcombat.hud.planning", TacticalCombatClient.ENCOUNTER_KEY.getBoundKeyLocalizedText()), cx, y, COLOR_ACTIVE);
+			return;
+		}
 		boolean mine = ClientCombatState.isMyTurn();
 		int idx = Math.min(ClientCombatState.activeIndex, entries.size() - 1);
 		CombatStatePayload.Entry activeEntry = entries.get(Math.max(0, idx));
@@ -196,13 +200,13 @@ public final class CombatHud {
 		ctx.drawTextWithShadow(font, label, x + 13, y + 1, 0xFFFFFFFF);
 	}
 
-	private static Text nameOf(CombatStatePayload.Entry e) {
+	static Text nameOf(CombatStatePayload.Entry e) {
 		if (!e.playerName().isEmpty()) return Text.literal(e.playerName());
 		EntityType<?> type = Registries.ENTITY_TYPE.get(e.typeId());
 		return type.getName();
 	}
 
-	private static ItemStack iconFor(CombatStatePayload.Entry e) {
+	static ItemStack iconFor(CombatStatePayload.Entry e) {
 		return ICONS.computeIfAbsent(e.typeId(), id -> {
 			if (!e.playerName().isEmpty()) return new ItemStack(Items.PLAYER_HEAD);
 			EntityType<?> type = Registries.ENTITY_TYPE.get(id);

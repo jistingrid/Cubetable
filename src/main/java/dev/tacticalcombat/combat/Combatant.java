@@ -12,6 +12,12 @@ import java.util.Map;
 public final class Combatant {
 	public final LivingEntity entity;
 	public int initiative;
+	/** Initiative has been rolled (or set by the Dungeon Master); until then the entry waits at the end of the order. */
+	public boolean rolled;
+	/** Breaks ties between equal initiative results (higher goes first). */
+	public double tiebreak;
+	/** This combatant's own initiative rule (its game's pack), which decides whether it has a roll button. */
+	public InitiativeRule rule = InitiativeRule.DEFAULT;
 
 	/** Where the combatant is held (waiting / standing still) or the last accepted position (mob turn). */
 	public Vec3d anchor;

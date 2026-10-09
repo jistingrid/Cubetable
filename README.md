@@ -55,6 +55,12 @@ A format's `combat` block says how its sheets drive combat: distance per square,
 per-turn resources (D&D's action + bonus action, Pathfinder 2e's three actions) and how to buy more movement
 (Dash, Stride). See [docs/combat-rules.md](docs/combat-rules.md).
 
+## Encounter window
+
+A fight starts in a planning phase with an encounter window (`J` / `/encounter`): players roll initiative if
+their game has one, the Dungeon Master rolls the enemies, orders the turns and starts the combat. See
+[docs/combat-rules.md](docs/combat-rules.md#initiative).
+
 ## Shared characters and the Dungeon Master
 
 - **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).

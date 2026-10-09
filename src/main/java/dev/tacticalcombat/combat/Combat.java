@@ -3,6 +3,7 @@ package dev.tacticalcombat.combat;
 import dev.tacticalcombat.grid.Grid;
 import dev.tacticalcombat.net.CombatStatePayload;
 import dev.tacticalcombat.net.GridPayload;
+import dev.tacticalcombat.sheet.SheetContext;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -58,6 +59,13 @@ public final class Combat {
 	private Set<Long> threat = Set.of();
 	private boolean gridDirty;
 
+	/** True from the start of the fight until the Dungeon Master starts the turns: everyone waits and rolls initiative. */
+	private boolean planning = true;
+	/** The encounter's initiative rule (from the party's game): how enemies roll and which way the order runs. */
+	private InitiativeRule rule = InitiativeRule.DEFAULT;
+	/** The DM moved someone by hand: later rolls no longer re-sort the order (until "sort by initiative"). */
+	private boolean manualOrder;
+
 	private Combat(ServerWorld world) {
 		this.world = world;
 	}
@@ -67,14 +75,24 @@ public final class Combat {
 	public static Combat start(ServerWorld world, Collection<ServerPlayerEntity> players, Collection<MobEntity> enemies) {
 		Combat combat = new Combat(world);
 		for (ServerPlayerEntity p : players) {
-			combat.order.add(new Combatant(p, rollInitiative(world)));
+			Combatant c = new Combatant(p, 0);
+			c.rule = ruleOf(p);
+			combat.order.add(c);
+		}
+		// the encounter follows the first party member whose game has rules; everyone else: the mod's default
+		for (Combatant c : combat.order) {
+			ActorSheet s = ActorSheet.of((ServerPlayerEntity) c.entity);
+			if (s != null) {
+				combat.rule = InitiativeRule.of(s.format());
+				break;
+			}
 		}
 		for (MobEntity m : enemies) {
-			combat.order.add(new Combatant(m, rollInitiative(world)));
+			Combatant c = new Combatant(m, 0);
+			c.rule = combat.rule;
+			combat.order.add(c);
 		}
-		combat.sortOrder();
 		combat.turn = 0;
-		combat.beginTurn();
 		for (ServerPlayerEntity p : players) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.combat_start"), true);
 		}
@@ -82,12 +100,141 @@ public final class Combat {
 		return combat;
 	}
 
-	private static int rollInitiative(ServerWorld world) {
-		return 1 + world.getRandom().nextInt(20);
+	private static InitiativeRule ruleOf(ServerPlayerEntity p) {
+		ActorSheet s = ActorSheet.of(p);
+		return s == null ? InitiativeRule.DEFAULT : InitiativeRule.of(s.format());
 	}
 
-	private void sortOrder() {
-		order.sort(Comparator.<Combatant>comparingInt(c -> -c.initiative).thenComparing(c -> !c.isPlayer()));
+	/** Puts rolled combatants in initiative order (unrolled ones keep their place after them); players win ties. */
+	private void resort() {
+		if (manualOrder) return;
+		Combatant cur = planning || order.isEmpty() ? null : current();
+		order.sort((a, b) -> {
+			if (a.rolled != b.rolled) return a.rolled ? -1 : 1;
+			if (!a.rolled) return 0;
+			int v = rule.low() ? Integer.compare(a.initiative, b.initiative) : Integer.compare(b.initiative, a.initiative);
+			if (v != 0) return v;
+			v = Double.compare(b.tiebreak, a.tiebreak);
+			if (v != 0) return v;
+			return Boolean.compare(!a.isPlayer(), !b.isPlayer());
+		});
+		if (cur != null) turn = Math.max(0, order.indexOf(cur));
+	}
+
+	// ---------------------------------------------------------------- initiative / encounter
+
+	public boolean isPlanning() {
+		return planning;
+	}
+
+	private boolean dmOnline() {
+		for (ServerPlayerEntity p : world.getServer().getPlayerManager().getPlayerList()) {
+			if (dev.tacticalcombat.character.Roles.isDm(p.getUuid())) return true;
+		}
+		return false;
+	}
+
+	private Combatant byEntityId(int id) {
+		for (Combatant c : order) if (c.entity.getId() == id) return c;
+		return null;
+	}
+
+	/** Rolls (or calculates) one combatant's initiative; the dice are shown as rolled by {@code roller}. */
+	private void rollFor(Combatant c, ServerPlayerEntity roller) {
+		Initiative.Result r;
+		if (c.entity instanceof ServerPlayerEntity p) {
+			ActorSheet s = ActorSheet.of(p);
+			String name = s != null ? s.character().displayName() : p.getName().getString();
+			java.util.function.Function<String, Double> vars = s == null ? n -> 0.0 : new SheetContext(s.format(), s.character())::lookup;
+			r = Initiative.roll(p, name + " initiative", c.rule.roll(), c.rule.tiebreak(), vars);
+		} else {
+			r = Initiative.roll(roller, c.entity.getName().getString() + " initiative", rule.mob(), "", n -> 0.0);
+		}
+		c.initiative = r.total();
+		c.tiebreak = r.tiebreak();
+		c.rolled = true;
+		resort();
+	}
+
+	/** What the encounter window asks for. op: 0 roll mine, 1 roll all enemies (DM), 2 set a value (DM), 3 move in the order (DM), 4 start (DM), 5 sort by initiative (DM). */
+	public void encounterAction(ServerPlayerEntity player, int op, int entityId, int value) {
+		if (!planning) return;
+		boolean dm = dev.tacticalcombat.character.Roles.isDm(player.getUuid());
+		switch (op) {
+			case 0 -> {
+				Combatant c = get(player);
+				if (c == null || c.rolled || !c.rule.hasRoll()) return;
+				rollFor(c, player);
+			}
+			case 1 -> {
+				if (!dm || !rule.hasRoll()) return;
+				for (Combatant c : new ArrayList<>(order)) if (!c.isPlayer() && !c.rolled) rollFor(c, player);
+			}
+			case 2 -> {
+				Combatant c = byEntityId(entityId);
+				if (!dm || c == null) return;
+				c.initiative = MathHelper.clamp(value, -99, 999);
+				c.rolled = true;
+				manualOrder = false; // the numbers decide again
+				resort();
+			}
+			case 3 -> {
+				Combatant c = byEntityId(entityId);
+				if (!dm || c == null) return;
+				int from = order.indexOf(c);
+				int to = MathHelper.clamp(from + Integer.signum(value), 0, order.size() - 1);
+				java.util.Collections.swap(order, from, to);
+				manualOrder = true;
+			}
+			case 5 -> {
+				if (!dm) return;
+				manualOrder = false;
+				resort();
+			}
+			case 4 -> {
+				if (!dm) return;
+				startTurns();
+				return;
+			}
+			default -> {
+				return;
+			}
+		}
+		sync();
+	}
+
+	/** Planning is over: the first combatant of the order takes the first turn. */
+	private void startTurns() {
+		planning = false;
+		turn = 0;
+		round = 1;
+		beginTurn();
+		sync();
+	}
+
+	/** Planning without a Dungeon Master: enemies roll by themselves, and the fight starts once every player has rolled. */
+	private void tickPlanning() {
+		for (Combatant c : order) freeze(c, false);
+		if (tickCounter % 10 == 0) recruit();
+		if (tickCounter % 10 == 5 && !dmOnline()) {
+			ServerPlayerEntity roller = null;
+			for (Combatant c : order) if (c.entity instanceof ServerPlayerEntity p) { roller = p; break; }
+			if (roller != null) {
+				boolean ready = true;
+				for (Combatant c : new ArrayList<>(order)) {
+					if (c.isPlayer()) {
+						if (!c.rolled && c.rule.hasRoll()) ready = false;
+					} else if (!c.rolled && rule.hasRoll()) {
+						rollFor(c, roller);
+					}
+				}
+				if (ready) {
+					startTurns();
+					return;
+				}
+			}
+		}
+		if (tickCounter % 2 == 0) sync();
 	}
 
 	// ---------------------------------------------------------------- queries
@@ -109,7 +256,7 @@ public final class Combat {
 
 	/** True if {@code entity} is in this fight and it is currently its turn. */
 	public boolean isTurnOf(Entity entity) {
-		return !order.isEmpty() && current().entity == entity;
+		return !planning && !order.isEmpty() && current().entity == entity;
 	}
 
 	// ---------------------------------------------------------------- rules
@@ -121,7 +268,7 @@ public final class Combat {
 	public boolean tryUseAction(LivingEntity attacker) {
 		Combatant c = get(attacker);
 		if (c == null) return true;
-		if (current() != c || c.actionUsed()) return false;
+		if (planning || current() != c || c.actionUsed()) return false;
 		c.spendAction();
 		return true;
 	}
@@ -155,7 +302,7 @@ public final class Combat {
 	/** The active player clicked a square. */
 	public void requestMove(ServerPlayerEntity player, BlockPos target) {
 		Combatant c = get(player);
-		if (c == null || current() != c || c.moving() || moveGrid == null) return;
+		if (planning || c == null || current() != c || c.moving() || moveGrid == null) return;
 
 		Integer idx = moveGrid.index.get(target.asLong());
 		if (idx == null) return;
@@ -206,7 +353,7 @@ public final class Combat {
 	/** The active player pressed the button of a movement option (such as Dash). */
 	public void requestBuyMove(ServerPlayerEntity player, String id) {
 		Combatant c = get(player);
-		if (c == null || current() != c || c.moving()) return;
+		if (planning || c == null || current() != c || c.moving()) return;
 		for (TurnSetup.MoveOption m : c.setup.moves()) {
 			if (!m.id().equals(id) || m.auto() || !c.canPay(m.cost())) continue;
 			buyMove(c, m);
@@ -231,7 +378,7 @@ public final class Combat {
 	/** The active player clicked an enemy: spend the action on a melee hit. */
 	public void requestAttack(ServerPlayerEntity player, int entityId) {
 		Combatant c = get(player);
-		if (c == null || current() != c || c.moving() || c.actionUsed()) return;
+		if (planning || c == null || current() != c || c.moving() || c.actionUsed()) return;
 
 		Entity e = world.getEntityById(entityId);
 		if (!(e instanceof LivingEntity target) || !target.isAlive()) return;
@@ -266,6 +413,10 @@ public final class Combat {
 
 		boolean currentRemoved = prune();
 		if (isFinished()) return true;
+		if (planning) {
+			tickPlanning();
+			return false;
+		}
 		if (currentRemoved) {
 			beginTurn();
 			sync();
@@ -391,10 +542,15 @@ public final class Combat {
 
 	private void addCombatant(LivingEntity entity) {
 		if (contains(entity)) return;
-		Combatant cur = current();
-		order.add(new Combatant(entity, rollInitiative(world)));
-		sortOrder();
-		turn = order.indexOf(cur);
+		Combatant joiner = new Combatant(entity, 0);
+		joiner.rule = entity instanceof ServerPlayerEntity p ? ruleOf(p) : rule;
+		order.add(joiner); // waits at the end of the order until it has rolled
+		if (!planning && joiner.rule.hasRoll()) {
+			ServerPlayerEntity roller = null;
+			if (entity instanceof ServerPlayerEntity p) roller = p;
+			else for (Combatant c : order) if (c.entity instanceof ServerPlayerEntity p) { roller = p; break; }
+			if (roller != null) rollFor(joiner, roller);
+		}
 		gridDirty = true;
 		if (entity instanceof ServerPlayerEntity p) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.combat_start"), true);
@@ -760,7 +916,9 @@ public final class Combat {
 					e.getHealth(),
 					e.getMaxHealth(),
 					!player,
-					c.initiative));
+					c.initiative,
+					c.rolled,
+					c.rule.hasRoll()));
 		}
 
 		Combatant cur = current();
@@ -778,7 +936,7 @@ public final class Combat {
 			}
 			buttons.add(new CombatStatePayload.MoveButton(m.id(), m.label(), cost.toString(), cur.canPay(m.cost()) && !cur.moving()));
 		}
-		CombatStatePayload payload = new CombatStatePayload(true, round, turn,
+		CombatStatePayload payload = new CombatStatePayload(true, planning, round, turn,
 				(float) cur.moveUsed, (float) cur.moveBudget, (float) cur.setup.square, cur.setup.unit,
 				resources, buttons, entries);
 

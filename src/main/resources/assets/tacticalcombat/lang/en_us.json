@@ -1,6 +1,7 @@
 {
   "key.tacticalcombat.end_turn": "End Turn",
   "key.tacticalcombat.sheet": "Character Sheet",
+  "key.tacticalcombat.encounter": "Encounter Window",
   "key.tacticalcombat.dismiss_card": "Dismiss Shown Card",
   "key.categories.tacticalcombat": "Tactical Combat",
   "tacticalcombat.msg.combat_start": "Combat begins!",
@@ -9,6 +10,7 @@
   "tacticalcombat.msg.not_your_turn": "It is not your turn.",
   "tacticalcombat.msg.no_action": "No action left this turn.",
   "tacticalcombat.msg.too_far": "Too far away to attack. Move closer first.",
+  "tacticalcombat.hud.planning": "Roll for initiative - open the encounter window with %s or /encounter",
   "tacticalcombat.hud.round": "Round %s",
   "tacticalcombat.hud.your_turn": "Your turn",
   "tacticalcombat.hud.waiting": "%s's turn",

@@ -1,12 +1,9 @@
 package dev.tacticalcombat.combat;
 
-import dev.tacticalcombat.character.Actors;
-import dev.tacticalcombat.character.CharacterStore;
 import dev.tacticalcombat.sheet.CharacterData;
 import dev.tacticalcombat.sheet.CombatRules;
 import dev.tacticalcombat.sheet.SheetContext;
 import dev.tacticalcombat.sheet.SheetFormat;
-import dev.tacticalcombat.sheet.SheetLibrary;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.ArrayList;
@@ -44,18 +41,12 @@ public final class TurnSetup {
 		return t;
 	}
 
-	/** The setup for a player: from the character they own on the server, else the defaults. */
+	/** The setup for a player: from their Active Actor (see {@link ActorSheet}), else the defaults. */
 	public static TurnSetup of(ServerPlayerEntity player) {
-		// the player's Active Actor first; without one, any character of theirs that the game's pack can use
-		java.util.List<CharacterStore.Entry> candidates = new ArrayList<>();
-		CharacterStore.Entry active = Actors.entryOf(player.getUuid());
-		if (active != null) candidates.add(active);
-		for (CharacterStore.Entry e : CharacterStore.all()) if (e != active && e.owner.equals(player.getUuid())) candidates.add(e);
-		for (CharacterStore.Entry e : candidates) {
-			SheetFormat f = SheetLibrary.FORMATS.get(e.json.has("format") ? e.json.get("format").getAsString() : "");
-			if (f == null || f.combat == null) continue;
+		ActorSheet sheet = ActorSheet.of(player);
+		if (sheet != null) {
 			try {
-				return compute(f, CharacterData.parse(e.json.deepCopy(), ""));
+				return compute(sheet.format(), sheet.character());
 			} catch (RuntimeException ex) {
 				// a broken sheet must not stop the fight: fall through to the defaults
 			}
