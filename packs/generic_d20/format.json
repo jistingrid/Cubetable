@@ -254,6 +254,15 @@
     "resources": { "action": "1", "bonus": "1" },
     "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
     "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
+    "actions": {
+      "showCost": "auto",
+      "sources": [
+        { "collection": "weapons", "cost": { "action": "1" }, "icon": "minecraft:iron_sword" },
+        { "collection": "spells", "when": "max(row.prepared, 1 - min(row.level, 1))", "cost": { "action": "1" },
+          "slot": { "store": "slots_", "level": "level" }, "icon": "minecraft:enchanted_book" },
+        { "collection": "features", "icon": "minecraft:nether_star" }
+      ]
+    },
     "movement": {
       "speed": "speed",
       "pool": "speed",

@@ -13,6 +13,7 @@ import dev.tacticalcombat.net.CharacterRemovePayload;
 import dev.tacticalcombat.net.CharacterUpdatePayload;
 import dev.tacticalcombat.net.RolePayload;
 import dev.tacticalcombat.sheet.CharacterData;
+import dev.tacticalcombat.sheet.SheetFormat;
 import dev.tacticalcombat.sheet.SheetLibrary;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -63,6 +64,22 @@ public final class ServerCharacters {
 
 	public static boolean isActive(CharacterData c) {
 		return !c.link.isEmpty() && !c.remote && c.link.equals(activeId);
+	}
+
+	/**
+	 * The character this player fights with: the one with the given server id, else the Active Actor, else the first
+	 * linked character of theirs whose game has combat rules (the same order the server uses).
+	 */
+	public static CharacterData fighter(String sheetId) {
+		CharacterData fallback = null;
+		for (CharacterData c : SheetLibrary.CHARACTERS) {
+			if (c.remote || c.link.isEmpty()) continue;
+			if (!sheetId.isEmpty() && c.link.equals(sheetId)) return c;
+			if (isActive(c)) return c;
+			SheetFormat f = SheetLibrary.FORMATS.get(c.format);
+			if (fallback == null && f != null && f.combat != null) fallback = c;
+		}
+		return fallback;
 	}
 
 	/** Makes one of your linked characters the Active Actor, or clears it when it already is. */

@@ -68,6 +68,43 @@ A player with an **Active Actor** gets all of their format's bars tracked, in an
 - For now every point of Minecraft damage is one point off the vital bar (a zombie hit of 3 costs 3); attack
   rolls and rolled damage replace that in the next step.
 
+## The action bar
+
+During a fight every player has one bar at the bottom centre of the screen: your tracked bars (hit points ...),
+the resources of the turn as pips, the movement bar with the moves you can buy, a slot for each action the
+pack lists, and End Turn. A game with no bars or no actions just gets a smaller bar. Number keys `1` to `9`
+select slots; a slot is dimmed when you cannot pay for it (it is not your turn, a resource is spent, no spell
+slot is left). Selecting a slot does not do anything yet: attacks are still a click on the target.
+
+The slots come from the `actions` block:
+
+```json
+"actions": {
+  "showCost": "auto",
+  "sources": [
+    { "collection": "weapons", "cost": { "action": "1" }, "icon": "minecraft:iron_sword" },
+    { "collection": "spells", "when": "max(row.prepared, 1 - min(row.level, 1))", "cost": { "action": "1" },
+      "slot": { "store": "slots_", "level": "level" }, "icon": "minecraft:enchanted_book" },
+    { "collection": "features", "icon": "minecraft:nether_star" }
+  ]
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `collection` | The sheet collection whose rows become slots, in the order of the sources. |
+| `label` | The column holding the name (default `name`); rows without a name get no slot. |
+| `when` | Formula on the row; the row gets a slot only when it is not 0. Empty: every row. |
+| `cost` | Resource id to a formula on the row (`row.actions` works), what using it spends. Empty: free. |
+| `slot` | `store` is the prefix of the stored counters (`slots_` means `slots_1`, `slots_1_max` ...), `level` the column holding the level. Level 0 spends nothing. |
+| `icon` | An item id drawn on the slot (default: paper). |
+| `showCost` | `auto`, `always` or `never` - here for every source, or inside a source to override. |
+
+`auto` writes a cost only when it is not the plain default: one of the first resource (an attack costing one
+action) shows nothing, a bonus action shows `B`, three actions shows `3`. `always` writes every cost (a good
+fit for three-action games), `never` none. Slots that do not fit on a narrow screen are left off; the bar shows
+how many.
+
 ## Initiative
 
 ```json

@@ -26,6 +26,12 @@ import java.util.Map;
  *     "pool": "speed",                                    // distance granted when the turn starts (default: speed)
  *     "moves": [ { "id": "dash", "label": "Dash", "cost": { "action": 1 }, "grants": "speed",
  *                  "auto": false, "unused": "keep" } ]
+ *   },
+ *   "actions": {                                          // the action bar's slots
+ *     "showCost": "auto",                                 // auto | always | never (per source too)
+ *     "sources": [ { "collection": "weapons", "label": "name", "cost": { "action": "1" }, "icon": "minecraft:iron_sword" },
+ *                  { "collection": "spells", "when": "row.prepared", "cost": { "action": "1" },
+ *                    "slot": { "store": "slots_", "level": "level" } } ]
  *   }
  * }
  * </pre>
@@ -68,6 +74,26 @@ public final class CombatRules {
 		return vital();
 	}
 
+	/** Where the action bar's slots come from, in order. Empty = the bar shows no slots. */
+	public final List<Source> sources = new ArrayList<>();
+	/** "auto" shows a cost only when it is not the plain default, "always" and "never" force it. */
+	public String showCost = "auto";
+
+	/**
+	 * A collection whose rows become slots on the action bar.
+	 *
+	 * @param collection id of the sheet collection (weapons, spells, features ...)
+	 * @param label      id of the column holding the row's name
+	 * @param cost       resource id -> formula (evaluated on the row, so {@code row.actions} works)
+	 * @param when       formula; the row gets a slot only when it is not 0 (empty = every row)
+	 * @param slotStore  prefix of the stored values counting uses left ("slots_" -> slots_1, slots_1_max); empty = none
+	 * @param slotLevel  id of the column holding the level of the row (0 = free, no slot is spent)
+	 * @param show       "auto", "always" or "never": whether the cost is written on the slot
+	 * @param icon       item id drawn on the slot ("minecraft:iron_sword"); empty = a default
+	 */
+	public record Source(String collection, String label, Map<String, String> cost, String when,
+						 String slotStore, String slotLevel, String show, String icon) {}
+
 	/** How this game decides who goes first; null = no initiative roll (the Dungeon Master orders the turns). */
 	public Initiative initiative;
 
@@ -95,6 +121,11 @@ public final class CombatRules {
 				h.has("max") ? h.get("max").getAsString() : "",
 				h.has("temp") ? h.get("temp").getAsString().toLowerCase(Locale.ROOT) : "",
 				h.has("color") ? h.get("color").getAsString() : color, vital);
+	}
+
+	private static String showMode(String v, String fallback) {
+		String m = v.toLowerCase(Locale.ROOT);
+		return m.equals("auto") || m.equals("always") || m.equals("never") ? m : fallback;
 	}
 
 	public static CombatRules parse(JsonObject o) {
@@ -133,6 +164,35 @@ public final class CombatRules {
 				if (b != null) {
 					r.bars.removeIf(x -> x.id().equals(b.id()) || vital && x.vital());
 					r.bars.add(b);
+				}
+			}
+		}
+		if (o.has("actions") && o.get("actions").isJsonObject()) {
+			JsonObject a = o.getAsJsonObject("actions");
+			if (a.has("showCost")) r.showCost = showMode(a.get("showCost").getAsString(), "auto");
+			if (a.has("sources") && a.get("sources").isJsonArray()) {
+				for (JsonElement e : a.getAsJsonArray("sources")) {
+					if (!e.isJsonObject()) continue;
+					JsonObject so = e.getAsJsonObject();
+					if (!so.has("collection")) continue;
+					Map<String, String> cost = new LinkedHashMap<>();
+					if (so.has("cost") && so.get("cost").isJsonObject()) {
+						for (Map.Entry<String, JsonElement> c : so.getAsJsonObject("cost").entrySet()) {
+							cost.put(c.getKey().toLowerCase(Locale.ROOT), c.getValue().getAsString());
+						}
+					}
+					String store = "";
+					String level = "";
+					if (so.has("slot") && so.get("slot").isJsonObject()) {
+						JsonObject sl = so.getAsJsonObject("slot");
+						store = sl.has("store") ? sl.get("store").getAsString().toLowerCase(Locale.ROOT) : "";
+						level = sl.has("level") ? sl.get("level").getAsString().toLowerCase(Locale.ROOT) : "";
+					}
+					r.sources.add(new Source(so.get("collection").getAsString().toLowerCase(Locale.ROOT),
+							so.has("label") ? so.get("label").getAsString().toLowerCase(Locale.ROOT) : "name",
+							cost, so.has("when") ? so.get("when").getAsString() : "", store, level,
+							showMode(so.has("showCost") ? so.get("showCost").getAsString() : "", ""),
+							so.has("icon") ? so.get("icon").getAsString() : ""));
 				}
 			}
 		}

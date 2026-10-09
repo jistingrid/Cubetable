@@ -90,6 +90,7 @@ public final class ClientCombatState {
 		wasActive = false;
 		followedId = Integer.MIN_VALUE;
 		pan = Vec3d.ZERO;
+		ActionBar.reset();
 		ClientGrid.clear();
 	}
 

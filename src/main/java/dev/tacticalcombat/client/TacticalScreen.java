@@ -44,7 +44,8 @@ public final class TacticalScreen extends Screen {
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		MinecraftClient mc = MinecraftClient.getInstance();
-		boolean onPanel = TrackerPanel.contains(mouseX, mouseY, width, height);
+		boolean onPanel = TrackerPanel.contains(mouseX, mouseY, width, height)
+				|| ActionBar.contains(mouseX, mouseY, width, height);
 		if (onPanel) { // the pointer is on the DM's tracker, not on the battlefield
 			ClientGrid.hover = -1;
 			ClientGrid.hoverEntity = -1;
@@ -86,17 +87,9 @@ public final class TacticalScreen extends Screen {
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (TrackerPanel.mouseClicked(mouseX, mouseY, button, width, height)) return true;
+		if (ActionBar.mouseClicked(mouseX, mouseY, button, width, height)) return true;
 		if (button != 0 || !ClientCombatState.isMyTurn()) return true;
 
-		for (int i = 0; i < ClientCombatState.moveButtons.size(); i++) {
-			int[] r = CombatHud.moveButtonRect(mc(), i);
-			if (mouseX >= r[0] && mouseX < r[0] + r[2] && mouseY >= r[1] && mouseY < r[1] + r[3]) {
-				if (ClientCombatState.moveButtons.get(i).enabled()) {
-					ClientPlayNetworking.send(new dev.tacticalcombat.net.BuyMovePayload(ClientCombatState.moveButtons.get(i).id()));
-				}
-				return true;
-			}
-		}
 		if (ClientGrid.hoverEntity >= 0) {
 			ClientPlayNetworking.send(new AttackRequestPayload(ClientGrid.hoverEntity));
 		} else if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {
@@ -163,6 +156,7 @@ public final class TacticalScreen extends Screen {
 			TacticalCombatClient.sendEndTurn();
 			return true;
 		}
+		if (ActionBar.keyPressed(keyCode)) return true;
 		if (mc.player != null) {
 			if (mc.options.inventoryKey.matchesKey(keyCode, scanCode)) {
 				mc.setScreen(new InventoryScreen(mc.player));

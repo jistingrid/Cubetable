@@ -68,6 +68,8 @@ A fight starts in a planning phase with an encounter window (`J` / `/encounter`)
 their game has one, the Dungeon Master rolls the enemies, orders the turns and starts the combat. See
 [docs/combat-rules.md](docs/combat-rules.md#initiative). Once the turns run, the Dungeon Master has a compact combat tracker on the screen (movable, resizable, foldable): everyone in turn order with hit points, hover to outline a model, click to open the sheet, plus End turn / End combat.
 
+Players get an action bar at the bottom of the combat view: their bars (hit points ...), the resources of the turn, movement with the moves they can buy, a slot for each weapon / spell / feature the pack lists, and End Turn. The pack's `actions` block decides the slots and when a cost is written on them: [docs/combat-rules.md](docs/combat-rules.md#the-action-bar).
+
 ## Shared characters and the Dungeon Master
 
 - **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).
