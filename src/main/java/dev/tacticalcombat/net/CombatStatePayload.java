@@ -100,10 +100,10 @@ public record CombatStatePayload(
 
 	/** One slot of the initiative bar. */
 	public record Entry(int entityId, Identifier typeId, String playerName, float health, float maxHealth,
-						boolean hostile, int initiative, boolean rolled, boolean rollable) {
+						boolean hostile, int initiative, boolean rolled, boolean rollable, String sheetId) {
 		static Entry read(PacketByteBuf buf) {
 			return new Entry(buf.readVarInt(), buf.readIdentifier(), buf.readString(), buf.readFloat(),
-					buf.readFloat(), buf.readBoolean(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean());
+					buf.readFloat(), buf.readBoolean(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean(), buf.readString(64));
 		}
 
 		void write(PacketByteBuf buf) {
@@ -116,6 +116,7 @@ public record CombatStatePayload(
 			buf.writeVarInt(initiative);
 			buf.writeBoolean(rolled);
 			buf.writeBoolean(rollable);
+			buf.writeString(sheetId, 64);
 		}
 	}
 }

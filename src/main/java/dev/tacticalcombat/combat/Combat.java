@@ -918,7 +918,9 @@ public final class Combat {
 					!player,
 					c.initiative,
 					c.rolled,
-					c.rule.hasRoll()));
+					c.rule.hasRoll(),
+					e instanceof ServerPlayerEntity sp && dev.tacticalcombat.character.Actors.entryOf(sp.getUuid()) != null
+							? dev.tacticalcombat.character.Actors.get(sp.getUuid()) : ""));
 		}
 
 		Combatant cur = current();

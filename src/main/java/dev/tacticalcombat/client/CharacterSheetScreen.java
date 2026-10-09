@@ -182,6 +182,35 @@ public final class CharacterSheetScreen extends Screen {
 		return right ? 1 : bottom ? 2 : 0;
 	}
 
+	/** Where closing the window goes back to (the encounter window, when it opened this one); null = the game. */
+	private Screen back;
+
+	/** The character a combat entry stands for: by its server id, else the first one shared by that player. */
+	public static CharacterData find(String link, String ownerName) {
+		for (CharacterData c : allCharacters()) if (!link.isEmpty() && link.equals(c.link)) return c;
+		if (!ownerName.isEmpty()) for (CharacterData c : allCharacters()) if (c.remote && ownerName.equals(c.ownerName)) return c;
+		return null;
+	}
+
+	/** Opens the sheet of one character right away; closing it returns to {@code back}. */
+	public static void open(MinecraftClient client, Screen back, String link, String ownerName) {
+		if (!loaded) {
+			SheetLibrary.reload();
+			loaded = true;
+		}
+		CharacterData c = find(link, ownerName);
+		if (c == null) return;
+		charIndex = allCharacters().indexOf(c);
+		CharacterSheetScreen screen = new CharacterSheetScreen();
+		screen.back = back;
+		client.setScreen(screen);
+	}
+
+	@Override
+	public void close() {
+		if (client != null) client.setScreen(back);
+	}
+
 	/** Open from anywhere (a key, a command): it opens on the next client tick, once the chat has closed. */
 	public static void requestOpen() {
 		pendingOpen = true;

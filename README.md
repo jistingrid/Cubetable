@@ -59,7 +59,7 @@ per-turn resources (D&D's action + bonus action, Pathfinder 2e's three actions) 
 
 A fight starts in a planning phase with an encounter window (`J` / `/encounter`): players roll initiative if
 their game has one, the Dungeon Master rolls the enemies, orders the turns and starts the combat. See
-[docs/combat-rules.md](docs/combat-rules.md#initiative).
+[docs/combat-rules.md](docs/combat-rules.md#initiative). Once the turns run, the window is for the Dungeon Master only: a list of everyone with their hit points, where hovering a name outlines the model and clicking opens the sheet.
 
 ## Shared characters and the Dungeon Master
 

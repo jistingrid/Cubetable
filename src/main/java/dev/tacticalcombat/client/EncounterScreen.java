@@ -16,7 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The encounter manager: opens when a fight starts. Players on the left, enemies on the right, each with their
+ * The encounter manager: opens when a fight starts. Once the turns run it disappears for players; for a
+ * Dungeon Master it becomes the combat management list (everyone, with hit points; hover to outline the model
+ * in the world, click to open the sheet). Opens when a fight starts. Players on the left, enemies on the right, each with their
  * initiative. A player rolls their own; the Dungeon Master rolls the enemies, can adjust any value, reorder
  * the turn order and start the turns. A game whose pack has no initiative roll shows no roll buttons, and the
  * DM simply orders the turns by hand.
@@ -81,6 +83,11 @@ public final class EncounterScreen extends Screen {
 			pendingAuto = false;
 			return;
 		}
+		if (!ClientCombatState.planning && !ServerCharacters.isDm()) { // once the turns run, only the DM manages the fight
+			pendingOpen = false;
+			pendingAuto = false;
+			return;
+		}
 		if (client.currentScreen == null || client.currentScreen instanceof TacticalScreen) {
 			client.setScreen(new EncounterScreen(pendingAuto));
 			pendingOpen = false;
@@ -100,7 +107,7 @@ public final class EncounterScreen extends Screen {
 
 	@Override
 	public void tick() {
-		if (!ClientCombatState.active || autoClose && !ClientCombatState.planning) close();
+		if (!ClientCombatState.active || autoClose && !ClientCombatState.planning && !ServerCharacters.isDm()) close();
 	}
 
 	@Override
@@ -160,13 +167,19 @@ public final class EncounterScreen extends Screen {
 		// title bar
 		g.fill(x, y, x + w, y + TITLE_H, 0xFF0F1114);
 		g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, edge);
-		String title = planning ? "Encounter - initiative" : "Encounter - round " + ClientCombatState.round;
+		String title = planning ? "Encounter - initiative" : "Combat - round " + ClientCombatState.round;
 		g.drawText(textRenderer, title, x + 6, y + 4, 0xFFC9CCD2, false);
 		int right = x + w - 3;
 		right -= button(g, right - 12, y + 3, "x", this::close, "Close (the fight carries on; /encounter opens this again)", 0xFF7A1C27, 0xFFB8323F) + 3;
 		if (dm) {
 			g.fill(right - tw("DM") - 8, y + 3, right, y + 14, 0xFF6B4E12);
 			g.drawText(textRenderer, "DM", right - tw("DM") - 4, y + 5, gold, false);
+		}
+
+		if (!planning) { // the fight is under way: the DM's management list
+			drawManagement(g, x, y, w, h, entries);
+			drawTooltip(g, mx, my);
+			return;
 		}
 
 		// column geometry
@@ -226,6 +239,11 @@ public final class EncounterScreen extends Screen {
 			g.drawText(textRenderer, "The fight is under way.", x + pad, footY + 8, dim, false);
 		}
 
+		highlight(-1);
+		drawTooltip(g, mx, my);
+	}
+
+	private void drawTooltip(DrawContext g, int mx, int my) {
 		String tooltip = null;
 		for (int i = hits.size() - 1; i >= 0; i--) {
 			Hit hit = hits.get(i);
@@ -235,6 +253,119 @@ public final class EncounterScreen extends Screen {
 			}
 		}
 		if (tooltip != null) g.drawTooltip(textRenderer, Text.literal(tooltip), mx, my);
+	}
+
+	// ------------------------------------------------------------------ DM: combat management
+
+	private String note = "";
+	private long noteUntil;
+	/** The entity currently outlined in the world because the mouse is over its name, and whether it glowed anyway. */
+	private int glowing = -1;
+	private boolean glowWas;
+
+	/** Every participant in turn order: name and hit points. Hovering a name outlines its model, clicking opens its sheet. */
+	private void drawManagement(DrawContext g, int x, int y, int w, int h, List<CombatStatePayload.Entry> entries) {
+		int pad = 8;
+		int listY = y + TITLE_H + 8;
+		int footH = 16;
+		int listH = h - TITLE_H - 8 - footH;
+		int rowH = 20;
+		int rows = Math.max(1, listH / rowH);
+		int maxScroll = Math.max(0, entries.size() - rows);
+		scroll = MathHelper.clamp(scroll, 0, maxScroll);
+
+		int hoverId = -1;
+		g.enableScissor(x, listY, x + w, listY + listH);
+		for (int i = 0; i < rows + 1 && i + scroll < entries.size(); i++) {
+			int index = i + scroll;
+			CombatStatePayload.Entry e = entries.get(index);
+			int ry = listY + i * rowH;
+			int rx = x + pad;
+			int rw = w - pad * 2;
+			boolean current = index == ClientCombatState.activeIndex;
+			boolean over = mouseX >= rx && mouseX < rx + rw && mouseY >= ry && mouseY < ry + rowH - 2
+					&& mouseY < listY + listH;
+			if (over) hoverId = e.entityId();
+
+			g.fill(rx, ry, rx + rw, ry + rowH - 2, over ? panelHover : panel);
+			g.fill(rx, ry, rx + 3, ry + rowH - 2, e.hostile() ? 0xFFC83232 : 0xFF3CB84A);
+			if (current) g.drawText(textRenderer, ">", rx + 7, ry + 5, gold, false);
+			g.drawItem(CombatHud.iconFor(e), rx + 16, ry + 1);
+
+			String hp = Math.round(e.health()) + " / " + Math.round(e.maxHealth());
+			int hpW = tw(hp);
+			int barW = 48;
+			int hx = rx + rw - 6 - hpW;
+			g.drawText(textRenderer, hp, hx, ry + 5, 0xFFE6E8EB, false);
+			float frac = e.maxHealth() <= 0 ? 0 : Math.max(0f, Math.min(1f, e.health() / e.maxHealth()));
+			int bx = hx - 6 - barW;
+			g.fill(bx, ry + 7, bx + barW, ry + 12, 0xFF05060A);
+			g.fill(bx, ry + 7, bx + Math.round(barW * frac), ry + 12, e.hostile() ? 0xFFE04040 : 0xFF50D060);
+
+			String name = displayName(e);
+			g.drawText(textRenderer, textRenderer.trimToWidth(name, Math.max(20, bx - (rx + 36) - 6)), rx + 36, ry + 5,
+					current ? gold : 0xFFE6E8EB, false);
+			if (over && mouseY < listY + listH) {
+				hit(rx, ry, rw, rowH - 2, () -> openSheet(e), CharacterSheetScreen.find(e.sheetId(), e.playerName()) != null
+						? "Open the sheet" : "No sheet for this one yet");
+			}
+		}
+		g.disableScissor();
+		highlight(hoverId);
+
+		int footY = y + h - footH;
+		g.fill(x + 1, footY, x + w - 1, footY + 1, edge);
+		boolean showNote = System.currentTimeMillis() < noteUntil;
+		g.drawText(textRenderer, showNote ? note : "Hover a name to find it in the world, click to open its sheet."
+				+ (maxScroll > 0 ? "  (scroll for more)" : ""), x + pad, footY + 5, showNote ? 0xFFFFB454 : dim, false);
+	}
+
+	/** A player entry shows its character's name when the sheet is known, with the player's name after it. */
+	private String displayName(CombatStatePayload.Entry e) {
+		String base = CombatHud.nameOf(e).getString();
+		if (e.playerName().isEmpty()) return base;
+		var c = CharacterSheetScreen.find(e.sheetId(), e.playerName());
+		return c == null ? base : c.displayName() + " (" + e.playerName() + ")";
+	}
+
+	private void openSheet(CombatStatePayload.Entry e) {
+		if (CharacterSheetScreen.find(e.sheetId(), e.playerName()) == null) {
+			note = "There is no sheet for " + CombatHud.nameOf(e).getString() + " to open.";
+			noteUntil = System.currentTimeMillis() + 3000;
+			return;
+		}
+		CharacterSheetScreen.open(MinecraftClient.getInstance(), this, e.sheetId(), e.playerName());
+	}
+
+	/** Outlines one entity in the world (the mouse is over its name); -1 removes the outline. */
+	private void highlight(int id) {
+		if (client == null || client.world == null) return;
+		if (id != glowing) {
+			restoreGlow();
+			net.minecraft.entity.Entity e = id < 0 ? null : client.world.getEntityById(id);
+			if (e != null) {
+				glowing = id;
+				glowWas = e.isGlowing();
+			}
+		}
+		if (glowing >= 0) {
+			net.minecraft.entity.Entity e = client.world.getEntityById(glowing);
+			if (e != null) e.setGlowing(true); // the server may reset the flag, so it is set again every frame
+		}
+	}
+
+	private void restoreGlow() {
+		if (glowing >= 0 && client != null && client.world != null) {
+			net.minecraft.entity.Entity e = client.world.getEntityById(glowing);
+			if (e != null) e.setGlowing(glowWas);
+		}
+		glowing = -1;
+	}
+
+	@Override
+	public void removed() {
+		restoreGlow();
+		super.removed();
 	}
 
 	private void drawHeader(DrawContext g, int x, int y, int w, String text) {
