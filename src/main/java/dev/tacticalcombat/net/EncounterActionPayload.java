@@ -9,7 +9,7 @@ import net.minecraft.util.Identifier;
 /**
  * Client -> server, from the encounter window.
  * op: 0 roll my initiative, 1 roll every enemy (DM), 2 set an initiative value (DM), 3 move one place in the
- * order, sign of value = direction (DM), 4 start the turns (DM), 5 sort the order by initiative again (DM).
+ * order, sign of value = direction (DM), 4 start the turns (DM), 5 sort the order by initiative again (DM), 6 end the current turn (DM), 7 end the combat (DM).
  */
 public record EncounterActionPayload(int op, int entityId, int value) implements CustomPayload {
 	public static final Id<EncounterActionPayload> ID =

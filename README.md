@@ -66,7 +66,7 @@ health: damage lowers the sheet, and the vanilla bar shows the percentage left. 
 
 A fight starts in a planning phase with an encounter window (`J` / `/encounter`): players roll initiative if
 their game has one, the Dungeon Master rolls the enemies, orders the turns and starts the combat. See
-[docs/combat-rules.md](docs/combat-rules.md#initiative). Once the turns run, the window is for the Dungeon Master only: a list of everyone with their hit points, where hovering a name outlines the model and clicking opens the sheet.
+[docs/combat-rules.md](docs/combat-rules.md#initiative). Once the turns run, the Dungeon Master has a compact combat tracker on the screen (movable, resizable, foldable): everyone in turn order with hit points, hover to outline a model, click to open the sheet, plus End turn / End combat.
 
 ## Shared characters and the Dungeon Master
 

@@ -44,9 +44,16 @@ public final class TacticalScreen extends Screen {
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		MinecraftClient mc = MinecraftClient.getInstance();
-		MousePicker.update(mc, mouseX, mouseY);
+		boolean onPanel = TrackerPanel.contains(mouseX, mouseY, width, height);
+		if (onPanel) { // the pointer is on the DM's tracker, not on the battlefield
+			ClientGrid.hover = -1;
+			ClientGrid.hoverEntity = -1;
+		} else {
+			MousePicker.update(mc, mouseX, mouseY);
+		}
 
-		Text tip = tooltip(mc);
+		String panelTip = TrackerPanel.render(ctx, mc.textRenderer, mouseX, mouseY, width, height);
+		Text tip = onPanel ? (panelTip == null ? null : Text.literal(panelTip)) : tooltip(mc);
 		if (tip != null) {
 			ctx.drawTooltip(mc.textRenderer, tip, mouseX, mouseY);
 		}
@@ -78,6 +85,7 @@ public final class TacticalScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (TrackerPanel.mouseClicked(mouseX, mouseY, button, width, height)) return true;
 		if (button != 0 || !ClientCombatState.isMyTurn()) return true;
 
 		for (int i = 0; i < ClientCombatState.moveButtons.size(); i++) {
@@ -101,6 +109,7 @@ public final class TacticalScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+		if (button == 0 && TrackerPanel.mouseDragged(deltaX, deltaY)) return true;
 		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
 			ClientCombatState.camYawTarget += (float) deltaX * 0.4f;
 			ClientCombatState.camPitch = MathHelper.clamp(ClientCombatState.camPitch + (float) deltaY * 0.25f, 25f, 80f);
@@ -110,7 +119,20 @@ public final class TacticalScreen extends Screen {
 	}
 
 	@Override
+	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+		if (TrackerPanel.mouseReleased()) return true;
+		return super.mouseReleased(mouseX, mouseY, button);
+	}
+
+	@Override
+	public void removed() {
+		TrackerPanel.clearHighlight();
+		super.removed();
+	}
+
+	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+		if (TrackerPanel.mouseScrolled(mouseX, mouseY, verticalAmount, width, height)) return true;
 		ClientCombatState.zoomTarget = MathHelper.clamp(ClientCombatState.zoomTarget - verticalAmount * 2.0, 8.0, 40.0);
 		return true;
 	}

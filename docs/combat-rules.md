@@ -93,10 +93,13 @@ left, the enemies on the right, and the turn order along the bottom.
 - **The Dungeon Master** presses *Roll enemies*, can change any value with `-` / `+` (Shift = 5), moves
   anyone earlier or later in the order with `<` `>`, and presses *Start combat*. Moving someone by hand
   freezes the order against later rolls until *Sort by initiative* is pressed (or a value is changed).
-- **After the turns start** the window closes for players. For a Dungeon Master it turns into the combat
-  management list: everyone in turn order with their hit points. Hover a name to outline that model in the
-  world, click it to open the sheet (closing the sheet brings you back to the list). `J` / `/encounter` opens
-  it again.
+- **After the turns start** the window closes. Players see nothing more of it. The Dungeon Master gets the
+  **combat tracker**, a compact panel that stays on the screen for the whole fight (top right at first):
+  everyone in turn order, a marker and underline on whose turn it is, hit points as numbers and a thin bar.
+  Hover a name to outline that model in the world, click it to open the sheet (closing the sheet brings you
+  back to the fight). Drag the title bar to move it, the corner to resize it, `_` to fold it down to one line
+  (it then shows the round and whose turn it is), `x` or `J` / `/encounter` to hide and show it. *End turn*
+  finishes the current turn for whoever has it; *End combat* (click twice) stops the fight.
 - Everyone waits in place until the turns start. Anyone who has not rolled stays at the end of the order.
 - With **no Dungeon Master online** the server rolls the enemies itself and starts the fight as soon as every
   player who has a roll has rolled.

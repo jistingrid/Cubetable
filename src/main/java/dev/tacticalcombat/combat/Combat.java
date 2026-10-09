@@ -156,10 +156,16 @@ public final class Combat {
 		resort();
 	}
 
-	/** What the encounter window asks for. op: 0 roll mine, 1 roll all enemies (DM), 2 set a value (DM), 3 move in the order (DM), 4 start (DM), 5 sort by initiative (DM). */
+	/** What the encounter window asks for. op: 0 roll mine, 1 roll all enemies (DM), 2 set a value (DM), 3 move in the order (DM), 4 start (DM), 5 sort by initiative (DM), 6 end the current turn (DM), 7 end the combat (DM). */
 	public void encounterAction(ServerPlayerEntity player, int op, int entityId, int value) {
-		if (!planning) return;
 		boolean dm = dev.tacticalcombat.character.Roles.isDm(player.getUuid());
+		if (op == 6 || op == 7) { // the DM's tracker: finish the current turn / stop the fight
+			if (!dm || planning) return;
+			if (op == 6) endTurn();
+			else CombatManager.endCombat(this);
+			return;
+		}
+		if (!planning) return;
 		switch (op) {
 			case 0 -> {
 				Combatant c = get(player);
