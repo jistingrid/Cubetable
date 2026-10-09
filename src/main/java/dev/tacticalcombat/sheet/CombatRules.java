@@ -18,6 +18,7 @@ import java.util.Map;
  * "combat": {
  *   "grid": { "square": 5, "unit": "ft" },                // one grid square = 5 ft (one block in the world)
  *   "resources": { "action": "1", "bonus": "1" },         // refilled every turn (formulas)
+ *   "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },   // stored values that are the hit points
  *   "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
  *   "movement": {
  *     "speed": "speed",                                   // distance of one full move, in grid units
@@ -39,6 +40,16 @@ public final class CombatRules {
 	/** Formula: distance available as soon as the turn starts. Empty = the speed. */
 	public String pool = "";
 	public final List<Move> moves = new ArrayList<>();
+	/** Which stored values are the hit points; null = combat leaves hit points to Minecraft. */
+	public Hp hp;
+
+	/**
+	 * @param now  id of the stored value holding current hit points (the one combat changes)
+	 * @param max  formula for the maximum
+	 * @param temp id of a stored value of temporary hit points, damage drains it first (empty = none)
+	 */
+	public record Hp(String now, String max, String temp) {}
+
 	/** How this game decides who goes first; null = no initiative roll (the Dungeon Master orders the turns). */
 	public Initiative initiative;
 
@@ -78,6 +89,14 @@ public final class CombatRules {
 				r.initiative = new Initiative(roll, i.has("mob") ? i.get("mob").getAsString() : "d20",
 						i.has("order") && i.get("order").getAsString().equalsIgnoreCase("low"),
 						i.has("tiebreak") ? i.get("tiebreak").getAsString() : "");
+			}
+		}
+		if (o.has("hp") && o.get("hp").isJsonObject()) {
+			JsonObject h = o.getAsJsonObject("hp");
+			String now = h.has("now") ? h.get("now").getAsString().toLowerCase(Locale.ROOT) : "";
+			if (!now.isBlank()) {
+				r.hp = new Hp(now, h.has("max") ? h.get("max").getAsString() : "",
+						h.has("temp") ? h.get("temp").getAsString().toLowerCase(Locale.ROOT) : "");
 			}
 		}
 		if (o.has("movement") && o.get("movement").isJsonObject()) {

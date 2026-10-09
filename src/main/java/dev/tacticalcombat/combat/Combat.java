@@ -909,12 +909,13 @@ public final class Combat {
 		for (Combatant c : order) {
 			LivingEntity e = c.entity;
 			boolean player = e instanceof ServerPlayerEntity;
+			SheetHealth.Hp sheetHp = e instanceof ServerPlayerEntity hp ? SheetHealth.of(hp) : null; // the sheet's hit points, when there are any
 			entries.add(new CombatStatePayload.Entry(
 					e.getId(),
 					Registries.ENTITY_TYPE.getId(e.getType()),
 					player ? e.getName().getString() : "",
-					e.getHealth(),
-					e.getMaxHealth(),
+					sheetHp != null ? (float) sheetHp.now() : e.getHealth(),
+					sheetHp != null ? (float) sheetHp.max() : e.getMaxHealth(),
 					!player,
 					c.initiative,
 					c.rolled,

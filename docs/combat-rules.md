@@ -29,6 +29,30 @@ per-turn resources; attacks, defense and hit points come in later steps.
 | `movement.pool` | Formula: distance you may walk as soon as the turn starts. Default: the speed. Use `"0"` when you must pay to move. |
 | `movement.moves` | Ways to buy more movement with resources (see below). |
 
+## Hit points
+
+```json
+"hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" }
+```
+
+| Key | Meaning |
+|---|---|
+| `now` | Id of the stored sheet value that holds current hit points. This is the value combat changes. |
+| `max` | Formula for the maximum. |
+| `temp` | Optional id of a stored value of temporary hit points; damage drains it first. |
+
+A player with an **Active Actor** whose format has this block uses the sheet value as their hit points, in and
+out of combat, **instead of Minecraft health**:
+
+- Damage of any kind (mobs, falls, fire ...) lowers the sheet value, temp first, and the change is saved on the
+  server and sent to the player's own sheet. The usual hurt flash plays, but Minecraft takes no damage.
+- The vanilla health bar shows the share left (never fully empty), and is re-synced every second, so a DM who
+  edits the sheet changes the bar too. The initiative bar and the DM's list show the sheet values.
+- At 0 the sheet value stays at 0; dying, healing and rests come later.
+- Without an Active Actor, or in a format with no `hp` block, Minecraft health applies as before.
+- For now every point of Minecraft damage is one hit point of the sheet (a zombie hit of 3 costs 3); attack
+  rolls and rolled damage replace that in the next step.
+
 ## Initiative
 
 ```json

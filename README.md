@@ -55,6 +55,12 @@ A format's `combat` block says how its sheets drive combat: distance per square,
 per-turn resources (D&D's action + bonus action, Pathfinder 2e's three actions) and how to buy more movement
 (Dash, Stride). See [docs/combat-rules.md](docs/combat-rules.md).
 
+## Hit points
+
+A format's `combat.hp` block names the sheet value that holds hit points. A player with an Active Actor uses it
+instead of Minecraft health: damage lowers the sheet, and the vanilla bar shows the percentage left. See
+[docs/combat-rules.md](docs/combat-rules.md#hit-points).
+
 ## Encounter window
 
 A fight starts in a planning phase with an encounter window (`J` / `/encounter`): players roll initiative if

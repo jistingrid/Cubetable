@@ -78,6 +78,10 @@ public class TacticalCombatMod implements ModInitializer {
 
 		// Rules: attacks cost the action, nobody acts out of turn
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register(CombatManager::allowDamage);
+		// ... and a player with sheet hit points loses those instead of Minecraft health
+		ServerLivingEntityEvents.ALLOW_DAMAGE.register(dev.tacticalcombat.combat.SheetHealth::allowDamage);
+		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.SheetHealth::tick);
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> dev.tacticalcombat.combat.SheetHealth.clear());
 
 		UseItemCallback.EVENT.register((player, world, hand) -> {
 			if (world.isClient || CombatManager.canActNow(player)) {

@@ -5,6 +5,7 @@
   "combat": {
     "grid": { "square": 1, "unit": "m" },
     "resources": { "action": "1" },
+    "hp": { "now": "hp", "max": "hp_max" },
     "movement": { "speed": "mov", "pool": "mov" }
   },
   "derived": {},
