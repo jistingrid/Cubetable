@@ -4,7 +4,9 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** One participant of a {@link Combat}: a player or a hostile mob, plus its per-turn resources. */
 public final class Combatant {
@@ -17,8 +19,13 @@ public final class Combatant {
 	/** Squares (players) or blocks (mobs) of movement. */
 	public double moveBudget;
 	public double moveUsed;
-	public boolean actionUsed;
-	public boolean bonusActionUsed;
+	/** Per-turn resources (action, bonus ...): what is left, and what the turn started with. */
+	public final Map<String, Integer> left = new LinkedHashMap<>();
+	public final Map<String, Integer> max = new LinkedHashMap<>();
+	/** What this combatant may buy with its resources to move further (from its sheet's pack). */
+	public TurnSetup setup = TurnSetup.basic(0);
+	/** A bought move whose unused distance is lost: the budget is cut to what was used once the move is accepted. */
+	public boolean lostAfterMove;
 
 	public int ticksInTurn;
 	public int ticksSinceActionUsed;
@@ -51,11 +58,41 @@ public final class Combatant {
 		return path != null;
 	}
 
-	public void resetTurnResources(double budget) {
-		this.moveBudget = budget;
+	public int resource(String id) {
+		return left.getOrDefault(id, 0);
+	}
+
+	public boolean canPay(Map<String, Integer> cost) {
+		for (Map.Entry<String, Integer> e : cost.entrySet()) {
+			if (resource(e.getKey()) < e.getValue()) return false;
+		}
+		return true;
+	}
+
+	public void pay(Map<String, Integer> cost) {
+		for (Map.Entry<String, Integer> e : cost.entrySet()) {
+			left.merge(e.getKey(), -e.getValue(), Integer::sum);
+		}
+	}
+
+	/** The main "action" is gone (or the game has none to give). */
+	public boolean actionUsed() {
+		return resource("action") <= 0;
+	}
+
+	public void spendAction() {
+		if (resource("action") > 0) left.merge("action", -1, Integer::sum);
+	}
+
+	public void resetTurnResources(TurnSetup setup) {
+		this.setup = setup;
+		this.moveBudget = setup.pool;
 		this.moveUsed = 0;
-		this.actionUsed = false;
-		this.bonusActionUsed = false;
+		this.lostAfterMove = false;
+		this.left.clear();
+		this.left.putAll(setup.resources);
+		this.max.clear();
+		this.max.putAll(setup.resources);
 		this.ticksInTurn = 0;
 		this.ticksSinceActionUsed = 0;
 		this.ticksSinceMoveExhausted = 0;

@@ -2,6 +2,11 @@
   "id": "percentile",
   "name": "Percentile Skills",
   "description": "Roll d% and try to get under the skill. Shows how a different game plugs into the same window.",
+  "combat": {
+    "grid": { "square": 1, "unit": "m" },
+    "resources": { "action": "1" },
+    "movement": { "speed": "mov", "pool": "mov" }
+  },
   "derived": {},
   "header": {
     "title": "$name",
@@ -118,6 +123,12 @@
       "label": "Luck",
       "group": "Vitals",
       "default": 50
+    },
+    {
+      "id": "mov",
+      "label": "Movement rate",
+      "group": "Vitals",
+      "default": 8
     }
   ],
   "theme": "azure",

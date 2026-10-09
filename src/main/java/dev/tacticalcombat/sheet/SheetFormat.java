@@ -31,6 +31,8 @@ public final class SheetFormat {
 	public String theme = "";
 	/** Calculated values, in file order: name -> formula. */
 	public final Map<String, String> derived = new LinkedHashMap<>();
+	/** How combat reads this game's sheets; null when the format has no "combat" block. */
+	public CombatRules combat;
 	/** Values a character may leave out (flags such as "not proficient" = 0). */
 	public final Map<String, Double> defaults = new LinkedHashMap<>();
 	/** Declared inputs; when a format declares none, they are worked out from the names its formulas use. */
@@ -216,6 +218,9 @@ public final class SheetFormat {
 		f.description = str(o, "description", "");
 		f.theme = str(o, "theme", "");
 
+		if (o.has("combat") && o.get("combat").isJsonObject()) {
+			f.combat = CombatRules.parse(o.getAsJsonObject("combat"));
+		}
 		if (o.has("derived")) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("derived").entrySet()) {
 				f.derived.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());

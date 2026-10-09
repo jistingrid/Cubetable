@@ -73,10 +73,22 @@ public final class SheetLibrary {
 		return t != null ? t : Theme.fallback();
 	}
 
+	/** Formats, themes and packs only (what a server needs); characters and example seeding are left alone. */
+	public static void reloadPacks() {
+		loadPacks(false);
+	}
+
 	public static void reload() {
+		CHARACTERS.clear();
+		loadPacks(true);
+		loadCharacters();
+		TacticalCombatMod.LOGGER.info("Sheets: {} packs, {} formats, {} themes, {} characters, {} problems",
+				PACKS.size(), FORMATS.size(), THEMES.size(), CHARACTERS.size(), PROBLEMS.size());
+	}
+
+	private static void loadPacks(boolean seed) {
 		FORMATS.clear();
 		THEMES.clear();
-		CHARACTERS.clear();
 		PACKS.clear();
 		PROBLEMS.clear();
 
@@ -100,7 +112,7 @@ public final class SheetLibrary {
 			Files.createDirectories(sheetsDir());
 			Files.createDirectories(themesDir());
 			Files.createDirectories(charactersDir());
-			seedExamples(builtIn);
+			if (seed) seedExamples(builtIn);
 		} catch (IOException e) {
 			PROBLEMS.add("config folder: " + e.getMessage());
 		}
@@ -115,6 +127,9 @@ public final class SheetLibrary {
 		for (Path p : jsonFiles(themesDir())) {
 			readTheme(p);
 		}
+	}
+
+	private static void loadCharacters() {
 		for (Path p : jsonFiles(charactersDir())) {
 			try (Reader r = Files.newBufferedReader(p, StandardCharsets.UTF_8)) {
 				CHARACTERS.add(CharacterData.parse(JsonParser.parseReader(r).getAsJsonObject(), p.getFileName().toString()));
@@ -122,8 +137,6 @@ public final class SheetLibrary {
 				PROBLEMS.add(p.getFileName() + ": " + e.getMessage());
 			}
 		}
-		TacticalCombatMod.LOGGER.info("Sheets: {} packs, {} formats, {} themes, {} characters, {} problems",
-				PACKS.size(), FORMATS.size(), THEMES.size(), CHARACTERS.size(), PROBLEMS.size());
 	}
 
 	private static void loadBuiltInPack(String pack) {

@@ -109,23 +109,85 @@ public final class CombatHud {
 		int barX = cx - barW / 2;
 		float budget = Math.max(0.001f, ClientCombatState.moveBudget);
 		float left = Math.max(0f, budget - ClientCombatState.moveUsed);
+		String unit = ClientCombatState.unit.isEmpty() ? "" : " " + ClientCombatState.unit;
+		float sq = ClientCombatState.unit.isEmpty() ? 1f : ClientCombatState.square;
 		ctx.fill(barX - 1, y - 1, barX + barW + 1, y + 7, 0xFF000000);
 		ctx.fill(barX, y, barX + barW, y + 6, 0xFF2A2A2A);
 		ctx.fill(barX, y, barX + Math.round(barW * (left / budget)), y + 6, COLOR_MOVE);
 		String moveText = Text.translatable("tacticalcombat.hud.movement").getString()
-				+ " " + String.format("%.0f / %.0f", left, budget);
+				+ " " + String.format("%.0f / %.0f%s", left * sq, budget * sq, unit);
 		ctx.drawCenteredTextWithShadow(font, moveText, cx, y + 9, 0xFFFFFFFF);
 
 		// action + bonus action pips
 		int py = y + 22;
-		drawPip(ctx, font, cx - 60, py, Text.translatable("tacticalcombat.hud.action").getString(),
-				ClientCombatState.actionUsed ? COLOR_SPENT : COLOR_ACTION);
-		drawPip(ctx, font, cx + 8, py, Text.translatable("tacticalcombat.hud.bonus").getString(),
-				ClientCombatState.bonusUsed ? COLOR_SPENT : COLOR_BONUS);
+		drawResources(ctx, font, cx, py);
+		drawMoveButtons(ctx, mc, font);
 
 		// end turn hint
 		Text key = TacticalCombatClient.END_TURN_KEY.getBoundKeyLocalizedText();
 		ctx.drawCenteredTextWithShadow(font, Text.translatable("tacticalcombat.hud.end_turn", key), cx, py + 14, 0xFFFFD34D);
+	}
+
+	/** Every per-turn resource of the pack (action, bonus, 3 actions ...) as a label and one pip per point. */
+	private static void drawResources(DrawContext ctx, TextRenderer font, int cx, int y) {
+		List<CombatStatePayload.Res> list = ClientCombatState.resources;
+		if (list.isEmpty()) return;
+		int total = 0;
+		for (CombatStatePayload.Res r : list) total += font.getWidth(resourceLabel(r.id())) + 4 + Math.min(r.max(), 8) * 11 + 10;
+		int x = cx - (total - 10) / 2;
+		int index = 0;
+		for (CombatStatePayload.Res r : list) {
+			String label = resourceLabel(r.id());
+			ctx.drawTextWithShadow(font, label, x, y + 1, 0xFFFFFFFF);
+			x += font.getWidth(label) + 4;
+			int color = switch (r.id()) {
+				case "action" -> COLOR_ACTION;
+				case "bonus" -> COLOR_BONUS;
+				default -> 0xFFB48CFF;
+			};
+			int pips = Math.min(r.max(), 8);
+			for (int i = 0; i < pips; i++) {
+				ctx.fill(x, y, x + 9, y + 9, 0xFF000000);
+				ctx.fill(x + 1, y + 1, x + 8, y + 8, i < r.left() ? color : COLOR_SPENT);
+				x += 11;
+			}
+			x += 10;
+			index++;
+		}
+	}
+
+	private static String resourceLabel(String id) {
+		String key = "tacticalcombat.hud.res." + id;
+		if (net.minecraft.client.resource.language.I18n.hasTranslation(key)) return Text.translatable(key).getString();
+		if (id.equals("action")) return Text.translatable("tacticalcombat.hud.action").getString();
+		if (id.equals("bonus")) return Text.translatable("tacticalcombat.hud.bonus").getString();
+		return id.isEmpty() ? id : Character.toUpperCase(id.charAt(0)) + id.substring(1);
+	}
+
+	/** Placement of the buttons for movement options the player buys (Dash ...), right of the movement bar. */
+	public static int[] moveButtonRect(MinecraftClient mc, int index) {
+		CombatStatePayload.MoveButton b = ClientCombatState.moveButtons.get(index);
+		int w = mc.textRenderer.getWidth(buttonText(b)) + 8;
+		int x = mc.getWindow().getScaledWidth() / 2 + 66;
+		int y = mc.getWindow().getScaledHeight() - 78 - 2 + index * 14;
+		return new int[] {x, y, w, 12};
+	}
+
+	private static String buttonText(CombatStatePayload.MoveButton b) {
+		return b.cost().isEmpty() ? b.label() : b.label() + " (" + b.cost() + ")";
+	}
+
+	private static void drawMoveButtons(DrawContext ctx, MinecraftClient mc, TextRenderer font) {
+		double mx = mc.mouse.getX() * mc.getWindow().getScaledWidth() / (double) mc.getWindow().getWidth();
+		double my = mc.mouse.getY() * mc.getWindow().getScaledHeight() / (double) mc.getWindow().getHeight();
+		for (int i = 0; i < ClientCombatState.moveButtons.size(); i++) {
+			CombatStatePayload.MoveButton b = ClientCombatState.moveButtons.get(i);
+			int[] r = moveButtonRect(mc, i);
+			boolean over = b.enabled() && mx >= r[0] && mx < r[0] + r[2] && my >= r[1] && my < r[1] + r[3];
+			ctx.fill(r[0], r[1], r[0] + r[2], r[1] + r[3], 0xFF000000);
+			ctx.fill(r[0] + 1, r[1] + 1, r[0] + r[2] - 1, r[1] + r[3] - 1, !b.enabled() ? 0xFF2A2A2A : over ? 0xFF3A6EA8 : 0xFF244A75);
+			ctx.drawTextWithShadow(font, buttonText(b), r[0] + 4, r[1] + 2, b.enabled() ? 0xFFFFFFFF : 0xFF888888);
+		}
 	}
 
 	private static void drawPip(DrawContext ctx, TextRenderer font, int x, int y, String label, int color) {

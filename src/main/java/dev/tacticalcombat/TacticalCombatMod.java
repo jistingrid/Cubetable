@@ -54,6 +54,9 @@ public class TacticalCombatMod implements ModInitializer {
 		PayloadTypeRegistry.playC2S().register(EndTurnPayload.ID, EndTurnPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(MoveRequestPayload.ID, MoveRequestPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(AttackRequestPayload.ID, AttackRequestPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.BuyMovePayload.ID, dev.tacticalcombat.net.BuyMovePayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.BuyMovePayload.ID,
+				(payload, context) -> CombatManager.requestBuyMove(context.player(), payload.id()));
 		ServerPlayNetworking.registerGlobalReceiver(EndTurnPayload.ID,
 				(payload, context) -> CombatManager.requestEndTurn(context.player()));
 		ServerPlayNetworking.registerGlobalReceiver(MoveRequestPayload.ID,
@@ -64,6 +67,10 @@ public class TacticalCombatMod implements ModInitializer {
 		// Combat loop
 		ServerTickEvents.END_SERVER_TICK.register(CombatManager::tick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CombatManager.clear());
+		// the server reads the game packs too (movement, resources ... come from the pack's "combat" block)
+		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+			if (dev.tacticalcombat.sheet.SheetLibrary.FORMATS.isEmpty()) dev.tacticalcombat.sheet.SheetLibrary.reloadPacks();
+		});
 
 		// Rules: attacks cost the action, nobody acts out of turn
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register(CombatManager::allowDamage);
@@ -98,6 +105,14 @@ public class TacticalCombatMod implements ModInitializer {
 								return 0;
 							}
 							ctx.getSource().sendFeedback(() -> Text.translatable("tacticalcombat.cmd.started"), false);
+							return 1;
+						}))
+				.then(CommandManager.literal("reload")
+						.requires(src -> src.hasPermissionLevel(2))
+						.executes(ctx -> {
+							dev.tacticalcombat.sheet.SheetLibrary.reloadPacks();
+							ctx.getSource().sendFeedback(() -> Text.literal("Reloaded " + dev.tacticalcombat.sheet.SheetLibrary.FORMATS.size()
+									+ " sheet formats (" + dev.tacticalcombat.sheet.SheetLibrary.PROBLEMS.size() + " problems)."), true);
 							return 1;
 						}))
 				.then(CommandManager.literal("end")

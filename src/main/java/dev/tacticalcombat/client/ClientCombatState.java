@@ -20,8 +20,11 @@ public final class ClientCombatState {
 	public static int activeIndex;
 	public static float moveUsed;
 	public static float moveBudget;
-	public static boolean actionUsed;
-	public static boolean bonusUsed;
+	/** Size of one grid square in the game's own unit (feet, metres ...) and the unit's name. */
+	public static float square = 1f;
+	public static String unit = "";
+	public static List<CombatStatePayload.Res> resources = List.of();
+	public static List<CombatStatePayload.MoveButton> moveButtons = List.of();
 	public static List<CombatStatePayload.Entry> entries = List.of();
 
 	// ---- tactical camera
@@ -50,12 +53,26 @@ public final class ClientCombatState {
 		activeIndex = p.activeIndex();
 		moveUsed = p.moveUsed();
 		moveBudget = p.moveBudget();
-		actionUsed = p.actionUsed();
-		bonusUsed = p.bonusUsed();
+		square = p.square();
+		unit = p.unit();
+		resources = p.resources();
+		moveButtons = p.moves();
 		entries = p.entries();
 		if (!active) {
 			ClientGrid.clear();
 		}
+	}
+
+	/** The main action is gone (or this game gives none). */
+	public static boolean actionUsed() {
+		for (CombatStatePayload.Res r : resources) if (r.id().equals("action")) return r.left() <= 0;
+		return true;
+	}
+
+	/** A distance in squares as the game shows it: "20 ft", or just the squares when the pack names no unit. */
+	public static String distance(double squares) {
+		if (unit.isEmpty()) return String.format("%.0f", squares);
+		return String.format("%.0f %s", squares * square, unit);
 	}
 
 	public static void reset() {

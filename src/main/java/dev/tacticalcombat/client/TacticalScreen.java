@@ -57,7 +57,7 @@ public final class TacticalScreen extends Screen {
 			Entity target = mc.world.getEntityById(ClientGrid.hoverEntity);
 			if (target == null) return null;
 			boolean inReach = Grid.distanceToBox(mc.player.getEyePos(), target.getBoundingBox()) <= Grid.ATTACK_REACH;
-			if (ClientCombatState.actionUsed) {
+			if (ClientCombatState.actionUsed()) {
 				return Text.translatable("tacticalcombat.tip.no_action");
 			}
 			return inReach
@@ -65,9 +65,13 @@ public final class TacticalScreen extends Screen {
 					: Text.translatable("tacticalcombat.tip.too_far", target.getName());
 		}
 		if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {
-			return Text.translatable("tacticalcombat.tip.move", ClientGrid.cells.get(ClientGrid.hover).cost());
+			return Text.translatable("tacticalcombat.tip.move", ClientCombatState.distance(ClientGrid.cells.get(ClientGrid.hover).cost()));
 		}
 		return null;
+	}
+
+	private static MinecraftClient mc() {
+		return MinecraftClient.getInstance();
 	}
 
 	// ---------------------------------------------------------------- mouse
@@ -76,6 +80,15 @@ public final class TacticalScreen extends Screen {
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (button != 0 || !ClientCombatState.isMyTurn()) return true;
 
+		for (int i = 0; i < ClientCombatState.moveButtons.size(); i++) {
+			int[] r = CombatHud.moveButtonRect(mc(), i);
+			if (mouseX >= r[0] && mouseX < r[0] + r[2] && mouseY >= r[1] && mouseY < r[1] + r[3]) {
+				if (ClientCombatState.moveButtons.get(i).enabled()) {
+					ClientPlayNetworking.send(new dev.tacticalcombat.net.BuyMovePayload(ClientCombatState.moveButtons.get(i).id()));
+				}
+				return true;
+			}
+		}
 		if (ClientGrid.hoverEntity >= 0) {
 			ClientPlayNetworking.send(new AttackRequestPayload(ClientGrid.hoverEntity));
 		} else if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {

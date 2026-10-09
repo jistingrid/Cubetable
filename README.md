@@ -49,6 +49,12 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 
 Tunables are in `combat/CombatConfig.java`.
 
+## Game rules in the pack
+
+A format's `combat` block says how its sheets drive combat: distance per square, how much you may move, the
+per-turn resources (D&D's action + bonus action, Pathfinder 2e's three actions) and how to buy more movement
+(Dash, Stride). See [docs/combat-rules.md](docs/combat-rules.md).
+
 ## Shared characters and the Dungeon Master
 
 - **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).

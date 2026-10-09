@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -120,8 +121,8 @@ public final class Combat {
 	public boolean tryUseAction(LivingEntity attacker) {
 		Combatant c = get(attacker);
 		if (c == null) return true;
-		if (current() != c || c.actionUsed) return false;
-		c.actionUsed = true;
+		if (current() != c || c.actionUsed()) return false;
+		c.spendAction();
 		return true;
 	}
 
@@ -141,7 +142,7 @@ public final class Combat {
 
 	private void beginTurn() {
 		Combatant c = current();
-		c.resetTurnResources(c.isPlayer() ? CombatConfig.PLAYER_MOVEMENT : CombatConfig.MOB_MOVEMENT);
+		c.resetTurnResources(c.entity instanceof ServerPlayerEntity sp ? TurnSetup.of(sp) : TurnSetup.basic(CombatConfig.MOB_MOVEMENT));
 		if (c.entity instanceof ServerPlayerEntity p) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.your_turn"), true);
 		}
@@ -160,17 +161,59 @@ public final class Combat {
 		if (idx == null) return;
 		Grid.Node node = moveGrid.nodes.get(idx);
 		if (!node.endable || node.cost <= 0) return;
-		if (c.moveUsed + node.cost > c.moveBudget + 1.0E-6) return;
+		if (c.moveUsed + node.cost > c.moveBudget + 1.0E-6) {
+			// not enough left: a move the pack lets the player buy automatically (such as a Stride) may cover it
+			TurnSetup.MoveOption buy = autoMoveFor(c, node.cost);
+			if (buy == null) return;
+			buyMove(c, buy);
+		}
 
 		c.path = buildPath(moveGrid, idx);
 		c.pathIdx = 0;
 		c.pathPos = player.getPos();
 		c.moveUsed += node.cost;
+		if (c.lostAfterMove) { // the rest of that bought move is gone
+			c.moveBudget = c.moveUsed;
+			c.lostAfterMove = false;
+		}
 
 		moveGrid = null;
 		threat = Set.of();
 		sendGrid(); // clears the highlights while walking
 		sync();
+	}
+
+	/** The first automatic move the combatant can pay for that makes a destination of this cost reachable. */
+	private static TurnSetup.MoveOption autoMoveFor(Combatant c, double cost) {
+		double remaining = c.moveBudget - c.moveUsed;
+		for (TurnSetup.MoveOption m : c.setup.moves()) {
+			if (m.auto() && c.canPay(m.cost()) && (m.keep() ? remaining : 0) + m.grant() + 1.0E-6 >= cost) return m;
+		}
+		return null;
+	}
+
+	/** Pays for a movement option and adds its distance. */
+	private static void buyMove(Combatant c, TurnSetup.MoveOption m) {
+		c.pay(m.cost());
+		if (!m.keep()) {
+			c.moveBudget = c.moveUsed + m.grant(); // what was left over before is not carried into a move that expires
+			c.lostAfterMove = true;
+		} else {
+			c.moveBudget += m.grant();
+		}
+	}
+
+	/** The active player pressed the button of a movement option (such as Dash). */
+	public void requestBuyMove(ServerPlayerEntity player, String id) {
+		Combatant c = get(player);
+		if (c == null || current() != c || c.moving()) return;
+		for (TurnSetup.MoveOption m : c.setup.moves()) {
+			if (!m.id().equals(id) || m.auto() || !c.canPay(m.cost())) continue;
+			buyMove(c, m);
+			refreshGrid();
+			sync();
+			return;
+		}
 	}
 
 	/** Square centres from just after the start square up to and including node {@code idx}. */
@@ -188,7 +231,7 @@ public final class Combat {
 	/** The active player clicked an enemy: spend the action on a melee hit. */
 	public void requestAttack(ServerPlayerEntity player, int entityId) {
 		Combatant c = get(player);
-		if (c == null || current() != c || c.moving() || c.actionUsed) return;
+		if (c == null || current() != c || c.moving() || c.actionUsed()) return;
 
 		Entity e = world.getEntityById(entityId);
 		if (!(e instanceof LivingEntity target) || !target.isAlive()) return;
@@ -209,8 +252,9 @@ public final class Combat {
 		player.networkHandler.requestTeleport(player.getX(), player.getY(), player.getZ(), yaw, pitch);
 
 		player.swingHand(Hand.MAIN_HAND, true);
+		int before = c.resource("action");
 		player.attack(target); // the ALLOW_DAMAGE hook spends the action when the hit lands
-		c.actionUsed = true;
+		if (c.resource("action") == before) c.spendAction();
 		sync();
 	}
 
@@ -535,16 +579,16 @@ public final class Combat {
 		boolean direct = isDirectMelee(mob);
 		if (direct && target != null) {
 			mob.getLookControl().lookAt(target, 30.0f, 30.0f);
-			if (!c.actionUsed && c.ticksInAction >= CombatConfig.MOB_WINDUP_TICKS && inMeleeReach(mob, target)) {
+			if (!c.actionUsed() && c.ticksInAction >= CombatConfig.MOB_WINDUP_TICKS && inMeleeReach(mob, target)) {
 				mob.swingHand(Hand.MAIN_HAND);
 				mob.tryAttack(target);
-				c.actionUsed = true;
+				c.spendAction();
 			}
 		}
 		// everything else (archers, creepers, ...) uses its normal AI while pinned to its square; the
 		// ALLOW_DAMAGE hook marks the action as used when it deals damage
 
-		if (c.actionUsed) {
+		if (c.actionUsed()) {
 			if (++c.ticksSinceActionUsed >= CombatConfig.MOB_AFTER_ACTION_TICKS) endTurn();
 		} else if (c.ticksInAction >= (direct ? CombatConfig.MOB_IDLE_TICKS : CombatConfig.MOB_AI_ACTION_TICKS)) {
 			endTurn();
@@ -574,7 +618,7 @@ public final class Combat {
 
 		spendMovement(c, mob.getPos());
 
-		if (c.actionUsed && ++c.ticksSinceActionUsed >= CombatConfig.MOB_AFTER_ACTION_TICKS) {
+		if (c.actionUsed() && ++c.ticksSinceActionUsed >= CombatConfig.MOB_AFTER_ACTION_TICKS) {
 			endTurn();
 		} else if (c.moveExhausted && ++c.ticksSinceMoveExhausted >= CombatConfig.MOB_AFTER_MOVE_TICKS) {
 			endTurn();
@@ -645,6 +689,11 @@ public final class Combat {
 			}
 
 			int remaining = Math.max(0, (int) Math.floor(cur.moveBudget - cur.moveUsed + 1.0E-6));
+			for (TurnSetup.MoveOption m : cur.setup.moves()) { // squares a click may buy on the spot
+				if (m.auto() && cur.canPay(m.cost())) {
+					remaining = Math.max(remaining, m.keep() ? remaining + m.grant() : m.grant());
+				}
+			}
 			Grid.Result r = Grid.reachable(world, Grid.cellOf(cur.entity), remaining, enemyCells);
 			for (Grid.Node n : r.nodes) {
 				if (n.cost == 0 || occupied.contains(n.pos)) n.endable = false;
@@ -715,8 +764,23 @@ public final class Combat {
 		}
 
 		Combatant cur = current();
+		List<CombatStatePayload.Res> resources = new ArrayList<>();
+		for (Map.Entry<String, Integer> r : cur.max.entrySet()) {
+			resources.add(new CombatStatePayload.Res(r.getKey(), cur.resource(r.getKey()), r.getValue()));
+		}
+		List<CombatStatePayload.MoveButton> buttons = new ArrayList<>();
+		for (TurnSetup.MoveOption m : cur.setup.moves()) {
+			if (m.auto()) continue;
+			StringBuilder cost = new StringBuilder();
+			for (Map.Entry<String, Integer> e : m.cost().entrySet()) {
+				if (cost.length() > 0) cost.append(", ");
+				cost.append(e.getValue()).append(' ').append(e.getKey());
+			}
+			buttons.add(new CombatStatePayload.MoveButton(m.id(), m.label(), cost.toString(), cur.canPay(m.cost()) && !cur.moving()));
+		}
 		CombatStatePayload payload = new CombatStatePayload(true, round, turn,
-				(float) cur.moveUsed, (float) cur.moveBudget, cur.actionUsed, cur.bonusActionUsed, entries);
+				(float) cur.moveUsed, (float) cur.moveBudget, (float) cur.setup.square, cur.setup.unit,
+				resources, buttons, entries);
 
 		for (Combatant c : order) {
 			if (c.entity instanceof ServerPlayerEntity p) {
