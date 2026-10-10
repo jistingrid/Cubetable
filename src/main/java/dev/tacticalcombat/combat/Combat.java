@@ -912,7 +912,8 @@ public final class Combat {
 	/** A creature's turn that the Dungeon Master walks by hand (auto movement is off). */
 	private boolean manualMob(Combatant c) {
 		return !planning && c != null && !c.isPlayer()
-				&& (!DmTools.autoMovement || dev.tacticalcombat.actor.ActorRegistry.dmControlled(c.entity));
+				&& (dev.tacticalcombat.actor.ActorRegistry.dmControlled(c.entity)
+						|| (!DmTools.autoMovement && DmTools.dmOnline(world.getServer())));
 	}
 
 	private void refreshGrid() {

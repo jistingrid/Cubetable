@@ -363,7 +363,7 @@ public final class EncounterScreen extends Screen {
 		int pad = 8;
 		int ry = top + 8;
 		ry += tool(g, x + pad, ry, w - pad * 2, "Auto movement",
-				"On: creatures take their own turns. Off: you walk every creature yourself on its turn - click a square, then End turn in the tracker. (Each Actor can also be set to DM control in the Actors window.)",
+				"Off (default): while you are connected you walk every creature yourself on its turn - click a square, then End turn in the tracker. On: creatures take their own turns. (Each Actor can also be set to DM control in the Actors window.)",
 				DmState.autoMovement, () -> ClientPlayNetworking.send(new DmActionPayload(1, DmState.autoMovement ? 0 : 1)));
 		ry += opener(g, x + pad, ry, w - pad * 2, "Actors",
 				"Create, place and control the Actors of the world: sheet, model, side, and whether you walk them in a fight. Also /actors.",

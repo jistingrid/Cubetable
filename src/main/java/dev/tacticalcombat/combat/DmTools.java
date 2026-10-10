@@ -13,7 +13,14 @@ import java.util.List;
 /** The Dungeon Master's switches and what they are told while no fight is on. Settings last until the server stops. */
 public final class DmTools {
 	/** True: creatures take their own turns. False: the Dungeon Master walks them square by square and ends their turns. */
-	public static boolean autoMovement = true;
+	/** Off by default: while a Dungeon Master is connected they walk the creatures themselves. */
+	public static boolean autoMovement = false;
+
+	/** True when at least one Dungeon Master is connected. */
+	public static boolean dmOnline(MinecraftServer server) {
+		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) if (Roles.isDm(p.getUuid())) return true;
+		return false;
+	}
 
 	private DmTools() {}
 

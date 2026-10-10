@@ -72,7 +72,7 @@ Players get an action bar at the bottom of the combat view: their bars (hit poin
 
 Clicking a creature in a fight targets it, with an arrow over its model (colored for your own target, gray for others'). Collections marked `targetable` aim their attack rolls at the target and are checked against the pack's `defense`; with `damage` the target's owner gets a Full / Half / Heal / Custom popup: [docs/combat-rules.md](docs/combat-rules.md#targets-attacks-and-damage).
 
-The encounter window doubles as the DM screen (`J` for a DM, any time): start or end an encounter, and a DM tools tab with *Auto movement* (off: the DM walks the creatures by hand): [docs/combat-rules.md](docs/combat-rules.md#the-dm-screen).
+The encounter window doubles as the DM screen (`J` for a DM, any time): start or end an encounter, and a DM tools tab with *Auto movement* (off by default: with a DM connected, the DM walks the creatures by hand): [docs/combat-rules.md](docs/combat-rules.md#the-dm-screen).
 
 **Actors** are the enemies and NPCs of a scene, placed by a DM like tokens: each has a sheet (its own copy or a shared one), a model (any mob, a player skin, an item or a block), a side and optional DM control. Manage them in the Actors window (`/actors`) or `/actor ...`, and select and drag them in the world with the Stage (`G`): [docs/combat-rules.md](docs/combat-rules.md#actors-the-creatures-of-a-fight). `packs/generic_d20/characters/wolf.json` is a ready sheet (5e wolf).
 

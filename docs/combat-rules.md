@@ -180,7 +180,7 @@ two tabs.
 - **Encounter**: with no fight running it lists the players online, and **Start encounter** gathers the party around
   the DM (or the nearest player) with every hostile creature nearby. During a fight it is the initiative window
   (see below) with an **End encounter** button (click twice) next to Start combat.
-- **DM tools**: switches for the DM. *Auto movement* is on by default: creatures take their own turns. Off, the DM walks
+- **DM tools**: switches for the DM. *Auto movement* is off by default: while a Dungeon Master is connected they walk the creatures. On, creatures take their own turns (they always do when no DM is connected). Off, the DM walks
   each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
   tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.
 

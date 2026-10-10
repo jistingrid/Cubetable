@@ -6,7 +6,7 @@ import java.util.List;
 
 /** What the server last told this Dungeon Master: the tool switches and the players online. */
 public final class DmState {
-	public static boolean autoMovement = true;
+	public static boolean autoMovement = false;
 	public static List<DmStatePayload.Who> players = List.of();
 	public static List<DmStatePayload.ActorInfo> actors = List.of();
 
@@ -25,7 +25,7 @@ public final class DmState {
 	}
 
 	public static void clear() {
-		autoMovement = true;
+		autoMovement = false;
 		players = List.of();
 		actors = List.of();
 	}
