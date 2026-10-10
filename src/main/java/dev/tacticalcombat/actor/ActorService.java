@@ -51,6 +51,7 @@ public final class ActorService {
 			case ActorActionPayload.CONTROL -> setControl(dm.getServer(), p.id(), p.n() != 0);
 			case ActorActionPayload.RENAME -> rename(dm.getServer(), p.id(), p.a());
 			case ActorActionPayload.FIGHT -> addToFight(dm.getServer(), p.id());
+			case ActorActionPayload.MOVE -> move(dm, p.id(), p.c());
 			default -> "Unknown Actor action.";
 		};
 		if (error != null) dm.sendMessage(Text.literal(error), false);
@@ -320,6 +321,32 @@ public final class ActorService {
 		world.spawnEntity(body);
 		r.entityUuid = body.getUuid();
 		ActorRegistry.save();
+		return null;
+	}
+
+	/** Moves a placed Actor to where the Dungeon Master pointed (the Stage). Inside a fight the grid moves it instead. */
+	public static String move(ServerPlayerEntity dm, String id, String where) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		LivingEntity body = ActorRegistry.bodyOf(dm.getServer(), r);
+		if (body == null) return r.name + " is not placed in the world.";
+		if (CombatManager.isInCombat(body)) return r.name + " is in a fight: it moves on the grid.";
+		String[] parts = where == null ? new String[0] : where.trim().split("\\s+");
+		if (parts.length != 3) return "Bad position.";
+		double x, y, z;
+		try {
+			x = Double.parseDouble(parts[0]);
+			y = Double.parseDouble(parts[1]);
+			z = Double.parseDouble(parts[2]);
+		} catch (NumberFormatException ex) {
+			return "Bad position.";
+		}
+		if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) return "Bad position.";
+		if (dm.squaredDistanceTo(x, y, z) > 160.0 * 160.0) return "Too far away.";
+		if (body.getWorld() != dm.getWorld()) return r.name + " is in another dimension.";
+		if (body instanceof MobEntity m) m.getNavigation().stop();
+		body.setVelocity(Vec3d.ZERO);
+		body.refreshPositionAndAngles(x, y, z, body.getYaw(), body.getPitch());
 		return null;
 	}
 

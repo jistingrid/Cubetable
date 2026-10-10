@@ -39,6 +39,12 @@ public class TacticalCombatClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_J,
 			"key.categories.tacticalcombat"));
 
+	public static final KeyBinding STAGE_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.tacticalcombat.stage",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_G,
+			"key.categories.tacticalcombat"));
+
 	public static final KeyBinding DISMISS_CARD_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			"key.tacticalcombat.dismiss_card",
 			InputUtil.Type.KEYSYM,
@@ -102,6 +108,11 @@ public class TacticalCombatClient implements ClientModInitializer {
 					return 1;
 				})));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+				dispatcher.register(ClientCommandManager.literal("stage").executes(ctx -> {
+					ActorStageScreen.requestOpen();
+					return 1;
+				})));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				dispatcher.register(ClientCommandManager.literal("sheet").executes(ctx -> {
 					CharacterSheetScreen.requestOpen();
 					return 1;
@@ -135,6 +146,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			CharacterSheetScreen.tick(client);
 			EncounterScreen.tick(client);
 			ActorsScreen.tick(client);
+			ActorStageScreen.tick(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {
 				pollCameraKeys(client);
@@ -144,6 +156,9 @@ public class TacticalCombatClient implements ClientModInitializer {
 			}
 			while (SHEET_KEY.wasPressed()) {
 				CharacterSheetScreen.requestOpen();
+			}
+			while (STAGE_KEY.wasPressed()) {
+				ActorStageScreen.requestOpen();
 			}
 			while (ENCOUNTER_KEY.wasPressed()) {
 				EncounterScreen.requestOpen();

@@ -2,6 +2,7 @@
   "key.tacticalcombat.end_turn": "End Turn",
   "key.tacticalcombat.sheet": "Character Sheet",
   "key.tacticalcombat.encounter": "Encounter Window",
+  "key.tacticalcombat.stage": "Actor Stage (DM)",
   "key.tacticalcombat.dismiss_card": "Dismiss Shown Card",
   "key.categories.tacticalcombat": "Tactical Combat",
   "tacticalcombat.msg.combat_start": "Combat begins!",

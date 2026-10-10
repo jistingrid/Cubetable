@@ -368,6 +368,12 @@ public final class EncounterScreen extends Screen {
 		ry += opener(g, x + pad, ry, w - pad * 2, "Actors",
 				"Create, place and control the Actors of the world: sheet, model, side, and whether you walk them in a fight. Also /actors.",
 				() -> MinecraftClient.getInstance().setScreen(new ActorsScreen(this)));
+		ry += opener(g, x + pad, ry, w - pad * 2, "Stage",
+				"Click an Actor in the world to select it, drag it to walk it, and take control of it in a fight. Also G or /stage.",
+				() -> {
+					MinecraftClient.getInstance().setScreen(null);
+					ActorStageScreen.requestOpen();
+				});
 		ry += tool(g, x + pad, ry, w - pad * 2, "Combat tracker",
 				"The compact list of the fight at the corner of the screen.",
 				TrackerPanel.visible(), TrackerPanel::toggleHidden);

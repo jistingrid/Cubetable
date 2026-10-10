@@ -144,17 +144,31 @@ the default), `gt`, `lte` or `lt` (roll-under games). Without a `defense` the ro
   right-click rolls its damage (the first `dice` column). The slot's `cost` is spent from whoever acts, and a
   levelled spell uses up a slot. Outside the acting combatant's turn the cost is refused.
 
-### Creatures as attackers and targets
+### Actors: the creatures of a fight
 
-A creature has no player, so its numbers come from an **NPC sheet** (kind `npc`, for example
-`packs/generic_d20/characters/wolf.json`), matched to the Minecraft creature by **name**: a creature named "Wolf" uses
-the linked NPC sheet called "Wolf". The sheet has to be linked to the server by a player or DM first.
+Every enemy (and every NPC that fills a scene) is an **Actor**, made by a Dungeon Master and placed like a token. An
+Actor has:
 
-- **DM attacking a player:** while the DM walks a creature (Auto movement off), the DM acts as that creature. The
-  action bar shows the creature's sheet, slot clicks roll with its numbers, chat names the creature as the roller,
-  and costs are spent from the creature's own resources.
-- **Anyone attacking a creature:** the attack is compared with the `defense` formula on the creature's NPC sheet.
-- Creature hit points live on the Minecraft entity; one NPC sheet is shared by every creature of the same name.
+- a **sheet**: a server character (for example the wolf in `packs/generic_d20/characters/wolf.json`, linked to the
+  server first). *Own copy* gives the Actor a private copy, so three wolves have three separate hit-point pools;
+  *Shared* makes it use the character itself (good for a named NPC);
+- a **model**: any Minecraft mob, a player skin, or a floating item or block, changeable at any time;
+- a **side**: hostile, neutral or friendly. Hostile Actors nearby join an encounter when it starts;
+- **DM control**: when on, the DM walks and acts for it on its turn whatever the Auto movement switch says.
+
+Create and manage Actors in the Actors window (DM tools tab, or `/actors`) or with `/actor create|spawn|recall|model|sheet|...`.
+Vanilla mobs that are not Actors no longer take part in fights.
+
+- **DM attacking a player:** on the turn of an Actor the DM controls, the action bar shows the Actor's sheet, slot
+  clicks roll with its numbers, chat names the Actor as the roller, and costs come from its own resources.
+- **Anyone attacking an Actor:** the attack is compared with the `defense` formula on the Actor's sheet.
+
+### The Stage
+
+`G` (or `/stage`, or the Stage row in the DM tools tab) gives a DM a free cursor over the world, like Foundry's token
+layer. Click an Actor to select it (an arrow and its name show over it), drag it to walk it, or right-click the ground
+to send the selected Actor there. A small panel offers *DM control*, *Add to fight*, *Recall* and the Actors window.
+Inside a fight an Actor moves on the grid, not by dragging.
 
 Not there yet: critical hits, saving throws, advantage on bar rolls, and anything at 0 hit points.
 

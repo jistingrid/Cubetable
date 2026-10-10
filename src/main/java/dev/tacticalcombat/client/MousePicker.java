@@ -68,6 +68,19 @@ public final class MousePicker {
 		}
 	}
 
+	/** The camera ray through a GUI pixel as {origin, far end}, for screens that are not the tactical one. */
+	public static Vec3d[] ray(MinecraftClient mc, double mouseX, double mouseY) {
+		Camera camera = mc.gameRenderer.getCamera();
+		Vec3d origin = camera.getPos();
+		return new Vec3d[] {origin, origin.add(rayDirection(mc, camera, mouseX, mouseY).multiply(RANGE))};
+	}
+
+	/** Where a ray first meets the ground (see-through blocks skipped), or null when it meets nothing. */
+	public static Vec3d groundAt(MinecraftClient mc, Vec3d origin, Vec3d end) {
+		BlockHitResult hit = raycastSkippingFaded(mc, origin, end);
+		return hit.getType() == HitResult.Type.BLOCK ? hit.getPos() : null;
+	}
+
 	/**
 	 * Block raycast that looks straight through faded blocks, so a click lands on the square behind a
 	 * see-through wall instead of on the wall itself.

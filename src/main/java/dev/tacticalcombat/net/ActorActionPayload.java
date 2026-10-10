@@ -32,6 +32,8 @@ public record ActorActionPayload(int op, String id, String a, String b, String c
 	public static final int RENAME = 9;
 	/** Add the placed Actor to the running fight. */
 	public static final int FIGHT = 10;
+	/** c = "x y z": walk the placed Actor there (outside a fight). */
+	public static final int MOVE = 11;
 
 	public static ActorActionPayload of(int op, String id) {
 		return new ActorActionPayload(op, id, "", "", "", 0);
