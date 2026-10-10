@@ -141,7 +141,7 @@ Hover a button to read its effect. generic_d20 uses this for its **Conditions** 
 { "widget": "table", "collection": "conditions" }
 ```
 
-Duration 0 means "until removed". A format with a `combat.conditions` block counts durations down (below).
+`"quickRemove": true` on a collection puts an **x** button on every row that removes the entry at once (generic_d20 uses it on the active conditions; the "..." button still asks before deleting). Duration 0 means "until removed". A format with a `combat.conditions` block counts durations down (below).
 
 ## Formulas
 

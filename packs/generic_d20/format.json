@@ -1540,6 +1540,7 @@
           ]
         }
       ],
+      "quickRemove": true,
       "share": true,
       "presets": [
         {

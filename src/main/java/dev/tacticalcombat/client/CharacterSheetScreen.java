@@ -1179,6 +1179,15 @@ public final class CharacterSheetScreen extends Screen {
 		return cy - y + rowH;
 	}
 
+	/** The x button of a collection with quickRemove: the entry goes at once (no confirmation). */
+	private void removeRow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row) {
+		if (!canEdit(sc.character)) {
+			say("That character belongs to " + sc.character.ownerName + " - you can only look.");
+			return;
+		}
+		if (sc.character.rows(coll.id).remove(row)) store(sc.character);
+	}
+
 	private void quickAdd(SheetContext sc, SheetFormat.Collection target, CharacterData.Row preset) {
 		if (!canEdit(sc.character)) {
 			say("That character belongs to " + sc.character.ownerName + " - you can only look.");
@@ -1205,7 +1214,7 @@ public final class CharacterSheetScreen extends Screen {
 		for (SheetFormat.Col c : coll.columns) if (!c.detail && !c.hidden && !c.type.equals("note")) main.add(c);
 		int n = main.size();
 		int btn = 14;
-		int editW = coll.share ? btn * 2 + 2 : btn;
+		int editW = btn + (coll.share ? btn + 2 : 0) + (coll.quickRemove ? btn + 2 : 0);
 		int gap = 3;
 		float total = 0;
 		for (SheetFormat.Col c : main) total += c.width;
@@ -1362,6 +1371,13 @@ public final class CharacterSheetScreen extends Screen {
 					g.fill(sx + 1, cy + 2, sx + btn - 1, cy + 11, eye ? PANEL_HOVER : PANEL);
 					g.fill(sx + 3, cy + 4, sx + 11, cy + 9, eye ? 0xFFFFFFFF : 0xFFC9CCD2);
 					g.fill(sx + 6, cy + 5, sx + 8, cy + 8, 0xFF14161A);
+				}
+				if (coll.quickRemove) {
+					int rx = ex - (coll.share ? (btn + 2) * 2 : btn + 2);
+					boolean gone = hit(rx, cy + 1, btn, 11, () -> removeRow(sc, coll, row), "Remove this entry");
+					g.fill(rx, cy + 1, rx + btn, cy + 12, EDGE);
+					g.fill(rx + 1, cy + 2, rx + btn - 1, cy + 11, gone ? 0xFF5A1F1F : PANEL);
+					g.drawCenteredTextWithShadow(textRenderer, "x", rx + btn / 2, cy + 2, gone ? 0xFFFF8080 : 0xFFC9CCD2);
 				}
 			}
 			cy += rh + 1;

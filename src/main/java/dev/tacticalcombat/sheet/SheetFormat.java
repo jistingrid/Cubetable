@@ -118,6 +118,8 @@ public final class SheetFormat {
 		public boolean damage;
 		public final List<Col> columns = new ArrayList<>();
 		public final List<Footer> footers = new ArrayList<>();
+		/** Every row gets an x button that deletes it at once (the "..." editor still asks first). */
+		public boolean quickRemove;
 		/** Ready-made rows the format offers as quick-add buttons (a "quickadd" widget), e.g. the common conditions. */
 		public final List<CharacterData.Row> presets = new ArrayList<>();
 
@@ -324,6 +326,7 @@ public final class SheetFormat {
 		}
 		if (c.columns.isEmpty()) throw new IllegalArgumentException("collection '" + c.id + "' has no columns");
 		c.share = bool(o, "share");
+		c.quickRemove = bool(o, "quickRemove");
 		c.targetable = bool(o, "targetable");
 		c.damage = c.targetable && bool(o, "damage");
 		c.groupBy = str(o, "groupBy", "").toLowerCase(Locale.ROOT);
