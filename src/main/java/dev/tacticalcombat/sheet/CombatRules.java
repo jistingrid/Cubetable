@@ -78,6 +78,18 @@ public final class CombatRules {
 	/** What happens at 0 hit points; null = nothing special (the sheet just shows 0). */
 	public Downed downed;
 
+	/** Which collection is the list of conditions and how its durations count down; null = nothing counts down. */
+	public Conditions conditions;
+
+	/**
+	 * @param collection the collection holding the conditions
+	 * @param duration   its number column with the time left (0 or less = until removed)
+	 * @param unit       its choice column naming the unit
+	 * @param turns      the option of that column that counts turns (ticks down when the creature's turn ends in a fight)
+	 * @param seconds    the option that counts seconds (ticks down in real time, not while time is paused)
+	 */
+	public record Conditions(String collection, String duration, String unit, String turns, String seconds) {}
+
 	/**
 	 * @param label   the state's name ("Downed", "Dying" ...)
 	 * @param all     true: every sheet with a health bar is downed; false (default): only player characters are, a
@@ -214,6 +226,15 @@ public final class CombatRules {
 				if (!hit.equals("gt") && !hit.equals("lte") && !hit.equals("lt")) hit = "gte";
 				r.defense = new Defense(d.get("value").getAsString(),
 						d.has("label") ? d.get("label").getAsString() : "Defense", hit);
+			}
+		}
+		if (o.has("conditions") && o.get("conditions").isJsonObject()) {
+			JsonObject d = o.getAsJsonObject("conditions");
+			if (d.has("collection") && d.has("duration") && d.has("unit")) {
+				r.conditions = new Conditions(d.get("collection").getAsString().toLowerCase(Locale.ROOT),
+						d.get("duration").getAsString().toLowerCase(Locale.ROOT), d.get("unit").getAsString().toLowerCase(Locale.ROOT),
+						d.has("turns") ? d.get("turns").getAsString() : "turns",
+						d.has("seconds") ? d.get("seconds").getAsString() : "seconds");
 			}
 		}
 		if (o.has("downed") && o.get("downed").isJsonObject()) {

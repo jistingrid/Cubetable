@@ -325,6 +325,7 @@ public final class Combat {
 		Combatant cur = current();
 		cur.path = null;
 		cur.anchor = cur.entity.getPos();
+		if (world.getServer() != null && !planning) Conditions.onTurnEnd(world.getServer(), cur.entity);
 		turn++;
 		if (turn >= order.size()) {
 			turn = 0;

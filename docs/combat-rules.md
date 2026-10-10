@@ -246,6 +246,20 @@ Actor and made invisible, and the Actor's body is held on the DM's position, loo
 the DM keeps their own inventory, game mode and hit points while possessing. Possession ends by itself when a fight
 begins, when the Actor is recalled or deleted, or when the DM leaves its dimension.
 
+## Conditions
+
+The format's `combat.conditions` names the collection that lists conditions and how its durations count:
+
+```json
+"conditions": { "collection": "conditions", "duration": "duration", "unit": "unit", "turns": "turns", "seconds": "seconds" }
+```
+
+`duration` is a number column (0 or less = until removed), `unit` a choice column, and `turns` / `seconds` are the
+options of that column that count each way. A condition measured in **turns** loses 1 when its owner's turn ends in a
+fight (so "1 turn" lasts until the end of that creature's next turn); one in **seconds** loses 1 every real second
+(it waits while time is paused). At 0 it is taken off the sheet and chat says "Name: Prone ended." This works for a
+player's Active Actor and for Actors alike; conditions have no other mechanical effect yet.
+
 ## Initiative
 
 ```json

@@ -255,6 +255,7 @@
     "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
     "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
     "defense": { "value": "ac", "label": "AC", "hit": "gte" },
+    "conditions": { "collection": "conditions", "duration": "duration", "unit": "unit", "turns": "turns", "seconds": "seconds" },
     "downed": {
       "label": "Downed",
       "applies": "pc",

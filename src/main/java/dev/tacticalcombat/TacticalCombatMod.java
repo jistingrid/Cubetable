@@ -67,6 +67,7 @@ public class TacticalCombatMod implements ModInitializer {
 				context.server().execute(() -> dev.tacticalcombat.combat.Downed.handle(context.player(), payload)));
 		dev.tacticalcombat.combat.Downed.register();
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.Downed::tick);
+		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.Conditions::tick);
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.TimePause::tick);
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.actor.Possession::tick);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.TargetPayload.ID, dev.tacticalcombat.net.TargetPayload.CODEC);

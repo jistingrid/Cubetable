@@ -141,7 +141,7 @@ Hover a button to read its effect. generic_d20 uses this for its **Conditions** 
 { "widget": "table", "collection": "conditions" }
 ```
 
-Duration 0 means "until removed". The list is a record for the table: nothing counts the duration down yet.
+Duration 0 means "until removed". A format with a `combat.conditions` block counts durations down (below).
 
 ## Formulas
 
