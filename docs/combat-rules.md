@@ -140,7 +140,23 @@ the default), `gt`, `lte` or `lt` (roll-under games). Without a `defense` the ro
   `Goblin received 5 damage` or `Goblin healed 5 HP`. With no Dungeon Master online, damage to a creature is applied in full.
 - A roll with no target picked is an ordinary roll, with a reminder in chat.
 
-Not there yet: critical hits, saving throws, and anything at 0 hit points.
+- **Slots roll too:** on the action bar, clicking a weapon or spell slot rolls its attack (the first `roll` column);
+  right-click rolls its damage (the first `dice` column). The slot's `cost` is spent from whoever acts, and a
+  levelled spell uses up a slot. Outside the acting combatant's turn the cost is refused.
+
+### Creatures as attackers and targets
+
+A creature has no player, so its numbers come from an **NPC sheet** (kind `npc`, for example
+`packs/generic_d20/characters/wolf.json`), matched to the Minecraft creature by **name**: a creature named "Wolf" uses
+the linked NPC sheet called "Wolf". The sheet has to be linked to the server by a player or DM first.
+
+- **DM attacking a player:** while the DM walks a creature (Auto movement off), the DM acts as that creature. The
+  action bar shows the creature's sheet, slot clicks roll with its numbers, chat names the creature as the roller,
+  and costs are spent from the creature's own resources.
+- **Anyone attacking a creature:** the attack is compared with the `defense` formula on the creature's NPC sheet.
+- Creature hit points live on the Minecraft entity; one NPC sheet is shared by every creature of the same name.
+
+Not there yet: critical hits, saving throws, advantage on bar rolls, and anything at 0 hit points.
 
 ## The DM screen
 

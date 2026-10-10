@@ -82,6 +82,13 @@ public final class ServerCharacters {
 		return fallback;
 	}
 
+	/** Any character the server told this client about (yours or, for a Dungeon Master, everyone's) by its server id. */
+	public static CharacterData byId(String id) {
+		if (id == null || id.isEmpty()) return null;
+		for (CharacterData c : SheetLibrary.CHARACTERS) if (!c.remote && id.equals(c.link)) return c;
+		return REMOTE.get(id);
+	}
+
 	/** Makes one of your linked characters the Active Actor, or clears it when it already is. */
 	public static void toggleActive(CharacterData c) {
 		if (c.link.isEmpty() || c.remote || !available()) return;

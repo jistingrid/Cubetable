@@ -38,7 +38,8 @@ public final class Damage {
 	}
 
 	/** Ask the owner(s) of {@code target} what to do with {@code amount} damage dealt by {@code attacker}. */
-	public static void offer(ServerPlayerEntity attacker, LivingEntity target, String label, int amount) {
+	public static void offer(ServerPlayerEntity attacker, String attackerName, LivingEntity target, String label, int amount) {
+		String from = attackerName == null || attackerName.isBlank() ? attacker.getName().getString() : attackerName;
 		MinecraftServer server = attacker.getServer();
 		if (server == null) return;
 		List<ServerPlayerEntity> owners = new ArrayList<>();
@@ -57,8 +58,8 @@ public final class Damage {
 		long id = nextId++;
 		List<UUID> uuids = new ArrayList<>();
 		for (ServerPlayerEntity p : owners) uuids.add(p.getUuid());
-		PROMPTS.put(id, new Prompt(id, target.getUuid(), name, attacker.getName().getString(), label, amount, uuids));
-		DamagePromptPayload payload = new DamagePromptPayload(id, false, name, attacker.getName().getString(), label, amount);
+		PROMPTS.put(id, new Prompt(id, target.getUuid(), name, from, label, amount, uuids));
+		DamagePromptPayload payload = new DamagePromptPayload(id, false, name, from, label, amount);
 		for (ServerPlayerEntity p : owners) ServerPlayNetworking.send(p, payload);
 	}
 

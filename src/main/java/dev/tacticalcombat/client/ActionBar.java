@@ -1,8 +1,11 @@
 package dev.tacticalcombat.client;
 
 import dev.tacticalcombat.net.CombatStatePayload;
+import dev.tacticalcombat.net.DiceRequestPayload;
+import dev.tacticalcombat.net.EncounterActionPayload;
 import dev.tacticalcombat.sheet.CharacterData;
 import dev.tacticalcombat.sheet.CombatRules;
+import dev.tacticalcombat.sheet.Expr;
 import dev.tacticalcombat.sheet.SheetContext;
 import dev.tacticalcombat.sheet.SheetFormat;
 import dev.tacticalcombat.sheet.SheetLibrary;
@@ -55,7 +58,7 @@ public final class ActionBar {
 	private static final int SPENT = 0xFF444A58;
 	private static final int MOVE = 0xFFE0B84C;
 
-	/** Index of the selected slot, -1 = none. Nothing consumes it yet; attacks still use a click on the target. */
+	/** Kept for the slot highlight; clicking a slot now rolls it instead of selecting it. */
 	public static int selected = -1;
 
 	/** Where the player dragged the bar: its centre and bottom edge (so it keeps its anchor as it changes width). -1 = default. */
@@ -67,9 +70,10 @@ public final class ActionBar {
 
 	private ActionBar() {}
 
-	/** One slot, already evaluated on the character's sheet. */
+	/** One slot, already evaluated on the character's sheet; the references let a click roll it. */
 	public record Slot(String name, ItemStack icon, int level, Map<String, Integer> cost, String costText,
-					   int left, int max, boolean usable) {}
+					   int left, int max, boolean usable,
+					   SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, boolean own, String store) {}
 
 	/** Where everything sits; computed once per frame and shared by drawing and clicking. */
 	private static final class Layout {
@@ -85,17 +89,34 @@ public final class ActionBar {
 
 	// ------------------------------------------------------------------ data
 
+	/**
+	 * Whose bar this is: your own combatant, or, for a Dungeon Master walking a creature by hand, the creature on turn
+	 * (its sheet gives the slots, so the DM rolls as that creature).
+	 */
 	private static CombatStatePayload.Entry mine(MinecraftClient mc) {
 		if (mc.player == null) return null;
+		if (!ClientCombatState.isMyTurn() && ClientCombatState.canMoveActive()) {
+			int idx = ClientCombatState.activeIndex;
+			if (idx >= 0 && idx < ClientCombatState.entries.size()) return ClientCombatState.entries.get(idx);
+		}
 		for (CombatStatePayload.Entry e : ClientCombatState.entries) {
 			if (e.entityId() == mc.player.getId()) return e;
 		}
 		return null;
 	}
 
+	/** The bars to show for someone: their sheet's, else a plain health bar from the creature itself. */
+	private static List<CombatStatePayload.Bar> barsOf(CombatStatePayload.Entry e) {
+		if (!e.bars().isEmpty()) return e.bars();
+		if (e.maxHealth() <= 0) return List.of();
+		return List.of(new CombatStatePayload.Bar("hp", "HP", e.health(), e.maxHealth(), 0xFFE04040, true));
+	}
+
 	private static List<Slot> buildSlots(CombatStatePayload.Entry mine, boolean myTurn) {
 		if (mine == null) return List.of();
-		CharacterData c = ServerCharacters.fighter(mine.sheetId());
+		MinecraftClient mcl = MinecraftClient.getInstance();
+		boolean own = mcl.player != null && mine.entityId() == mcl.player.getId();
+		CharacterData c = own ? ServerCharacters.fighter(mine.sheetId()) : ServerCharacters.byId(mine.sheetId());
 		if (c == null) return List.of();
 		SheetFormat f = SheetLibrary.FORMATS.get(c.format);
 		if (f == null || f.combat == null || f.combat.sources.isEmpty()) return List.of();
@@ -141,7 +162,8 @@ public final class ActionBar {
 					}
 				}
 				String mode = s.show().isEmpty() ? rules.showCost : s.show();
-				out.add(new Slot(name, iconFor(s.icon()), level, cost, costText(cost, main, mode), left, max, usable));
+				out.add(new Slot(name, iconFor(s.icon()), level, cost, costText(cost, main, mode), left, max, usable,
+						sc, coll, row, own && !c.remote, s.slotStore()));
 			}
 		}
 		return out;
@@ -193,12 +215,12 @@ public final class ActionBar {
 
 		int hpW = 0;
 		int hpH = 0;
-		if (mine != null && !mine.bars().isEmpty()) {
+		if (mine != null && !barsOf(mine).isEmpty()) {
 			int labelW = 0;
 			int numW = font.getWidth("000 / 000");
-			for (CombatStatePayload.Bar b : mine.bars()) labelW = Math.max(labelW, font.getWidth(b.label()));
+			for (CombatStatePayload.Bar b : barsOf(mine)) labelW = Math.max(labelW, font.getWidth(b.label()));
 			hpW = labelW + 4 + 44 + 4 + numW;
-			hpH = mine.bars().size() * ROW;
+			hpH = barsOf(mine).size() * ROW;
 			widths.add(hpW);
 			heights.add(hpH);
 		}
@@ -315,7 +337,7 @@ public final class ActionBar {
 	}
 
 	private static Layout current(MinecraftClient mc, int screenW, int screenH) {
-		boolean myTurn = ClientCombatState.isMyTurn();
+		boolean myTurn = ClientCombatState.canMoveActive();
 		CombatStatePayload.Entry mine = mine(mc);
 		List<Slot> slots = buildSlots(mine, myTurn);
 		lastSlots = slots;
@@ -325,7 +347,7 @@ public final class ActionBar {
 	// ------------------------------------------------------------------ drawing
 
 	public static void render(DrawContext ctx, MinecraftClient mc, TextRenderer font, int screenW, int screenH) {
-		boolean myTurn = ClientCombatState.isMyTurn();
+		boolean myTurn = ClientCombatState.canMoveActive();
 		CombatStatePayload.Entry mine = mine(mc);
 		List<Slot> slots = buildSlots(mine, myTurn);
 		lastSlots = slots;
@@ -407,10 +429,10 @@ public final class ActionBar {
 
 	private static void drawBars(DrawContext ctx, TextRenderer font, int[] g, CombatStatePayload.Entry mine) {
 		int labelW = 0;
-		for (CombatStatePayload.Bar b : mine.bars()) labelW = Math.max(labelW, font.getWidth(b.label()));
+		for (CombatStatePayload.Bar b : barsOf(mine)) labelW = Math.max(labelW, font.getWidth(b.label()));
 		int barW = 44;
 		int y = g[1];
-		for (CombatStatePayload.Bar b : mine.bars()) {
+		for (CombatStatePayload.Bar b : barsOf(mine)) {
 			ctx.drawTextWithShadow(font, b.label(), g[0], y + 2, TEXT);
 			int bx = g[0] + labelW + 4;
 			float frac = b.max() <= 0 ? 0 : Math.max(0f, Math.min(1f, b.now() / b.max()));
@@ -531,6 +553,7 @@ public final class ActionBar {
 			}
 			lines.add(Text.translatable("tacticalcombat.bar.cost", sb.toString()));
 		}
+		lines.add(Text.translatable("tacticalcombat.bar.use").formatted(net.minecraft.util.Formatting.GRAY));
 		if (!s.usable()) lines.add(Text.translatable("tacticalcombat.bar.unavailable"));
 		return lines;
 	}
@@ -565,9 +588,15 @@ public final class ActionBar {
 			customBottom = -1;
 			return true;
 		}
+		if (button == 1 && control && ClientCombatState.canMoveActive()) { // right click: the damage of that slot
+			for (int i = 0; i < L.slotRects.size(); i++) {
+				if (inside(mx, my, L.slotRects.get(i))) use(i, true);
+			}
+			return true;
+		}
 		if (button != 0) return true;
 
-		if (ClientCombatState.isMyTurn()) {
+		if (ClientCombatState.canMoveActive()) {
 			for (int i = 0; i < L.moveRects.size(); i++) {
 				if (inside(mx, my, L.moveRects.get(i))) {
 					CombatStatePayload.MoveButton b = ClientCombatState.moveButtons.get(i);
@@ -577,12 +606,13 @@ public final class ActionBar {
 			}
 			for (int i = 0; i < L.slotRects.size(); i++) {
 				if (inside(mx, my, L.slotRects.get(i))) {
-					toggle(i);
+					use(i, false);
 					return true;
 				}
 			}
 			if (L.end != null && inside(mx, my, L.end)) {
-				TacticalCombatClient.sendEndTurn();
+				if (ClientCombatState.isMyTurn()) TacticalCombatClient.sendEndTurn();
+				else ClientPlayNetworking.send(new EncounterActionPayload(6, 0, 0)); // the Dungeon Master ends the creature's turn
 				return true;
 			}
 		}
@@ -607,17 +637,79 @@ public final class ActionBar {
 
 	/** Number keys 1 to 9 pick the matching slot. True when the key was used. */
 	public static boolean keyPressed(int keyCode) {
-		if (!ClientCombatState.isMyTurn()) return false;
+		if (!ClientCombatState.canMoveActive()) return false;
 		if (keyCode < GLFW.GLFW_KEY_1 || keyCode > GLFW.GLFW_KEY_9) return false;
 		int index = keyCode - GLFW.GLFW_KEY_1;
 		if (index >= lastVisible || index >= lastSlots.size()) return false;
-		toggle(index);
+		use(index, false);
 		return true;
 	}
 
-	private static void toggle(int index) {
-		if (index < 0 || index >= lastSlots.size() || !lastSlots.get(index).usable()) return;
-		selected = selected == index ? -1 : index;
+	/**
+	 * Uses a slot. Left click: its attack roll (aimed at your target; the cost is spent and a spell slot used), or its
+	 * dice when it has no attack. Right click: its damage dice, which cost nothing.
+	 */
+	private static void use(int index, boolean damage) {
+		if (index < 0 || index >= lastSlots.size()) return;
+		Slot s = lastSlots.get(index);
+		if (!s.usable()) return;
+		MinecraftClient mc = MinecraftClient.getInstance();
+		if (mc.player == null) return;
+		if (!ClientPlayNetworking.canSend(DiceRequestPayload.ID)) return;
+
+		SheetFormat.Col attack = null;
+		SheetFormat.Col dice = null;
+		String diceFormula = null;
+		for (SheetFormat.Col col : s.coll().columns) {
+			if (col.enabled != null) {
+				double on = s.sc().number(s.coll(), s.row(), col.enabled);
+				if (!Double.isNaN(on) && on <= 0) continue;
+			}
+			if (attack == null && col.type.equals("roll") && col.roll != null) attack = col;
+			if (dice == null && col.type.equals("dice")) {
+				String text = s.row().texts.getOrDefault(col.id, "").trim();
+				if (!text.isEmpty()) {
+					dice = col;
+					diceFormula = col.modifier == null ? text : text + " + (" + col.modifier + ")";
+				}
+			}
+		}
+		boolean aimed = s.coll().targetable;
+		boolean isDamage = damage || attack == null;
+		SheetFormat.Col col = isDamage ? dice : attack;
+		String formula = isDamage ? diceFormula : attack == null ? null : attack.roll;
+		if (col == null || formula == null) {
+			mc.player.sendMessage(Text.literal("[sheet] " + s.name() + " has nothing to roll.").formatted(net.minecraft.util.Formatting.GRAY), false);
+			return;
+		}
+		int kind = isDamage ? (aimed && s.coll().damage ? 2 : 0) : (aimed ? 1 : 0);
+		String label = col.rollLabel.replace("{name}", s.name());
+		StringBuilder cost = new StringBuilder();
+		if (!damage) {
+			for (Map.Entry<String, Integer> e : s.cost().entrySet()) {
+				if (cost.length() > 0) cost.append(',');
+				cost.append(e.getKey()).append(':').append(e.getValue());
+			}
+		}
+		try {
+			Expr.Roll roll = s.sc().plan(s.coll(), s.row(), formula);
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), 0, kind, cost.toString()));
+		} catch (RuntimeException e) {
+			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(net.minecraft.util.Formatting.RED), false);
+			return;
+		}
+
+		// a levelled spell uses up one of its slots (on your own sheet; a creature's sheet is not changed)
+		if (!damage && s.level() >= 1 && s.own() && !s.store().isEmpty()) {
+			String key = s.store() + s.level();
+			CharacterData c = s.sc().character;
+			c.values.put(key, Math.max(0, c.values.getOrDefault(key, 0.0) - 1));
+			try {
+				SheetLibrary.save(c);
+			} catch (java.io.IOException e) {
+				// the slot count stays as it was on disk; the next save fixes it
+			}
+		}
 	}
 
 	public static void reset() {

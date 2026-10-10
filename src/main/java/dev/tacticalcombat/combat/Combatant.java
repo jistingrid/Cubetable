@@ -11,6 +11,9 @@ import java.util.Map;
 /** One participant of a {@link Combat}: a player or a hostile mob, plus its per-turn resources. */
 public final class Combatant {
 	public final LivingEntity entity;
+	/** Server id of the creature's NPC sheet ("" none); looked up once. */
+	public String npcSheetId = "";
+	public boolean npcChecked;
 	public int initiative;
 	/** Initiative has been rolled (or set by the Dungeon Master); until then the entry waits at the end of the order. */
 	public boolean rolled;

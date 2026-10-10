@@ -2155,7 +2155,7 @@ public final class CharacterSheetScreen extends Screen {
 				return;
 			}
 			int mode = roll.type() == DiceType.D20 && roll.count() == 1 && hasRollMode(sc) ? rollMode : 0;
-			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind));
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, ""));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 		}

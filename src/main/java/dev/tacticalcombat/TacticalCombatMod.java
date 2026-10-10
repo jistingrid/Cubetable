@@ -46,7 +46,7 @@ public class TacticalCombatMod implements ModInitializer {
 		dev.tacticalcombat.character.CharacterSync.register();
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> dev.tacticalcombat.combat.Strikes.roll(context.player(), payload.label(),
-						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind())));
+						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind(), payload.cost())));
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.DmStatePayload.ID, dev.tacticalcombat.net.DmStatePayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.DmActionPayload.ID, dev.tacticalcombat.net.DmActionPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DmActionPayload.ID, (payload, context) ->

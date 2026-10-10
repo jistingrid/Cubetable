@@ -30,6 +30,12 @@ public final class DiceService {
 	/** As above; {@code verdict} gets the total and may add a line under the roll (a hit or a miss). */
 	public static int rollTotal(ServerPlayerEntity player, String label, DiceType type, int count, int modifier, int mode,
 								java.util.function.IntFunction<Verdict> verdict) {
+		return rollTotal(player, null, label, type, count, modifier, mode, verdict);
+	}
+
+	/** As above, shown as rolled by {@code roller} (a creature a Dungeon Master rolls for); null = the player. */
+	public static int rollTotal(ServerPlayerEntity player, String roller, String label, DiceType type, int count, int modifier,
+								int mode, java.util.function.IntFunction<Verdict> verdict) {
 		count = Math.max(1, Math.min(DiceSpec.MAX_COUNT, count));
 		modifier = Math.max(-999, Math.min(999, modifier));
 		int keep = 0;
@@ -54,7 +60,7 @@ public final class DiceService {
 		total += modifier;
 
 		Verdict v = verdict == null ? Verdict.NONE : verdict.apply(total);
-		DiceRollPayload payload = new DiceRollPayload(player.getGameProfile().getName(), label, type, modifier, keep, results,
+		DiceRollPayload payload = new DiceRollPayload(roller == null || roller.isBlank() ? player.getGameProfile().getName() : roller, label, type, modifier, keep, results,
 				v.outcome(), v.text());
 		for (ServerPlayerEntity p : player.getServer().getPlayerManager().getPlayerList()) {
 			ServerPlayNetworking.send(p, payload);

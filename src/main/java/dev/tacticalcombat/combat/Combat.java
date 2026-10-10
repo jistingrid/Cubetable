@@ -267,12 +267,22 @@ public final class Combat {
 	 * combatants can target, and only combatants can be targeted.
 	 */
 	public void setTarget(ServerPlayerEntity player, int entityId) {
-		if (get(player) == null) return;
+		if (get(player) == null && !dev.tacticalcombat.character.Roles.isDm(player.getUuid())) return; // a Dungeon Master may target too
 		Entity e = world.getEntityById(entityId);
 		if (!(e instanceof LivingEntity target) || !target.isAlive() || get(target) == null) return;
 		if (Integer.valueOf(entityId).equals(targets.get(player.getId()))) targets.remove(player.getId());
 		else targets.put(player.getId(), entityId);
 		sync();
+	}
+
+	/**
+	 * Who acts when this player rolls an attack: their own combatant, or, for a Dungeon Master walking creatures by
+	 * hand, the creature whose turn it is. Null when nobody.
+	 */
+	public Combatant actorFor(ServerPlayerEntity player) {
+		if (planning || order.isEmpty()) return get(player);
+		if (dev.tacticalcombat.character.Roles.isDm(player.getUuid()) && manualMob(current())) return current();
+		return get(player);
 	}
 
 	/** The creature this player is aiming at, or null. */
@@ -986,8 +996,10 @@ public final class Combat {
 					c.initiative,
 					c.rolled,
 					c.rule.hasRoll(),
-					e instanceof ServerPlayerEntity sp && dev.tacticalcombat.character.Actors.entryOf(sp.getUuid()) != null
-							? dev.tacticalcombat.character.Actors.get(sp.getUuid()) : "",
+					e instanceof ServerPlayerEntity sp
+							? (dev.tacticalcombat.character.Actors.entryOf(sp.getUuid()) != null
+									? dev.tacticalcombat.character.Actors.get(sp.getUuid()) : "")
+							: npcSheetOf(c),
 					bars));
 		}
 
@@ -1009,7 +1021,8 @@ public final class Combat {
 		targets.entrySet().removeIf(t -> {
 			Entity by = world.getEntityById(t.getKey());
 			Entity at = world.getEntityById(t.getValue());
-			return by == null || at == null || get(by) == null || get(at) == null || !at.isAlive();
+			boolean dmBy = by instanceof ServerPlayerEntity dp && dev.tacticalcombat.character.Roles.isDm(dp.getUuid());
+			return by == null || at == null || (get(by) == null && !dmBy) || get(at) == null || !at.isAlive();
 		});
 		List<CombatStatePayload.Target> targetList = new ArrayList<>();
 		targets.forEach((by, at) -> targetList.add(new CombatStatePayload.Target(by, at)));
@@ -1027,6 +1040,16 @@ public final class Combat {
 			ServerPlayNetworking.send(dm, payload);
 			notified.add(dm);
 		}
+	}
+
+	/** Id of the NPC sheet of a creature, looked up once per creature (empty when it has none). */
+	private static String npcSheetOf(Combatant c) {
+		if (!c.npcChecked) {
+			c.npcChecked = true;
+			NpcSheets.Found f = NpcSheets.find(c.entity);
+			c.npcSheetId = f == null ? "" : f.id();
+		}
+		return c.npcSheetId;
 	}
 
 	private static void sendInactive(ServerPlayerEntity p) {

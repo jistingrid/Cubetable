@@ -35,6 +35,7 @@
   "tacticalcombat.prompt.back": "Back",
   "tacticalcombat.msg.already_fighting": "An encounter is already running.",
   "tacticalcombat.msg.no_enemies": "No hostile creature near the party: nothing to start an encounter with.",
+  "tacticalcombat.bar.use": "Click: attack / roll  -  Right click: damage",
   "tacticalcombat.bar.drag": "Drag to move, right click to reset",
   "tacticalcombat.bar.unavailable": "Not available right now",
   "tacticalcombat.hud.controls": "Click: target / move  |  WASD: pan  |  Wheel: zoom  |  Arrows: rotate",
