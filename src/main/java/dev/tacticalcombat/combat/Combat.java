@@ -939,7 +939,7 @@ public final class Combat {
 		if (c.isPlayer()) return "It is a player's turn.";
 		dev.tacticalcombat.actor.ActorRecord rec = dev.tacticalcombat.actor.ActorRegistry.recordOf(c.entity);
 		if (rec != null && !rec.dmControl) {
-			rec.dmControl = true; // stays under the DM's control until switched off in the Actors window or on the Stage
+			rec.dmControl = true; // stays under the DM's control until switched off in the Actors tab or on the Stage
 			dev.tacticalcombat.actor.ActorRegistry.save();
 		}
 		if (c.path != null && !c.path.isEmpty()) {

@@ -194,7 +194,8 @@ public final class ActorStageScreen extends Screen {
 						&& ClientCombatState.entries.get(ClientCombatState.activeIndex).entityId() == sel.entityId();
 				ClientPlayNetworking.send(ActorActionPayload.of(onTurn ? ActorActionPayload.TAKEOVER : ActorActionPayload.RECALL, sel.id()));
 			} else if (over(mx, my, x + 84, by + 18, 76)) {
-				MinecraftClient.getInstance().setScreen(new ActorsScreen(null));
+				close();
+				EncounterScreen.requestTab(2);
 			} else if (over(mx, my, x + 8, by + 36, 152) && !sel.inFight() && sel.entityId() >= 0) {
 				ClientPlayNetworking.send(ActorActionPayload.of(ActorActionPayload.POSSESS, sel.id()));
 				close();

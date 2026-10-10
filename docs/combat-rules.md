@@ -156,7 +156,7 @@ Actor has:
 - a **side**: hostile, neutral or friendly. Hostile Actors nearby join an encounter when it starts;
 - **DM control**: when on, the DM walks and acts for it on its turn whatever the Auto movement switch says.
 
-Create and manage Actors in the Actors window (DM tools tab, or `/actors`) or with `/actor create|spawn|recall|model|sheet|...`.
+Create and manage Actors in the **Actors tab** of the DM window (`J`, then the third tab; or `/actors`) or with `/actor create|spawn|recall|model|sheet|...`.
 Vanilla mobs that are not Actors no longer take part in fights.
 
 - **DM attacking a player:** on the turn of an Actor the DM controls, the action bar shows the Actor's sheet, slot
@@ -167,7 +167,7 @@ Vanilla mobs that are not Actors no longer take part in fights.
 
 `G` (or `/stage`, or the Stage row in the DM tools tab) gives a DM a free cursor over the world, like Foundry's token
 layer. Click an Actor to select it (an arrow and its name show over it), drag it to walk it, or right-click the ground
-to send the selected Actor there. A small panel offers *DM control*, *Add to fight*, *Recall* and the Actors window.
+to send the selected Actor there. A small panel offers *DM control*, *Add to fight*, *Recall* and the Actors tab.
 Inside a fight an Actor moves on the grid, not by dragging. When it is the selected Actor's turn and it is walking by
 itself (Auto movement on), the panel's *Take over* button (or `Y`, for whatever creature is on turn) cancels the walk
 where it stands and hands the creature to the DM, who walks it by hand from then on (its DM control switch is turned on).
@@ -226,10 +226,14 @@ two tabs.
   each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
   tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.
 
-- **Time pause** (also in the DM tools tab): while it is on, players cannot walk, jump or touch blocks (break, place,
-  use), and a "TIME PAUSED" banner shows. DMs are not held, and neither are players inside a fight (the grid
+- **Pause game** (in the DM tools tab): while it is on, players cannot walk, jump or touch blocks (break, place,
+  use), and a "Game Paused" banner shows. DMs are not held, and neither are players inside a fight (the grid
   rules their movement). Looking around, the sheet, dice and chat keep working. Like the other settings it lasts
   until the server stops.
+
+The DM window is **resizable** (drag its right edge, bottom edge or the corner; each tab remembers its own size until the
+game is closed), and the DM tools tab is a compact list: each tool has a **?** that shows what it does when hovered and its
+switch on the right. The window has three tabs: Encounter, DM tools and Actors.
 
 A Dungeon Master who is not one of the fighters still follows the fight (camera, tracker, grid) and runs it. With
 several fights at once they follow the oldest. The settings last until the server stops.

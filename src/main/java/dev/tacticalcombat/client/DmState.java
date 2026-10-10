@@ -9,7 +9,7 @@ public final class DmState {
 	public static boolean autoMovement = false;
 	/** Entity id of the Actor body this Dungeon Master possesses, or -1. */
 	public static int possessed = -1;
-	/** Time is paused by the Dungeon Master (everyone gets this, not only DMs). */
+	/** The game is paused by the Dungeon Master (everyone gets this, not only DMs). */
 	public static boolean paused;
 
 	/** True when this client's player is stopped by the pause (a Dungeon Master never is). */

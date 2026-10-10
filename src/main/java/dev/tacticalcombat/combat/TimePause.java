@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * The Dungeon Master's time pause. While it is on, players (everyone who is not a Dungeon Master) can not walk, jump
+ * The Dungeon Master's "Pause game". While it is on, players (everyone who is not a Dungeon Master) can not walk, jump
  * or touch blocks (break, place, use). Looking around, the sheet, chat and dice still work. A player in a fight keeps
  * moving through the fight's own grid. The client also stops the keys (so there is no rubber banding); the server
  * is what enforces it. Lasts until the server stops.
@@ -54,7 +54,7 @@ public final class TimePause {
 		PausePayload payload = new PausePayload(on);
 		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
 			ServerPlayNetworking.send(p, payload);
-			p.sendMessage(Text.literal(on ? "Time is paused." : "Time runs again."), true);
+			p.sendMessage(Text.literal(on ? "Game Paused" : "Game resumed"), true);
 		}
 	}
 

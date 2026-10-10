@@ -123,7 +123,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 				})));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				dispatcher.register(ClientCommandManager.literal("actors").executes(ctx -> {
-					ActorsScreen.requestOpen();
+					EncounterScreen.requestTab(2);
 					return 1;
 				})));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -149,7 +149,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null && DmState.paused && !mc.options.hudHidden) {
-				ctx.drawCenteredTextWithShadow(mc.textRenderer, "TIME PAUSED", ctx.getScaledWindowWidth() / 2, 18, 0xFF6FB7FF);
+				ctx.drawCenteredTextWithShadow(mc.textRenderer, "Game Paused", ctx.getScaledWindowWidth() / 2, 18, 0xFF6FB7FF);
 			}
 			if (mc.player == null || DmState.possessed < 0 || mc.options.hudHidden) return;
 			String name = "an Actor";
@@ -177,7 +177,6 @@ public class TacticalCombatClient implements ClientModInitializer {
 			ShareCardHud.tick(client);
 			CharacterSheetScreen.tick(client);
 			EncounterScreen.tick(client);
-			ActorsScreen.tick(client);
 			ActorStageScreen.tick(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {

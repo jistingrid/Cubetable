@@ -32,25 +32,32 @@ import java.util.List;
  * DM simply orders the turns by hand.
  */
 public final class EncounterScreen extends Screen {
-	private static final int W = 400;
-	private static final int H = 262;
+	/** Remembered size of the window for each tab: Encounter, DM tools, Actors. */
+	private static final int[][] SIZE = {{400, 262}, {250, 190}, {380, 236}};
+	private static final int[][] MIN = {{300, 210}, {200, 110}, {290, 170}};
+	private static final String[] TAB_NAMES = {"Encounter", "DM tools", "Actors"};
+	private static final int GRAB = 5;
 	private static final int TITLE_H = 16;
 	private static final int ROW_H = 24;
 	private static final int STRIP_H = 56;
 	private static final int FOOT_H = 24;
 
 	private static final int TAB_H = 14;
+	private static final int W_FALLBACK = 250;
+	private static final int H_FALLBACK = 190;
 
 	private static boolean pendingOpen;
 	private static boolean pendingAuto;
 	/** A Dungeon Master asked for the screen. */
 	private static boolean pendingDm;
-	/** Remembered between openings: 0 the encounter, 1 the DM tools. */
+	/** Remembered between openings: 0 the encounter, 1 the DM tools, 2 the Actors. */
 	private static int tab;
+	/** A tab somebody asked for (the /actors command, the Stage's Actors button). */
+	private static int pendingTab = -1;
 	private boolean endArmed;
 	private long endArmedAt;
 
-	private final int bg, panel, panelHover, edge, gold, muted, dim, bannerA, bannerB;
+	final int bg, panel, panelHover, edge, gold, muted, dim, bannerA, bannerB;
 
 	private record Hit(int x, int y, int w, int h, Runnable action, String tip) {
 		boolean contains(double mx, double my) {
@@ -63,6 +70,14 @@ public final class EncounterScreen extends Screen {
 	private int winX = Integer.MIN_VALUE, winY;
 	private boolean dragging;
 	private int scroll;
+	private int toolScroll;
+	private int toolHeight;
+	private int toolArea;
+	private int curW = W_FALLBACK, curH = H_FALLBACK;
+	/** 0 none, 1 right edge, 2 bottom edge, 3 corner. */
+	private int resizeMode;
+	private int resizeMouseX, resizeMouseY, resizeW, resizeH;
+	private final ActorsPanel actors = new ActorsPanel();
 	/** Opened by the start of a fight: closes by itself when the turns begin. */
 	private final boolean autoClose;
 
@@ -96,6 +111,17 @@ public final class EncounterScreen extends Screen {
 		pendingOpen = true;
 	}
 
+	/** Opens the DM window on a tab (/actors, the Stage's Actors button). */
+	public static void requestTab(int index) {
+		if (!ServerCharacters.isDm()) {
+			MinecraftClient mc = MinecraftClient.getInstance();
+			if (mc.player != null) mc.player.sendMessage(Text.literal("Only a Dungeon Master has the DM window."), false);
+			return;
+		}
+		pendingTab = index;
+		pendingDm = true;
+	}
+
 	/** Called every client tick: opens the window when a fight starts or somebody asked for it. */
 	public static void tick(MinecraftClient client) {
 		if (ClientCombatState.openEncounterPending) {
@@ -107,8 +133,10 @@ public final class EncounterScreen extends Screen {
 		if (client.player == null) return;
 		boolean free = client.currentScreen == null || client.currentScreen instanceof TacticalScreen;
 		if (pendingDm) {
-			if (free) {
-				client.setScreen(new EncounterScreen(false));
+			if (free || client.currentScreen instanceof EncounterScreen) {
+				if (pendingTab >= 0) tab = Math.min(pendingTab, TAB_NAMES.length - 1);
+				pendingTab = -1;
+				if (!(client.currentScreen instanceof EncounterScreen)) client.setScreen(new EncounterScreen(false));
 				pendingDm = false;
 				pendingOpen = false;
 				pendingAuto = false;
@@ -149,22 +177,26 @@ public final class EncounterScreen extends Screen {
 		if (client != null) client.setScreen(null); // the combat screen comes back by itself
 	}
 
-	private int tw(String s) {
+	int tw(String s) {
 		return textRenderer.getWidth(s);
 	}
 
-	private boolean hit(int x, int y, int w, int h, Runnable action, String tip) {
+	boolean hit(int x, int y, int w, int h, Runnable action, String tip) {
 		hits.add(new Hit(x, y, w, h, action, tip));
 		return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
 	}
 
-	private int button(DrawContext g, int x, int y, String text, Runnable action, String tip, int fill, int edgeColor) {
+	int button(DrawContext g, int x, int y, String text, Runnable action, String tip, int fill, int edgeColor) {
 		int bw = Math.max(12, tw(text) + 8);
 		boolean over = hit(x, y, bw, 12, action, tip);
 		g.fill(x, y, x + bw, y + 12, edgeColor);
 		g.fill(x + 1, y + 1, x + bw - 1, y + 11, over ? panelHover : fill);
 		g.drawText(textRenderer, text, x + (bw - tw(text)) / 2, y + 2, 0xFFFFFFFF, false);
 		return bw;
+	}
+
+	net.minecraft.client.font.TextRenderer font() {
+		return textRenderer;
 	}
 
 	private static void send(int op, int entityId, int value) {
@@ -180,8 +212,12 @@ public final class EncounterScreen extends Screen {
 		hits.clear();
 		if (endArmed && System.currentTimeMillis() - endArmedAt > 3000) endArmed = false;
 
-		int w = Math.min(W, width - 8);
-		int h = Math.min(H, height - 8);
+		boolean dm = ServerCharacters.isDm();
+		if (!dm) tab = 0;
+		int w = MathHelper.clamp(SIZE[tab][0], MIN[tab][0], Math.max(MIN[tab][0], width - 8));
+		int h = MathHelper.clamp(SIZE[tab][1], MIN[tab][1], Math.max(MIN[tab][1], height - 8));
+		curW = w;
+		curH = h;
 		if (winX == Integer.MIN_VALUE) {
 			winX = (width - w) / 2;
 			winY = (height - h) / 2;
@@ -195,16 +231,14 @@ public final class EncounterScreen extends Screen {
 		g.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xFF3B414C);
 		g.fill(x, y, x + w, y + h, bg);
 
-		boolean dm = ServerCharacters.isDm();
 		boolean inFight = ClientCombatState.active;
 		boolean planning = ClientCombatState.planning;
 		List<CombatStatePayload.Entry> entries = ClientCombatState.entries;
-		if (!dm) tab = 0;
 
 		// title bar
 		g.fill(x, y, x + w, y + TITLE_H, 0xFF0F1114);
 		g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, edge);
-		String title = dm && tab == 1 ? "DM tools" : !inFight ? "Encounter" : planning ? "Encounter - initiative" : "Combat - round " + ClientCombatState.round;
+		String title = dm && tab == 1 ? "DM tools" : dm && tab == 2 ? "Actors" : !inFight ? "Encounter" : planning ? "Encounter - initiative" : "Combat - round " + ClientCombatState.round;
 		g.drawText(textRenderer, title, x + 6, y + 4, 0xFFC9CCD2, false);
 		int right = x + w - 3;
 		right -= button(g, right - 12, y + 3, "x", this::close, "Close (the fight carries on; J or /encounter opens this again)", 0xFF7A1C27, 0xFFB8323F) + 3;
@@ -216,7 +250,7 @@ public final class EncounterScreen extends Screen {
 		// tabs (Dungeon Master only)
 		int top = y + TITLE_H;
 		if (dm) {
-			String[] names = {"Encounter", "DM tools"};
+			String[] names = TAB_NAMES;
 			int tx = x + 6;
 			for (int i = 0; i < names.length; i++) {
 				final int index = i;
@@ -233,6 +267,13 @@ public final class EncounterScreen extends Screen {
 
 		if (dm && tab == 1) {
 			drawTools(g, x, top, w, h - (top - y));
+			drawGrip(g, x, y, w, h);
+			drawTooltip(g, mx, my);
+			return;
+		}
+		if (dm && tab == 2) {
+			actors.draw(this, g, x, top + 1, w, h - (top - y) - 1);
+			drawGrip(g, x, y, w, h);
 			drawTooltip(g, mx, my);
 			return;
 		}
@@ -265,6 +306,7 @@ public final class EncounterScreen extends Screen {
 			button(g, x + w - tw(start) - 22, footY + 6, start, () -> ClientPlayNetworking.send(new DmActionPayload(0, 0)),
 					"Gather the party and every hostile creature nearby", 0xFF6B4E12, gold);
 			g.drawText(textRenderer, "No fight is running.", x + pad, footY + 8, dim, false);
+			drawGrip(g, x, y, w, h);
 			drawTooltip(g, mx, my);
 			return;
 		}
@@ -321,6 +363,7 @@ public final class EncounterScreen extends Screen {
 			g.drawText(textRenderer, "The fight is under way.", x + pad, footY + 8, dim, false);
 		}
 
+		drawGrip(g, x, y, w, h);
 		drawTooltip(g, mx, my);
 	}
 
@@ -358,65 +401,87 @@ public final class EncounterScreen extends Screen {
 		}
 	}
 
-	/** The DM tools tab: a list of tools, each a row with a switch. */
+	/** The DM tools tab: one compact row per tool (name, a ? that shows what it does, and its switch). Scrolls. */
 	private void drawTools(DrawContext g, int x, int top, int w, int h) {
-		int pad = 8;
-		int ry = top + 8;
-		ry += tool(g, x + pad, ry, w - pad * 2, "Auto movement",
-				"Off (default): while you are connected you walk every creature yourself on its turn - click a square, then End turn in the tracker. On: creatures take their own turns. (Each Actor can also be set to DM control in the Actors window.)",
+		int pad = 6;
+		int areaTop = top + 4;
+		int areaH = h - 8;
+		toolArea = areaH;
+		int ry = areaTop - toolScroll;
+		int start = ry;
+		g.enableScissor(x + 1, areaTop, x + w - 1, areaTop + areaH);
+		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Auto movement",
+				"Off (default): while you are connected you walk every creature yourself on its turn - click a square, then End turn in the tracker. On: creatures take their own turns. Each Actor can also be set to DM control in the Actors tab.",
 				DmState.autoMovement, () -> ClientPlayNetworking.send(new DmActionPayload(1, DmState.autoMovement ? 0 : 1)));
-		ry += tool(g, x + pad, ry, w - pad * 2, "Time pause",
+		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Pause game",
 				"On: players can not walk or touch blocks (breaking, placing, using); you still can. A player in a fight keeps using the grid. Looking around, the sheet and chat keep working.",
 				DmState.paused, () -> ClientPlayNetworking.send(new DmActionPayload(2, DmState.paused ? 0 : 1)));
-		ry += opener(g, x + pad, ry, w - pad * 2, "Actors",
-				"Create, place and control the Actors of the world: sheet, model, side, and whether you walk them in a fight. Also /actors.",
-				() -> MinecraftClient.getInstance().setScreen(new ActorsScreen(this)));
-		ry += opener(g, x + pad, ry, w - pad * 2, "Stage",
-				"Click an Actor in the world to select it, drag it to walk it, and take control of it in a fight. Also G or /stage.",
+		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Stage",
+				"Click an Actor in the world to select it, drag it to walk it, possess it, and take control of it in a fight. Also G or /stage.",
 				() -> {
 					MinecraftClient.getInstance().setScreen(null);
 					ActorStageScreen.requestOpen();
 				});
-		ry += tool(g, x + pad, ry, w - pad * 2, "Combat tracker",
+		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Combat tracker",
 				"The compact list of the fight at the corner of the screen.",
 				TrackerPanel.visible(), TrackerPanel::toggleHidden);
+		g.disableScissor();
+		toolHeight = ry - start;
+		int overflow = Math.max(0, toolHeight - areaH);
+		toolScroll = MathHelper.clamp(toolScroll, 0, overflow);
+		if (overflow > 0) {
+			int barH = Math.max(8, Math.round(areaH * (areaH / (float) toolHeight)));
+			int barY = areaTop + Math.round((areaH - barH) * (toolScroll / (float) overflow));
+			g.fill(x + w - 4, barY, x + w - 2, barY + barH, 0xFF5A616C);
+		}
+	}
+
+	private static final int TOOL_H = 22;
+
+	/** The name of a tool and its ? help button. Returns nothing; the help text is the button's tooltip. */
+	private void toolHead(DrawContext g, int x, int y, int clipTop, int clipBottom, String name, String help, int stripe) {
+		g.drawText(textRenderer, name, x + 8, y + 7, 0xFFE6E8EB, false);
+		int qx = x + 8 + tw(name) + 5;
+		boolean visible = y + TOOL_H > clipTop && y < clipBottom;
+		boolean over = visible && hit(qx, y + 5, 11, 11, () -> {}, help);
+		g.fill(qx, y + 5, qx + 11, y + 16, over ? gold : 0xFF3B414C);
+		g.fill(qx + 1, y + 6, qx + 10, y + 15, over ? 0xFF6B4E12 : panel);
+		g.drawCenteredTextWithShadow(textRenderer, "?", qx + 5, y + 7, over ? 0xFFFFFFFF : muted);
 	}
 
 	/** A tool row with an Open button instead of a switch. Returns the height used. */
-	private int opener(DrawContext g, int x, int y, int w, String name, String description, Runnable open) {
-		List<net.minecraft.text.OrderedText> lines = textRenderer.wrapLines(Text.literal(description), w - 80);
-		int rowH = Math.max(34, 16 + lines.size() * 10);
-		g.fill(x, y, x + w, y + rowH, panel);
-		g.fill(x, y, x + 2, y + rowH, gold);
-		g.drawText(textRenderer, name, x + 8, y + 5, 0xFFE6E8EB, false);
-		int ty = y + 16;
-		for (net.minecraft.text.OrderedText line : lines) {
-			g.drawText(textRenderer, line, x + 8, ty, dim, false);
-			ty += 10;
-		}
-		button(g, x + w - 54, y + 6, "Open", open, "Open the Actors window", 0xFF6B4E12, gold);
-		return rowH + 4;
+	private int opener(DrawContext g, int x, int y, int w, int clipTop, int clipBottom, String name, String help, Runnable open) {
+		g.fill(x, y, x + w, y + TOOL_H, panel);
+		g.fill(x, y, x + 2, y + TOOL_H, gold);
+		toolHead(g, x, y, clipTop, clipBottom, name, help, gold);
+		if (y + TOOL_H > clipTop && y < clipBottom) button(g, x + w - tw("Open") - 14, y + 5, "Open", open, null, 0xFF6B4E12, gold);
+		return TOOL_H + 3;
 	}
 
-	/** One tool row: a name, a description and an On / Off switch. Returns the height used. */
-	private int tool(DrawContext g, int x, int y, int w, String name, String description, boolean on, Runnable toggle) {
-		List<net.minecraft.text.OrderedText> lines = textRenderer.wrapLines(Text.literal(description), w - 80);
-		int rowH = Math.max(34, 16 + lines.size() * 10);
-		g.fill(x, y, x + w, y + rowH, panel);
-		g.fill(x, y, x + 2, y + rowH, on ? 0xFF3CB84A : 0xFF7A1C27);
-		g.drawText(textRenderer, name, x + 8, y + 5, 0xFFE6E8EB, false);
-		int ty = y + 16;
-		for (net.minecraft.text.OrderedText line : lines) {
-			g.drawText(textRenderer, line, x + 8, ty, dim, false);
-			ty += 10;
+	/** One tool row: a name, its ? help and an On / Off switch. Returns the height used. */
+	private int tool(DrawContext g, int x, int y, int w, int clipTop, int clipBottom, String name, String help, boolean on, Runnable toggle) {
+		g.fill(x, y, x + w, y + TOOL_H, panel);
+		g.fill(x, y, x + 2, y + TOOL_H, on ? 0xFF3CB84A : 0xFF7A1C27);
+		toolHead(g, x, y, clipTop, clipBottom, name, help, on ? 0xFF3CB84A : 0xFF7A1C27);
+		if (y + TOOL_H > clipTop && y < clipBottom) {
+			String label = on ? "On" : "Off";
+			int bw = 36;
+			int bx = x + w - bw - 6;
+			boolean over = hit(bx, y + 4, bw, 14, toggle, "Click to switch");
+			g.fill(bx, y + 4, bx + bw, y + 18, on ? 0xFF3CB84A : 0xFFB8323F);
+			g.fill(bx + 1, y + 5, bx + bw - 1, y + 17, over ? panelHover : on ? 0xFF1E4A25 : 0xFF4A1219);
+			g.drawCenteredTextWithShadow(textRenderer, label, bx + bw / 2, y + 8, 0xFFFFFFFF);
 		}
-		String label = on ? "On" : "Off";
-		int bw = 48;
-		boolean over = hit(x + w - bw - 6, y + 6, bw, 14, toggle, "Click to switch");
-		g.fill(x + w - bw - 6, y + 6, x + w - 6, y + 20, on ? 0xFF3CB84A : 0xFFB8323F);
-		g.fill(x + w - bw - 5, y + 7, x + w - 7, y + 19, over ? panelHover : on ? 0xFF1E4A25 : 0xFF4A1219);
-		g.drawCenteredTextWithShadow(textRenderer, label, x + w - bw / 2 - 6, y + 10, 0xFFFFFFFF);
-		return rowH + 4;
+		return TOOL_H + 3;
+	}
+
+	/** The corner mark that shows the window can be resized: a small triangle of dots. */
+	private void drawGrip(DrawContext g, int x, int y, int w, int h) {
+		int cx = x + w - 3;
+		int cy = y + h - 3;
+		for (int i = 0; i < 3; i++) {
+			for (int k = 0; k < 3 - i; k++) g.fill(cx - 3 * i, cy - 3 * k, cx - 3 * i + 1, cy - 3 * k + 1, 0xFF6B717C);
+		}
 	}
 
 	private void drawTooltip(DrawContext g, int mx, int my) {
@@ -428,7 +493,7 @@ public final class EncounterScreen extends Screen {
 				break;
 			}
 		}
-		if (tooltip != null) g.drawTooltip(textRenderer, Text.literal(tooltip), mx, my);
+		if (tooltip != null) g.drawOrderedTooltip(textRenderer, textRenderer.wrapLines(Text.literal(tooltip), Math.min(230, width - 20)), mx, my);
 	}
 
 	private void drawHeader(DrawContext g, int x, int y, int w, String text) {
@@ -511,9 +576,30 @@ public final class EncounterScreen extends Screen {
 
 	// ------------------------------------------------------------------ input
 
+	/** Which resize zone the point is in: 1 right edge, 2 bottom edge, 3 corner, 0 none. */
+	private int resizeZone(double mx, double my) {
+		int x = winX, y = winY;
+		boolean right = mx >= x + curW - GRAB && mx <= x + curW + 2 && my >= y && my <= y + curH + 2;
+		boolean bottom = my >= y + curH - GRAB && my <= y + curH + 2 && mx >= x && mx <= x + curW + 2;
+		if (right && bottom) return 3;
+		if (right) return 1;
+		if (bottom) return 2;
+		return 0;
+	}
+
 	@Override
 	public boolean mouseClicked(double mx, double my, int button) {
 		if (button == 0) {
+			int zone = resizeZone(mx, my);
+			if (zone != 0) {
+				resizeMode = zone;
+				resizeMouseX = (int) mx;
+				resizeMouseY = (int) my;
+				resizeW = curW;
+				resizeH = curH;
+				return true;
+			}
+			if (tab == 2 && ServerCharacters.isDm()) actors.blur();
 			for (int i = hits.size() - 1; i >= 0; i--) {
 				Hit hit = hits.get(i);
 				if (hit.contains(mx, my)) {
@@ -521,8 +607,7 @@ public final class EncounterScreen extends Screen {
 					return true;
 				}
 			}
-			int w = Math.min(W, width - 8);
-			if (mx >= winX && mx < winX + w && my >= winY && my < winY + TITLE_H) {
+			if (mx >= winX && mx < winX + curW && my >= winY && my < winY + TITLE_H) {
 				dragging = true;
 				return true;
 			}
@@ -532,6 +617,11 @@ public final class EncounterScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+		if (resizeMode != 0) {
+			if ((resizeMode & 1) != 0) SIZE[tab][0] = MathHelper.clamp(resizeW + (int) mx - resizeMouseX, MIN[tab][0], Math.max(MIN[tab][0], width - 8));
+			if ((resizeMode & 2) != 0) SIZE[tab][1] = MathHelper.clamp(resizeH + (int) my - resizeMouseY, MIN[tab][1], Math.max(MIN[tab][1], height - 8));
+			return true;
+		}
 		if (dragging) {
 			winX += (int) Math.round(dx);
 			winY += (int) Math.round(dy);
@@ -543,17 +633,33 @@ public final class EncounterScreen extends Screen {
 	@Override
 	public boolean mouseReleased(double mx, double my, int button) {
 		dragging = false;
+		resizeMode = 0;
 		return super.mouseReleased(mx, my, button);
 	}
 
 	@Override
 	public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
+		if (ServerCharacters.isDm() && tab == 1) {
+			toolScroll = Math.max(0, toolScroll - (int) Math.signum(vertical) * 12);
+			return true;
+		}
+		if (ServerCharacters.isDm() && tab == 2) return actors.scrolled(mx, my, vertical);
 		scroll = Math.max(0, scroll - (int) Math.signum(vertical));
 		return true;
 	}
 
 	@Override
+	public boolean charTyped(char chr, int modifiers) {
+		if (ServerCharacters.isDm() && tab == 2 && actors.charTyped(chr)) return true;
+		return super.charTyped(chr, modifiers);
+	}
+
+	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		if (ServerCharacters.isDm() && tab == 2 && actors.typing()) {
+			actors.keyPressed(keyCode, modifiers); // a text box swallows every key: typing J or Esc must not close the window
+			return true;
+		}
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE || (ServerCharacters.isDm() && TacticalCombatClient.ENCOUNTER_KEY.matchesKey(keyCode, scanCode))) {
 			close();
 			return true;
