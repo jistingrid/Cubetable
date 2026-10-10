@@ -832,6 +832,9 @@ public final class CharacterSheetScreen extends Screen {
 		if (it.widget.equals("table")) {
 			return drawTable(g, sc, it, x, y, w, clipTop, clipBottom);
 		}
+		if (it.widget.equals("quickadd")) {
+			return drawQuickAdd(g, sc, it, x, y, w, clipTop, clipBottom);
+		}
 		boolean hasText = !it.text.isEmpty();
 		List<OrderedText> lines = hasText
 				? textRenderer.wrapLines(StringVisitable.plain(tr(it.text)), (int) ((w - 8) / 0.75f)) : List.of();
@@ -1129,6 +1132,68 @@ public final class CharacterSheetScreen extends Screen {
 		if (cur == null || !cur.replace("-", "").equals(colId)) TABLE_SORT.put(collId, colId);
 		else if (!cur.startsWith("-")) TABLE_SORT.put(collId, "-" + colId);
 		else TABLE_SORT.remove(collId);
+	}
+
+	/**
+	 * Buttons that add a ready-made row to a collection: the format's own presets first (the common conditions), then
+	 * the rows of the character's own button collection. Pressing one whose name is already in the list renews that row
+	 * instead of adding a second one.
+	 */
+	private int drawQuickAdd(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
+		SheetFormat.Collection target = sc.format.collections.get(it.collection);
+		if (target == null) return 13;
+		SheetFormat.Col nameCol = target.nameCol();
+		SheetFormat.Col noteCol = null;
+		for (SheetFormat.Col c : target.columns) if (c.type.equals("note")) noteCol = c;
+		List<CharacterData.Row> presets = new ArrayList<>(target.presets);
+		boolean ownFrom = it.buttonsFrom != null;
+		if (ownFrom) presets.addAll(sc.character.collections.getOrDefault(it.buttonsFrom, List.of()));
+		if (nameCol == null || presets.isEmpty()) {
+			if (y + 13 > clipTop && y < clipBottom) g.drawText(textRenderer, "No buttons yet", x + 4, y + 2, DIM, false);
+			return 13;
+		}
+		int cx = x + 2;
+		int cy = y;
+		int rowH = 14;
+		int nPack = target.presets.size();
+		for (int i = 0; i < presets.size(); i++) {
+			CharacterData.Row preset = presets.get(i);
+			String name = preset.texts.getOrDefault(nameCol.id, "").trim();
+			if (name.isEmpty()) continue;
+			int bw = tw(name) + 8;
+			if (cx > x + 2 && cx + bw > x + w - 2) {
+				cx = x + 2;
+				cy += rowH;
+			}
+			if (cy + 12 > clipTop && cy < clipBottom) {
+				String effect = noteCol == null ? "" : preset.texts.getOrDefault(noteCol.id, "").trim();
+				String tip = "Add " + name + (effect.isEmpty() ? "" : ": " + effect);
+				boolean mine = i >= nPack;
+				boolean over = hit(cx, cy, bw, 12, () -> quickAdd(sc, target, preset), tip);
+				g.fill(cx, cy, cx + bw, cy + 12, mine ? 0xFF6B4E12 : EDGE);
+				g.fill(cx + 1, cy + 1, cx + bw - 1, cy + 11, over ? PANEL_HOVER : PANEL);
+				g.drawText(textRenderer, name, cx + 4, cy + 2, mine ? GOLD : 0xFFE6E8EB, false);
+			}
+			cx += bw + 3;
+		}
+		return cy - y + rowH;
+	}
+
+	private void quickAdd(SheetContext sc, SheetFormat.Collection target, CharacterData.Row preset) {
+		if (!canEdit(sc.character)) {
+			say("That character belongs to " + sc.character.ownerName + " - you can only look.");
+			return;
+		}
+		SheetFormat.Col nc = target.nameCol();
+		if (nc == null) return;
+		String name = preset.texts.getOrDefault(nc.id, "").trim();
+		List<CharacterData.Row> rows = sc.character.rows(target.id);
+		CharacterData.Row copy = preset.copy();
+		int at = -1;
+		for (int i = 0; i < rows.size(); i++) if (rows.get(i).texts.getOrDefault(nc.id, "").trim().equalsIgnoreCase(name)) at = i;
+		if (at >= 0) rows.set(at, copy);
+		else rows.add(copy);
+		store(sc.character);
 	}
 
 	private int drawTable(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {

@@ -76,6 +76,8 @@ The encounter window doubles as the DM screen (`J` for a DM, any time): start or
 
 At 0 hit points a pack-defined state applies (`combat.downed`): the model lies down and, if the game has death saves, the player gets a card to roll them: [docs/combat-rules.md](docs/combat-rules.md#at-0-hit-points). Popups of the mod (damage, downed) all use the look of the shown-entry cards (`client/CardStyle.java`).
 
+**Conditions:** the generic d20 sheet has a Conditions tab (also on NPC sheets): a list with a name, effect, duration and unit (turns or seconds), quick-add buttons for the 15 common 5e conditions, and buttons you make yourself for the ones your table repeats: [docs/sheet-formats.md](docs/sheet-formats.md#quick-add-buttons).
+
 **Actors** are the enemies and NPCs of a scene, placed by a DM like tokens: each has a sheet (its own copy or a shared one), a model (any mob, a player skin, an item or a block), a side and optional DM control. Manage them in the Actors window (`/actors`) or `/actor ...`, and select and drag them in the world with the Stage (`G`): [docs/combat-rules.md](docs/combat-rules.md#actors-the-creatures-of-a-fight). `packs/generic_d20/characters/wolf.json` is a ready sheet (5e wolf).
 
 ## Shared characters and the Dungeon Master

@@ -959,6 +959,45 @@
             }
           ],
           "id": "features"
+        },
+        {
+          "title": "Conditions",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "QUICK ADD",
+                  "items": [
+                    {
+                      "widget": "quickadd",
+                      "collection": "conditions",
+                      "buttonsFrom": "condition_buttons"
+                    }
+                  ]
+                },
+                {
+                  "title": "ACTIVE CONDITIONS",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "conditions"
+                    }
+                  ]
+                },
+                {
+                  "title": "MY BUTTONS",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "condition_buttons"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "conditions"
         }
       ]
     },
@@ -1142,6 +1181,45 @@
               ]
             }
           ]
+        },
+        {
+          "title": "Conditions",
+          "columns": [
+            {
+              "weight": 1.0,
+              "sections": [
+                {
+                  "title": "QUICK ADD",
+                  "items": [
+                    {
+                      "widget": "quickadd",
+                      "collection": "conditions",
+                      "buttonsFrom": "condition_buttons"
+                    }
+                  ]
+                },
+                {
+                  "title": "ACTIVE CONDITIONS",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "conditions"
+                    }
+                  ]
+                },
+                {
+                  "title": "MY BUTTONS",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "condition_buttons"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "conditions"
         }
       ]
     }
@@ -1426,6 +1504,169 @@
       ],
       "groupBy": "level",
       "share": true
+    },
+    {
+      "id": "conditions",
+      "label": "Conditions",
+      "addLabel": "Condition",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Condition",
+          "type": "text",
+          "width": 1.6
+        },
+        {
+          "id": "effect",
+          "label": "Effect",
+          "type": "note"
+        },
+        {
+          "id": "duration",
+          "label": "Duration",
+          "type": "number",
+          "width": 0.8,
+          "default": 0
+        },
+        {
+          "id": "unit",
+          "label": "Unit",
+          "type": "choice",
+          "width": 0.9,
+          "options": [
+            "turns",
+            "seconds"
+          ]
+        }
+      ],
+      "share": true,
+      "presets": [
+        {
+          "name": "Blinded",
+          "effect": "Can't see. Fails checks that need sight. Attacks against it have advantage, its attacks have disadvantage.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Charmed",
+          "effect": "Can't attack the charmer. The charmer has advantage on social checks against it.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Deafened",
+          "effect": "Can't hear. Fails checks that need hearing.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Frightened",
+          "effect": "Disadvantage on checks and attacks while the source of fear is in sight. Can't move closer to it.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Grappled",
+          "effect": "Speed is 0. Ends if the grappler is incapacitated or it is moved out of reach.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Incapacitated",
+          "effect": "Can't take actions or reactions.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Invisible",
+          "effect": "Can't be seen. Attacks against it have disadvantage, its attacks have advantage.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Paralyzed",
+          "effect": "Incapacitated, can't move or speak. Fails Str and Dex saves. Attacks against it have advantage; hits from within 5 ft are critical.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Petrified",
+          "effect": "Turned to stone. Incapacitated, unaware, resistant to all damage.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Poisoned",
+          "effect": "Disadvantage on attack rolls and ability checks.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Prone",
+          "effect": "Crawls only. Disadvantage on attacks. Melee attacks against it have advantage, ranged have disadvantage. Standing costs half the speed.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Restrained",
+          "effect": "Speed is 0. Attacks against it have advantage, its attacks have disadvantage. Disadvantage on Dex saves.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Stunned",
+          "effect": "Incapacitated, can't move, speaks only falteringly. Fails Str and Dex saves. Attacks against it have advantage.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Unconscious",
+          "effect": "Incapacitated, can't move or speak, unaware. Drops what it holds, falls prone. Fails Str and Dex saves. Hits from within 5 ft are critical.",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Concentrating",
+          "effect": "Maintaining a spell. A hit forces a Constitution save or the spell ends.",
+          "duration": 0,
+          "unit": "turns"
+        }
+      ]
+    },
+    {
+      "id": "condition_buttons",
+      "label": "My condition buttons",
+      "addLabel": "Button",
+      "columns": [
+        {
+          "id": "name",
+          "label": "Condition",
+          "type": "text",
+          "width": 1.6
+        },
+        {
+          "id": "effect",
+          "label": "Effect",
+          "type": "note"
+        },
+        {
+          "id": "duration",
+          "label": "Duration",
+          "type": "number",
+          "width": 0.8,
+          "default": 0
+        },
+        {
+          "id": "unit",
+          "label": "Unit",
+          "type": "choice",
+          "width": 0.9,
+          "options": [
+            "turns",
+            "seconds"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -57,6 +57,7 @@ An **item** is one row: `label`, `sub` (small text), `text` (a wrapped paragraph
 | `cycle` | a normal row with a clickable proficiency marker that steps through values | `store`, `cycle` (e.g. `[0, 0.5, 1, 2]`) |
 | `button` | a button that sets stored values from formulas when pressed: a rest, a reset. `label`, optional `sub` (tooltip), `set`: `{ "slots_1": "slots_1_max", "hp": "hp_max" }` | `set` |
 | `table` | a table of rows the character owns (weapons, gear, skills...), see Collections | `collection` (id) |
+| `quickadd` | a wrapped row of buttons that each add a ready-made row to a collection (the common conditions). Pressing one whose name is already in the list renews that row. See "Quick-add buttons" | `collection` (the one rows are added to), optional `buttonsFrom` (a character-owned collection whose rows become buttons too) |
 
 Every stored name a widget uses should have a `defaults` entry (or a character value).
 
@@ -121,6 +122,26 @@ Tables are also tools for the player (nothing to declare in the format, none of 
 Inside a column formula, `row.<column>` is that row's value: `d20 + pick(row.ability, str_mod, dex_mod) + prof * row.prof`. Everything else (derived values, stored values) works as usual.
 
 Totals over a collection can be used in any formula: `<id>.count`, `<id>.count.<col>` (rows where the column is above 0), `<id>.sum.<col>`, `<id>.max.<col>`, `<id>.sumif.<flagcol>.<col>`, e.g. `gear.sumif.equipped.total`. Rows are added and edited with the **+** button and the **...** button on each row (which also deletes).
+
+### Quick-add buttons
+
+A collection may list `presets`: ready-made rows, keyed by column id (a `choice` column takes the option's text or its
+index). A `quickadd` widget shows them as buttons; add `buttonsFrom` naming a second collection with the same columns
+and the player's own rows become buttons too (gold outline), made and edited with an ordinary table of that collection.
+Hover a button to read its effect. generic_d20 uses this for its **Conditions** tab:
+
+```json
+{ "id": "conditions", "label": "Conditions", "addLabel": "Condition", "share": true,
+  "columns": [ { "id": "name", "type": "text" }, { "id": "effect", "type": "note" },
+               { "id": "duration", "type": "number" }, { "id": "unit", "type": "choice", "options": ["turns", "seconds"] } ],
+  "presets": [ { "name": "Prone", "effect": "Crawls only ...", "duration": 0, "unit": "turns" } ] },
+{ "id": "condition_buttons", "label": "My condition buttons", "addLabel": "Button", "columns": [ ...same... ] }
+...
+{ "widget": "quickadd", "collection": "conditions", "buttonsFrom": "condition_buttons" },
+{ "widget": "table", "collection": "conditions" }
+```
+
+Duration 0 means "until removed". The list is a record for the table: nothing counts the duration down yet.
 
 ## Formulas
 

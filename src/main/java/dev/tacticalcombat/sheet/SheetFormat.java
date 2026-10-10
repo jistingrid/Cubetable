@@ -118,6 +118,8 @@ public final class SheetFormat {
 		public boolean damage;
 		public final List<Col> columns = new ArrayList<>();
 		public final List<Footer> footers = new ArrayList<>();
+		/** Ready-made rows the format offers as quick-add buttons (a "quickadd" widget), e.g. the common conditions. */
+		public final List<CharacterData.Row> presets = new ArrayList<>();
 
 		public Col column(String id) {
 			for (Col c : columns) if (c.id.equals(id)) return c;
@@ -182,8 +184,10 @@ public final class SheetFormat {
 		public String enabled;
 		public final List<Button> buttons = new ArrayList<>();
 
-		/** Widget "table": the id of the collection drawn as a table. */
+		/** Widget "table": the id of the collection drawn as a table. Widget "quickadd": the collection the buttons add to. */
 		public String collection;
+		/** Widget "quickadd": a character-owned collection whose rows are buttons too (the player's own), or null. */
+		public String buttonsFrom;
 		/** Widget "button": stored values to set when pressed, name -> formula (a rest: slots back to their maximum). */
 		public final Map<String, String> set = new LinkedHashMap<>();
 		/** "" (plain row), "pips", "counter", "cycle", "rollmode" or "table". */
@@ -264,6 +268,10 @@ public final class SheetFormat {
 		if (f.layouts.isEmpty()) throw new IllegalArgumentException("no sheets");
 		for (Layout l : f.layouts.values()) for (Page p : l.pages) for (Column c : p.columns) for (Section sec : c.sections) {
 			for (Item i : sec.items) {
+				if (i.widget.equals("quickadd") && (i.collection == null || !f.collections.containsKey(i.collection)
+						|| (i.buttonsFrom != null && !f.collections.containsKey(i.buttonsFrom)))) {
+					throw new IllegalArgumentException("quickadd widget in '" + sec.title + "' names an unknown collection");
+				}
 				if (i.widget.equals("table") && (i.collection == null || !f.collections.containsKey(i.collection))) {
 					throw new IllegalArgumentException("table widget in '" + sec.title + "' names an unknown collection '" + i.collection + "'");
 				}
@@ -326,6 +334,30 @@ public final class SheetFormat {
 			if (col.type.equals("cast") && (c.column(col.spendLevel) == null || col.diceCol != null && c.column(col.diceCol) == null)) {
 				throw new IllegalArgumentException("collection '" + c.id + "': cast column '" + col.id + "' names an unknown level or dice column");
 			}
+		}
+		for (JsonElement e : arr(o, "presets")) {
+			JsonObject po = e.getAsJsonObject();
+			CharacterData.Row row = new CharacterData.Row();
+			for (Col col : c.columns) {
+				if (!po.has(col.id)) continue;
+				JsonElement v = po.get(col.id);
+				switch (col.type) {
+					case "text", "note" -> row.texts.put(col.id, v.getAsString());
+					case "number", "toggle" -> row.values.put(col.id, v.getAsDouble());
+					case "choice" -> {
+						if (v.getAsJsonPrimitive().isNumber()) row.values.put(col.id, v.getAsDouble());
+						else {
+							int at = -1;
+							for (int k = 0; k < col.options.size(); k++) if (col.options.get(k).equalsIgnoreCase(v.getAsString())) at = k;
+							if (at < 0) throw new IllegalArgumentException("collection '" + c.id + "': preset has unknown option '" + v.getAsString() + "' for " + col.id);
+							row.values.put(col.id, (double) at);
+						}
+					}
+					default -> {
+					}
+				}
+			}
+			c.presets.add(row);
 		}
 		for (JsonElement e : arr(o, "footer")) {
 			JsonObject fo = e.getAsJsonObject();
@@ -394,6 +426,8 @@ public final class SheetFormat {
 		i.enabled = str(o, "enabled", null);
 		i.widget = str(o, "widget", "").toLowerCase(Locale.ROOT);
 		i.collection = str(o, "collection", null);
+		i.buttonsFrom = str(o, "buttonsFrom", null);
+		if (i.buttonsFrom != null) i.buttonsFrom = i.buttonsFrom.toLowerCase(Locale.ROOT);
 		if (o.has("set") && o.get("set").isJsonObject()) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("set").entrySet()) {
 				i.set.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
