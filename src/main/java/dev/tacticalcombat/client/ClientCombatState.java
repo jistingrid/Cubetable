@@ -176,12 +176,13 @@ public final class ClientCombatState {
 
 	/**
 	 * You may walk the creature on turn: it is your own turn, or you are the Dungeon Master and the creature
-	 * is a hostile whose movement is in your hands (auto movement off).
+	 * is a creature whose movement is in your hands (that Actor is set to DM control, or Auto movement is off).
 	 */
 	public static boolean canMoveActive() {
 		if (isMyTurn()) return true;
-		if (!active || planning || DmState.autoMovement || !ServerCharacters.isDm()) return false;
-		return activeIndex >= 0 && activeIndex < entries.size() && entries.get(activeIndex).hostile();
+		if (!active || planning || !ServerCharacters.isDm()) return false;
+		if (activeIndex < 0 || activeIndex >= entries.size() || !entries.get(activeIndex).hostile()) return false;
+		return !DmState.autoMovement || DmState.controls(entries.get(activeIndex).entityId());
 	}
 
 	/** The entity whose turn it is (null if unknown / not loaded). */

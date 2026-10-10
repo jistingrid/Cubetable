@@ -43,6 +43,12 @@ public final class SheetHealth {
 		CACHE.clear();
 	}
 
+	/** The character a creature fights with: a player's Active Actor, or the sheet of an Actor body. */
+	private static CharacterStore.Entry entryFor(LivingEntity who) {
+		if (who instanceof ServerPlayerEntity p) return Actors.entryOf(p.getUuid());
+		return dev.tacticalcombat.actor.ActorRegistry.sheetEntryOf(who);
+	}
+
 	private static SheetFormat formatOf(CharacterStore.Entry e) {
 		return SheetLibrary.FORMATS.get(e.json.has("format") ? e.json.get("format").getAsString() : "");
 	}
@@ -94,9 +100,9 @@ public final class SheetHealth {
 		return null;
 	}
 
-	/** Every tracked bar of the player's Active Actor; empty when they have none. */
-	public static List<BarValue> barsOf(ServerPlayerEntity player) {
-		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
+	/** Every tracked bar of the player's Active Actor (or an Actor body's sheet); empty when there is none. */
+	public static List<BarValue> barsOf(LivingEntity player) {
+		CharacterStore.Entry e = entryFor(player);
 		SheetFormat f = e == null ? null : formatOf(e);
 		if (f == null || f.combat == null || f.combat.bars.isEmpty()) {
 			CACHE.remove(player.getUuid());
@@ -114,7 +120,7 @@ public final class SheetHealth {
 	}
 
 	/** The player's hit points from their Active Actor, or null when their game has no health bar there. */
-	public static Hp of(ServerPlayerEntity player) {
+	public static Hp of(LivingEntity player) {
 		for (BarValue b : barsOf(player)) if (b.vital()) return new Hp(b.now(), b.max());
 		return null;
 	}
@@ -124,8 +130,8 @@ public final class SheetHealth {
 	 * positive one a gain up to the maximum. Saved on the server and sent to the owner's sheet. Returns false when
 	 * the player has no such bar.
 	 */
-	public static boolean change(MinecraftServer server, ServerPlayerEntity player, String barId, double amount) {
-		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
+	public static boolean change(MinecraftServer server, LivingEntity player, String barId, double amount) {
+		CharacterStore.Entry e = entryFor(player);
 		SheetFormat f = e == null ? null : formatOf(e);
 		if (f == null || f.combat == null) return false;
 		CombatRules.Bar bar = null;
@@ -159,15 +165,15 @@ public final class SheetHealth {
 	}
 
 	/** Id of the health bar of the player's Active Actor, or null when there is none. */
-	public static String vitalId(ServerPlayerEntity player) {
-		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
+	public static String vitalId(LivingEntity player) {
+		CharacterStore.Entry e = entryFor(player);
 		CombatRules.Bar vital = e == null ? null : vitalOf(e);
 		return vital == null ? null : vital.id();
 	}
 
 	/** Damage to the character's health bar. */
-	public static boolean damage(MinecraftServer server, ServerPlayerEntity player, double amount) {
-		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
+	public static boolean damage(MinecraftServer server, LivingEntity player, double amount) {
+		CharacterStore.Entry e = entryFor(player);
 		CombatRules.Bar vital = e == null ? null : vitalOf(e);
 		return vital != null && change(server, player, vital.id(), -amount);
 	}

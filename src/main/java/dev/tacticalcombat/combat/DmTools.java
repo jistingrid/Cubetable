@@ -38,6 +38,17 @@ public final class DmTools {
 		broadcast(player.getServer());
 	}
 
+	/** Hit points of a sheet that has no body in the world yet. */
+	private static SheetHealth.Hp readHp(dev.tacticalcombat.character.CharacterStore.Entry sheet) {
+		try {
+			dev.tacticalcombat.sheet.SheetFormat f = dev.tacticalcombat.sheet.SheetLibrary.FORMATS.get(
+					sheet.json.has("format") ? sheet.json.get("format").getAsString() : "");
+			return f == null ? null : SheetHealth.read(f, dev.tacticalcombat.sheet.CharacterData.parse(sheet.json.deepCopy(), ""));
+		} catch (RuntimeException ex) {
+			return null;
+		}
+	}
+
 	/** Every second: tell the DMs how things stand. */
 	public static void tick(MinecraftServer server) {
 		if (server.getTicks() % 20 == 0) broadcast(server);
@@ -56,7 +67,19 @@ public final class DmTools {
 					hp != null ? (float) hp.now() : p.getHealth(), hp != null ? (float) hp.max() : p.getMaxHealth(),
 					CombatManager.isInCombat(p)));
 		}
-		DmStatePayload payload = new DmStatePayload(autoMovement, who);
+		List<DmStatePayload.ActorInfo> actors = new ArrayList<>();
+		for (dev.tacticalcombat.actor.ActorRecord r : dev.tacticalcombat.actor.ActorRegistry.all()) {
+			net.minecraft.entity.LivingEntity body = dev.tacticalcombat.actor.ActorRegistry.bodyOf(server, r);
+			SheetHealth.Hp hp = body == null ? null : SheetHealth.of(body);
+			if (hp == null) {
+				dev.tacticalcombat.character.CharacterStore.Entry sheet = dev.tacticalcombat.actor.ActorRegistry.sheetOf(r);
+				hp = sheet == null ? null : readHp(sheet);
+			}
+			actors.add(new DmStatePayload.ActorInfo(r.id, r.name, r.sheetId, r.ownsSheet, r.kind, r.value, r.disposition,
+					r.dmControl, body == null ? -1 : body.getId(), hp == null ? 0f : (float) hp.now(), hp == null ? 0f : (float) hp.max(),
+					body != null && CombatManager.isInCombat(body)));
+		}
+		DmStatePayload payload = new DmStatePayload(autoMovement, who, actors);
 		for (ServerPlayerEntity dm : dms) ServerPlayNetworking.send(dm, payload);
 	}
 }

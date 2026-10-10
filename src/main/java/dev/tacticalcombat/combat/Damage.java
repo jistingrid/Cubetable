@@ -103,18 +103,18 @@ public final class Damage {
 	private static void apply(MinecraftServer server, LivingEntity target, int signed, String name) {
 		int n = Math.abs(signed);
 		if (signed < 0) {
-			if (target instanceof ServerPlayerEntity tp && SheetHealth.of(tp) != null) {
-				SheetHealth.damage(server, tp, n);
-				tp.getWorld().sendEntityStatus(tp, (byte) 2); // the hurt flash, without Minecraft damage
-				SheetHealth.syncBar(tp);
+			if (SheetHealth.of(target) != null) { // a player's Active Actor or an Actor's own sheet
+				SheetHealth.damage(server, target, n);
+				target.getWorld().sendEntityStatus(target, (byte) 2); // the hurt flash, without Minecraft damage
+				if (target instanceof ServerPlayerEntity tp) SheetHealth.syncBar(tp);
 			} else if (n > 0) {
 				target.damage(target.getWorld().getDamageSources().generic(), n);
 			}
 			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_received", name, n), false);
 		} else {
-			if (target instanceof ServerPlayerEntity tp && SheetHealth.of(tp) != null) {
-				SheetHealth.change(server, tp, SheetHealth.vitalId(tp), n);
-				SheetHealth.syncBar(tp);
+			if (SheetHealth.of(target) != null) {
+				SheetHealth.change(server, target, SheetHealth.vitalId(target), n);
+				if (target instanceof ServerPlayerEntity tp) SheetHealth.syncBar(tp);
 			} else {
 				target.heal(n);
 			}

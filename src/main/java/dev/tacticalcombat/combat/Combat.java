@@ -150,7 +150,15 @@ public final class Combat {
 			java.util.function.Function<String, Double> vars = s == null ? n -> 0.0 : new SheetContext(s.format(), s.character())::lookup;
 			r = Initiative.roll(p, name + " initiative", c.rule.roll(), c.rule.tiebreak(), vars);
 		} else {
-			r = Initiative.roll(roller, c.entity.getName().getString() + " initiative", rule.mob(), "", n -> 0.0);
+			NpcSheets.Found f = NpcSheets.find(c.entity); // an Actor rolls with its own sheet
+			InitiativeRule own = f == null ? null : InitiativeRule.of(f.sheet().format());
+			String label = c.entity.getName().getString() + " initiative";
+			if (own != null && own.hasRoll()) {
+				r = Initiative.roll(roller, label, own.roll(), own.tiebreak(),
+						new SheetContext(f.sheet().format(), f.sheet().character())::lookup);
+			} else {
+				r = Initiative.roll(roller, label, rule.mob(), "", n -> 0.0);
+			}
 		}
 		c.initiative = r.total();
 		c.tiebreak = r.tiebreak();
@@ -328,7 +336,7 @@ public final class Combat {
 
 	private void beginTurn() {
 		Combatant c = current();
-		c.resetTurnResources(c.entity instanceof ServerPlayerEntity sp ? TurnSetup.of(sp) : TurnSetup.basic(CombatConfig.MOB_MOVEMENT));
+		c.resetTurnResources(setupFor(c.entity));
 		if (c.entity instanceof ServerPlayerEntity p) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.your_turn"), true);
 		}
@@ -565,13 +573,6 @@ public final class Combat {
 
 			Box box = p.getBoundingBox().expand(
 					CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL, CombatConfig.JOIN_RANGE);
-			joiners.addAll(world.getEntitiesByClass(MobEntity.class, box, m ->
-					CombatManager.isEligibleEnemy(m)
-							&& !CombatManager.isInCombat(m)
-							&& m.getTarget() instanceof ServerPlayerEntity t
-							&& contains(t)
-							&& CombatManager.isNear(m, p, CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL)));
-
 			joiners.addAll(world.getPlayers(o ->
 					!o.isSpectator() && o.isAlive()
 							&& !CombatManager.isInCombat(o)
@@ -580,6 +581,25 @@ public final class Combat {
 		for (LivingEntity e : joiners) {
 			addCombatant(e);
 		}
+	}
+
+	/** What a combatant gets each turn: a player's from their sheet, an Actor's from its own sheet, else plain defaults. */
+	private static TurnSetup setupFor(LivingEntity e) {
+		if (e instanceof ServerPlayerEntity sp) return TurnSetup.of(sp);
+		NpcSheets.Found f = NpcSheets.find(e);
+		if (f != null) {
+			try {
+				return TurnSetup.compute(f.sheet().format(), f.sheet().character());
+			} catch (RuntimeException ex) {
+				// a broken sheet must not stop the fight
+			}
+		}
+		return TurnSetup.basic(CombatConfig.MOB_MOVEMENT);
+	}
+
+	/** The Dungeon Master brings an Actor (or anything else) into the running fight. */
+	public void add(LivingEntity entity) {
+		addCombatant(entity);
 	}
 
 	private void addCombatant(LivingEntity entity) {
@@ -729,7 +749,7 @@ public final class Combat {
 			if (o.isPlayer()) playerCells.add(key);
 		}
 
-		Grid.Result r = Grid.reachable(world, Grid.cellOf(mob), (int) CombatConfig.MOB_MOVEMENT, playerCells);
+		Grid.Result r = Grid.reachable(world, Grid.cellOf(mob), Math.max(1, (int) c.moveBudget), playerCells);
 		boolean ranged = mob instanceof RangedAttackMob;
 		Vec3d goal = target.getPos();
 
@@ -891,7 +911,8 @@ public final class Combat {
 
 	/** A creature's turn that the Dungeon Master walks by hand (auto movement is off). */
 	private boolean manualMob(Combatant c) {
-		return !planning && c != null && !c.isPlayer() && !DmTools.autoMovement;
+		return !planning && c != null && !c.isPlayer()
+				&& (!DmTools.autoMovement || dev.tacticalcombat.actor.ActorRegistry.dmControlled(c.entity));
 	}
 
 	private void refreshGrid() {
@@ -940,7 +961,7 @@ public final class Combat {
 			if (o.isPlayer() || o.entity.squaredDistanceTo(viewer.entity) > range2) continue;
 			if (++scanned > CombatConfig.THREAT_MAX_ENEMIES) break;
 
-			Grid.Result r = Grid.reachable(world, Grid.cellOf(o.entity), (int) CombatConfig.MOB_MOVEMENT, playerCells);
+			Grid.Result r = Grid.reachable(world, Grid.cellOf(o.entity), Math.max(1, (int) setupFor(o.entity).pool), playerCells);
 			for (Grid.Node n : r.nodes) {
 				out.add(n.pos);
 				BlockPos b = BlockPos.fromLong(n.pos);
@@ -979,7 +1000,7 @@ public final class Combat {
 		for (Combatant c : order) {
 			LivingEntity e = c.entity;
 			boolean player = e instanceof ServerPlayerEntity;
-			List<SheetHealth.BarValue> sheetBars = e instanceof ServerPlayerEntity bp ? SheetHealth.barsOf(bp) : List.of();
+			List<SheetHealth.BarValue> sheetBars = SheetHealth.barsOf(e);
 			SheetHealth.BarValue vital = null; // the sheet's health bar replaces Minecraft health
 			List<CombatStatePayload.Bar> bars = new ArrayList<>();
 			for (SheetHealth.BarValue b : sheetBars) {
@@ -989,7 +1010,7 @@ public final class Combat {
 			entries.add(new CombatStatePayload.Entry(
 					e.getId(),
 					Registries.ENTITY_TYPE.getId(e.getType()),
-					player ? e.getName().getString() : "",
+					player || dev.tacticalcombat.actor.ActorRegistry.isActorBody(e) ? e.getName().getString() : "",
 					vital != null ? (float) vital.now() : e.getHealth(),
 					vital != null ? (float) vital.max() : e.getMaxHealth(),
 					!player,

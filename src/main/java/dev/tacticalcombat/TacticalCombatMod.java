@@ -44,6 +44,11 @@ public class TacticalCombatMod implements ModInitializer {
 		PayloadTypeRegistry.playS2C().register(DiceRollPayload.ID, DiceRollPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(DiceRequestPayload.ID, DiceRequestPayload.CODEC);
 		dev.tacticalcombat.character.CharacterSync.register();
+		dev.tacticalcombat.actor.ModEntities.init();
+		dev.tacticalcombat.actor.ActorRegistry.register();
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.ActorActionPayload.ID, dev.tacticalcombat.net.ActorActionPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.ActorActionPayload.ID, (payload, context) ->
+				context.server().execute(() -> dev.tacticalcombat.actor.ActorService.handle(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> dev.tacticalcombat.combat.Strikes.roll(context.player(), payload.label(),
 						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind(), payload.cost())));
@@ -118,6 +123,7 @@ public class TacticalCombatMod implements ModInitializer {
 	}
 
 	private static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher) {
+		dev.tacticalcombat.actor.ActorCommands.register(dispatcher);
 		dispatcher.register(CommandManager.literal("tbc")
 				.then(CommandManager.literal("start")
 						.requires(src -> src.hasPermissionLevel(2))

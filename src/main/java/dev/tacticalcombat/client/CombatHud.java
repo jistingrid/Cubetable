@@ -101,7 +101,7 @@ public final class CombatHud {
 
 	static ItemStack iconFor(CombatStatePayload.Entry e) {
 		return ICONS.computeIfAbsent(e.typeId(), id -> {
-			if (!e.playerName().isEmpty()) return new ItemStack(Items.PLAYER_HEAD);
+			if (!e.hostile() || id.getNamespace().equals("tacticalcombat")) return new ItemStack(Items.PLAYER_HEAD);
 			EntityType<?> type = Registries.ENTITY_TYPE.get(id);
 			SpawnEggItem egg = SpawnEggItem.forEntity(type);
 			return egg != null ? new ItemStack(egg) : new ItemStack(Items.SKELETON_SKULL);

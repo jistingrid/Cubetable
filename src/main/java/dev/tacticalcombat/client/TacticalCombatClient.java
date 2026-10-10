@@ -79,6 +79,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveRole(payload)));
 
 		FadeModels.register();
+		net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+				dev.tacticalcombat.actor.ModEntities.ACTOR, ActorEntityRenderer::new);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			ClientCombatState.reset();
 			BlockFade.clear();
@@ -92,6 +94,11 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				dispatcher.register(ClientCommandManager.literal("encounter").executes(ctx -> {
 					EncounterScreen.requestOpen();
+					return 1;
+				})));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+				dispatcher.register(ClientCommandManager.literal("actors").executes(ctx -> {
+					ActorsScreen.requestOpen();
 					return 1;
 				})));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -127,6 +134,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			ShareCardHud.tick(client);
 			CharacterSheetScreen.tick(client);
 			EncounterScreen.tick(client);
+			ActorsScreen.tick(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {
 				pollCameraKeys(client);

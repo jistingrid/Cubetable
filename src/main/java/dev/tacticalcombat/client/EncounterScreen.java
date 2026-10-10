@@ -363,11 +363,30 @@ public final class EncounterScreen extends Screen {
 		int pad = 8;
 		int ry = top + 8;
 		ry += tool(g, x + pad, ry, w - pad * 2, "Auto movement",
-				"On: creatures take their own turns. Off: you walk each creature yourself on its turn - click a square, then End turn in the tracker.",
+				"On: creatures take their own turns. Off: you walk every creature yourself on its turn - click a square, then End turn in the tracker. (Each Actor can also be set to DM control in the Actors window.)",
 				DmState.autoMovement, () -> ClientPlayNetworking.send(new DmActionPayload(1, DmState.autoMovement ? 0 : 1)));
+		ry += opener(g, x + pad, ry, w - pad * 2, "Actors",
+				"Create, place and control the Actors of the world: sheet, model, side, and whether you walk them in a fight. Also /actors.",
+				() -> MinecraftClient.getInstance().setScreen(new ActorsScreen(this)));
 		ry += tool(g, x + pad, ry, w - pad * 2, "Combat tracker",
 				"The compact list of the fight at the corner of the screen.",
 				TrackerPanel.visible(), TrackerPanel::toggleHidden);
+	}
+
+	/** A tool row with an Open button instead of a switch. Returns the height used. */
+	private int opener(DrawContext g, int x, int y, int w, String name, String description, Runnable open) {
+		List<net.minecraft.text.OrderedText> lines = textRenderer.wrapLines(Text.literal(description), w - 80);
+		int rowH = Math.max(34, 16 + lines.size() * 10);
+		g.fill(x, y, x + w, y + rowH, panel);
+		g.fill(x, y, x + 2, y + rowH, gold);
+		g.drawText(textRenderer, name, x + 8, y + 5, 0xFFE6E8EB, false);
+		int ty = y + 16;
+		for (net.minecraft.text.OrderedText line : lines) {
+			g.drawText(textRenderer, line, x + 8, ty, dim, false);
+			ty += 10;
+		}
+		button(g, x + w - 54, y + 6, "Open", open, "Open the Actors window", 0xFF6B4E12, gold);
+		return rowH + 4;
 	}
 
 	/** One tool row: a name, a description and an On / Off switch. Returns the height used. */

@@ -2,11 +2,8 @@ package dev.tacticalcombat.combat;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.WitherEntity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -46,10 +43,7 @@ public final class CombatManager {
 	}
 
 	public static boolean isEligibleEnemy(MobEntity m) {
-		return m instanceof Monster
-				&& m.isAlive()
-				&& !(m instanceof EnderDragonEntity)
-				&& !(m instanceof WitherEntity);
+		return m.isAlive() && dev.tacticalcombat.actor.ActorRegistry.isHostileBody(m);
 	}
 
 	// ---------------------------------------------------------------- tick / detection
@@ -64,27 +58,6 @@ public final class CombatManager {
 			}
 		}
 
-		if (server.getTicks() % 5 == 0) {
-			detect(server);
-		}
-	}
-
-	/** A hostile mob that has locked onto a player starts a fight. */
-	private static void detect(MinecraftServer server) {
-		for (ServerWorld world : server.getWorlds()) {
-			for (ServerPlayerEntity player : new ArrayList<>(world.getPlayers())) {
-				if (!canFight(player) || isInCombat(player)) continue;
-
-				Box box = player.getBoundingBox().expand(
-						CombatConfig.DETECT_RANGE, CombatConfig.JOIN_VERTICAL, CombatConfig.DETECT_RANGE);
-				boolean triggered = !world.getEntitiesByClass(MobEntity.class, box, m ->
-						isEligibleEnemy(m) && !isInCombat(m) && m.getTarget() == player
-								&& isNear(m, player, CombatConfig.DETECT_RANGE, CombatConfig.JOIN_VERTICAL)).isEmpty();
-				if (!triggered) continue;
-
-				startAround(world, player, true);
-			}
-		}
 	}
 
 	/**

@@ -202,7 +202,7 @@ public final class TrackerPanel {
 		if (e.playerName().isEmpty()) return base;
 		var c = CharacterSheetScreen.find(e.sheetId(), e.playerName());
 		if (c == null) return base;
-		return full ? c.displayName() + " (" + e.playerName() + ")" : c.displayName();
+		return full && !e.hostile() ? c.displayName() + " (" + e.playerName() + ")" : c.displayName();
 	}
 
 	// ------------------------------------------------------------------ input (called by the combat screen)

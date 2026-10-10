@@ -159,6 +159,20 @@ public final class CharacterSync {
 		}
 	}
 
+	/** Removes a character for the server's own reasons (an Actor with a private sheet was deleted). */
+	public static void removeByServer(MinecraftServer server, String id) {
+		if (CharacterStore.remove(id) == null) return;
+		CharacterStore.save();
+		for (java.util.UUID u : Actors.forget(id)) {
+			ServerPlayerEntity owner = server.getPlayerManager().getPlayer(u);
+			if (owner != null) sendActor(owner);
+		}
+		CharacterRemovePayload payload = new CharacterRemovePayload(id);
+		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+			if (ServerPlayNetworking.canSend(p, CharacterRemovePayload.ID)) ServerPlayNetworking.send(p, payload);
+		}
+	}
+
 	private static CharacterUpdatePayload payloadOf(CharacterStore.Entry e, String by) {
 		JsonObject copy = e.json.deepCopy();
 		copy.addProperty("version", e.version);
