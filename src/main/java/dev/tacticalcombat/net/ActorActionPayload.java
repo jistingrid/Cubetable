@@ -36,6 +36,10 @@ public record ActorActionPayload(int op, String id, String a, String b, String c
 	public static final int MOVE = 11;
 	/** Cancel the automatic turn of the creature on turn and walk it by hand (id empty = whoever is on turn). */
 	public static final int TAKEOVER = 12;
+	/** Possess the placed Actor (outside a fight): the DM walks as it in first person. */
+	public static final int POSSESS = 13;
+	/** Stop possessing (id ignored). */
+	public static final int RELEASE = 14;
 
 	public static ActorActionPayload of(int op, String id) {
 		return new ActorActionPayload(op, id, "", "", "", 0);

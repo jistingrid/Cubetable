@@ -51,6 +51,11 @@ public final class ActorService {
 			case ActorActionPayload.CONTROL -> setControl(dm.getServer(), p.id(), p.n() != 0);
 			case ActorActionPayload.RENAME -> rename(dm.getServer(), p.id(), p.a());
 			case ActorActionPayload.FIGHT -> addToFight(dm.getServer(), p.id());
+			case ActorActionPayload.POSSESS -> Possession.start(dm, p.id());
+			case ActorActionPayload.RELEASE -> {
+				Possession.release(dm, true);
+				yield null;
+			}
 			case ActorActionPayload.TAKEOVER -> takeOver(dm, p.id());
 			case ActorActionPayload.MOVE -> move(dm, p.id(), p.c());
 			default -> "Unknown Actor action.";

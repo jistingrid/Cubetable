@@ -3,6 +3,7 @@
   "key.tacticalcombat.sheet": "Character Sheet",
   "key.tacticalcombat.encounter": "Encounter Window",
   "key.tacticalcombat.take_over": "Take Over Creature Turn (DM)",
+  "key.tacticalcombat.release": "Release Possessed Actor (DM)",
   "key.tacticalcombat.stage": "Actor Stage (DM)",
   "key.tacticalcombat.dismiss_card": "Dismiss Shown Card",
   "key.categories.tacticalcombat": "Tactical Combat",

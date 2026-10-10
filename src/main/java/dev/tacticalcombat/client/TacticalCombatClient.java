@@ -51,6 +51,12 @@ public class TacticalCombatClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_Y,
 			"key.categories.tacticalcombat"));
 
+	public static final KeyBinding RELEASE_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.tacticalcombat.release",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_P,
+			"key.categories.tacticalcombat"));
+
 	public static final KeyBinding DISMISS_CARD_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			"key.tacticalcombat.dismiss_card",
 			InputUtil.Type.KEYSYM,
@@ -76,6 +82,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamagePromptPayload.ID,
 				(payload, context) -> context.client().execute(() -> DamagePrompt.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PossessPayload.ID,
+				(payload, context) -> context.client().execute(() -> DmState.possessed = payload.bodyId()));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DmStatePayload.ID,
 				(payload, context) -> context.client().execute(() -> DmState.receive(payload)));
 		ServerCharacters.init();
@@ -133,6 +141,13 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		HudRenderCallback.EVENT.register(CombatHud::render);
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
+		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
+			MinecraftClient mc = MinecraftClient.getInstance();
+			if (mc.player == null || DmState.possessed < 0 || mc.options.hudHidden) return;
+			String name = "an Actor";
+			for (dev.tacticalcombat.net.DmStatePayload.ActorInfo a : DmState.actors) if (a.entityId() == DmState.possessed) name = a.name();
+			ctx.drawCenteredTextWithShadow(mc.textRenderer, "Possessing " + name + "  -  P to release", ctx.getScaledWindowWidth() / 2, 6, 0xFFF0C040);
+		});
 		HudRenderCallback.EVENT.register(ShareCardHud::render);
 		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
 			MinecraftClient mc = MinecraftClient.getInstance();
@@ -162,6 +177,11 @@ public class TacticalCombatClient implements ClientModInitializer {
 			}
 			while (SHEET_KEY.wasPressed()) {
 				CharacterSheetScreen.requestOpen();
+			}
+			while (RELEASE_KEY.wasPressed()) {
+				if (DmState.possessed >= 0) {
+					ClientPlayNetworking.send(dev.tacticalcombat.net.ActorActionPayload.of(dev.tacticalcombat.net.ActorActionPayload.RELEASE, ""));
+				}
 			}
 			while (TAKE_OVER_KEY.wasPressed()) {
 				if (ServerCharacters.isDm() && ClientCombatState.active) {

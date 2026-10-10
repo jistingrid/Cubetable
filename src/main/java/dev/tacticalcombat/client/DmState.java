@@ -7,6 +7,8 @@ import java.util.List;
 /** What the server last told this Dungeon Master: the tool switches and the players online. */
 public final class DmState {
 	public static boolean autoMovement = false;
+	/** Entity id of the Actor body this Dungeon Master possesses, or -1. */
+	public static int possessed = -1;
 	public static List<DmStatePayload.Who> players = List.of();
 	public static List<DmStatePayload.ActorInfo> actors = List.of();
 
@@ -26,6 +28,7 @@ public final class DmState {
 
 	public static void clear() {
 		autoMovement = false;
+		possessed = -1;
 		players = List.of();
 		actors = List.of();
 	}

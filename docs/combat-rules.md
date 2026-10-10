@@ -189,6 +189,18 @@ two tabs.
 A Dungeon Master who is not one of the fighters still follows the fight (camera, tracker, grid) and runs it. With
 several fights at once they follow the oldest. The settings last until the server stops.
 
+### Possessing an Actor
+
+Outside a fight a DM can **possess** an Actor: select it on the Stage and press *Possess*. The DM then walks as the
+Actor in first person, breaks and places blocks and uses things as usual, while everyone else sees the Actor doing it.
+`P` (or the same on-screen hint at the top) releases: the DM returns to where they started and the Actor stays where it
+was left.
+
+How it works: Minecraft cannot steer another entity, so the DM's own player does the walking. It is moved next to the
+Actor and made invisible, and the Actor's body is held on the DM's position, look direction and head every tick. So
+the DM keeps their own inventory, game mode and hit points while possessing. Possession ends by itself when a fight
+begins, when the Actor is recalled or deleted, or when the DM leaves its dimension.
+
 ## Initiative
 
 ```json

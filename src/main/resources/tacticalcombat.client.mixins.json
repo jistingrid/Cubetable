@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "CameraMixin",
+    "EntityRenderDispatcherMixin",
     "ChatHudAccessor",
     "GameRendererMixin",
     "InGameHudMixin",

@@ -142,7 +142,7 @@ public final class ActorStageScreen extends Screen {
 		panel[0] = panel[1] = panel[2] = panel[3] = -1;
 		if (a == null) return;
 		int w = 168;
-		int h = 70;
+		int h = 88;
 		int x = 6;
 		int y = height - 18 - h;
 		panel[0] = x;
@@ -163,6 +163,7 @@ public final class ActorStageScreen extends Screen {
 				&& ClientCombatState.entries.get(ClientCombatState.activeIndex).entityId() == a.entityId();
 		button(ctx, mouseX, mouseY, x + 8, by + 18, 72, onTurn ? "Take over" : "Recall", onTurn);
 		button(ctx, mouseX, mouseY, x + 84, by + 18, 76, "Actors...", false);
+		button(ctx, mouseX, mouseY, x + 8, by + 36, 152, "Possess (walk as it)", false);
 	}
 
 	private void button(DrawContext ctx, int mx, int my, int x, int y, int w, String text, boolean on) {
@@ -194,6 +195,9 @@ public final class ActorStageScreen extends Screen {
 				ClientPlayNetworking.send(ActorActionPayload.of(onTurn ? ActorActionPayload.TAKEOVER : ActorActionPayload.RECALL, sel.id()));
 			} else if (over(mx, my, x + 84, by + 18, 76)) {
 				MinecraftClient.getInstance().setScreen(new ActorsScreen(null));
+			} else if (over(mx, my, x + 8, by + 36, 152) && !sel.inFight() && sel.entityId() >= 0) {
+				ClientPlayNetworking.send(ActorActionPayload.of(ActorActionPayload.POSSESS, sel.id()));
+				close();
 			}
 			return true;
 		}
