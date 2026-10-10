@@ -51,6 +51,7 @@ public final class ActorService {
 			case ActorActionPayload.CONTROL -> setControl(dm.getServer(), p.id(), p.n() != 0);
 			case ActorActionPayload.RENAME -> rename(dm.getServer(), p.id(), p.a());
 			case ActorActionPayload.FIGHT -> addToFight(dm.getServer(), p.id());
+			case ActorActionPayload.TAKEOVER -> takeOver(dm, p.id());
 			case ActorActionPayload.MOVE -> move(dm, p.id(), p.c());
 			default -> "Unknown Actor action.";
 		};
@@ -348,6 +349,23 @@ public final class ActorService {
 		body.setVelocity(Vec3d.ZERO);
 		body.refreshPositionAndAngles(x, y, z, body.getYaw(), body.getPitch());
 		return null;
+	}
+
+	/** Cancels an Actor's automatic turn and hands it to the Dungeon Master. */
+	public static String takeOver(ServerPlayerEntity dm, String id) {
+		Combat c;
+		if (id == null || id.isEmpty()) {
+			c = CombatManager.primary();
+			if (c == null) return "No fight is running.";
+		} else {
+			ActorRecord r = ActorRegistry.find(id);
+			LivingEntity body = r == null ? null : ActorRegistry.bodyOf(dm.getServer(), r);
+			if (body == null) return "That Actor is not placed in the world.";
+			c = CombatManager.get(body);
+			if (c == null) return r.name + " is not in a fight.";
+			if (!c.isTurnOf(body)) return "It is not " + r.name + "'s turn.";
+		}
+		return c.takeOver();
 	}
 
 	public static String addToFight(MinecraftServer server, String id) {

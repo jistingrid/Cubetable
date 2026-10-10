@@ -34,6 +34,8 @@ public record ActorActionPayload(int op, String id, String a, String b, String c
 	public static final int FIGHT = 10;
 	/** c = "x y z": walk the placed Actor there (outside a fight). */
 	public static final int MOVE = 11;
+	/** Cancel the automatic turn of the creature on turn and walk it by hand (id empty = whoever is on turn). */
+	public static final int TAKEOVER = 12;
 
 	public static ActorActionPayload of(int op, String id) {
 		return new ActorActionPayload(op, id, "", "", "", 0);

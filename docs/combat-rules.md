@@ -168,7 +168,9 @@ Vanilla mobs that are not Actors no longer take part in fights.
 `G` (or `/stage`, or the Stage row in the DM tools tab) gives a DM a free cursor over the world, like Foundry's token
 layer. Click an Actor to select it (an arrow and its name show over it), drag it to walk it, or right-click the ground
 to send the selected Actor there. A small panel offers *DM control*, *Add to fight*, *Recall* and the Actors window.
-Inside a fight an Actor moves on the grid, not by dragging.
+Inside a fight an Actor moves on the grid, not by dragging. When it is the selected Actor's turn and it is walking by
+itself (Auto movement on), the panel's *Take over* button (or `Y`, for whatever creature is on turn) cancels the walk
+where it stands and hands the creature to the DM, who walks it by hand from then on (its DM control switch is turned on).
 
 Not there yet: critical hits, saving throws, advantage on bar rolls, and anything at 0 hit points.
 

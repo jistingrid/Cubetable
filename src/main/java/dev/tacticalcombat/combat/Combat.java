@@ -909,6 +909,34 @@ public final class Combat {
 		gridDirty = true;
 	}
 
+	/**
+	 * The Dungeon Master cancels an automatic creature turn and takes the creature over: whatever walk it had begun
+	 * stops where it is (the movement it already covered stays spent), and it is walked by hand from now on.
+	 * Returns null when it worked, else why not.
+	 */
+	public String takeOver() {
+		if (planning || order.isEmpty()) return "No turn is running.";
+		Combatant c = current();
+		if (c.isPlayer()) return "It is a player's turn.";
+		dev.tacticalcombat.actor.ActorRecord rec = dev.tacticalcombat.actor.ActorRegistry.recordOf(c.entity);
+		if (rec != null && !rec.dmControl) {
+			rec.dmControl = true; // stays under the DM's control until switched off in the Actors window or on the Stage
+			dev.tacticalcombat.actor.ActorRegistry.save();
+		}
+		if (c.path != null && !c.path.isEmpty()) {
+			c.moveUsed = c.moveUsed * Math.min(c.pathIdx, c.path.size()) / c.path.size();
+		}
+		c.path = null;
+		c.pathIdx = 0;
+		c.freeWalk = false;
+		c.planned = true;
+		if (c.entity instanceof MobEntity m) m.getNavigation().stop();
+		c.entity.setVelocity(Vec3d.ZERO);
+		gridDirty = true;
+		sync();
+		return null;
+	}
+
 	/** A creature's turn that the Dungeon Master walks by hand (auto movement is off). */
 	private boolean manualMob(Combatant c) {
 		return !planning && c != null && !c.isPlayer()

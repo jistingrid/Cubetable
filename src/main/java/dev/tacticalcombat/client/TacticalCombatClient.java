@@ -45,6 +45,12 @@ public class TacticalCombatClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_G,
 			"key.categories.tacticalcombat"));
 
+	public static final KeyBinding TAKE_OVER_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.tacticalcombat.take_over",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_Y,
+			"key.categories.tacticalcombat"));
+
 	public static final KeyBinding DISMISS_CARD_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			"key.tacticalcombat.dismiss_card",
 			InputUtil.Type.KEYSYM,
@@ -156,6 +162,11 @@ public class TacticalCombatClient implements ClientModInitializer {
 			}
 			while (SHEET_KEY.wasPressed()) {
 				CharacterSheetScreen.requestOpen();
+			}
+			while (TAKE_OVER_KEY.wasPressed()) {
+				if (ServerCharacters.isDm() && ClientCombatState.active) {
+					ClientPlayNetworking.send(dev.tacticalcombat.net.ActorActionPayload.of(dev.tacticalcombat.net.ActorActionPayload.TAKEOVER, ""));
+				}
 			}
 			while (STAGE_KEY.wasPressed()) {
 				ActorStageScreen.requestOpen();

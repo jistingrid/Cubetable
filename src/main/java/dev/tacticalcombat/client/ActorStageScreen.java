@@ -158,7 +158,10 @@ public final class ActorStageScreen extends Screen {
 		int by = y + 30;
 		button(ctx, mouseX, mouseY, x + 8, by, 72, a.dmControl() ? "DM control: on" : "DM control: off", a.dmControl());
 		button(ctx, mouseX, mouseY, x + 84, by, 76, "Add to fight", false);
-		button(ctx, mouseX, mouseY, x + 8, by + 18, 72, "Recall", false);
+		boolean onTurn = a.inFight() && ClientCombatState.active && !ClientCombatState.planning
+				&& ClientCombatState.activeIndex >= 0 && ClientCombatState.activeIndex < ClientCombatState.entries.size()
+				&& ClientCombatState.entries.get(ClientCombatState.activeIndex).entityId() == a.entityId();
+		button(ctx, mouseX, mouseY, x + 8, by + 18, 72, onTurn ? "Take over" : "Recall", onTurn);
 		button(ctx, mouseX, mouseY, x + 84, by + 18, 76, "Actors...", false);
 	}
 
@@ -185,7 +188,10 @@ public final class ActorStageScreen extends Screen {
 			} else if (over(mx, my, x + 84, by, 76)) {
 				ClientPlayNetworking.send(ActorActionPayload.of(ActorActionPayload.FIGHT, sel.id()));
 			} else if (over(mx, my, x + 8, by + 18, 72)) {
-				ClientPlayNetworking.send(ActorActionPayload.of(ActorActionPayload.RECALL, sel.id()));
+				boolean onTurn = sel.inFight() && ClientCombatState.active && !ClientCombatState.planning
+						&& ClientCombatState.activeIndex >= 0 && ClientCombatState.activeIndex < ClientCombatState.entries.size()
+						&& ClientCombatState.entries.get(ClientCombatState.activeIndex).entityId() == sel.entityId();
+				ClientPlayNetworking.send(ActorActionPayload.of(onTurn ? ActorActionPayload.TAKEOVER : ActorActionPayload.RECALL, sel.id()));
 			} else if (over(mx, my, x + 84, by + 18, 76)) {
 				MinecraftClient.getInstance().setScreen(new ActorsScreen(null));
 			}
