@@ -36,6 +36,11 @@ public final class CombatManager {
 		return null;
 	}
 
+	/** The fight a Dungeon Master who is not in one watches and runs (the oldest running fight). */
+	public static Combat primary() {
+		return COMBATS.isEmpty() ? null : COMBATS.get(0);
+	}
+
 	public static boolean isInCombat(Entity entity) {
 		return get(entity) != null;
 	}
@@ -121,6 +126,25 @@ public final class CombatManager {
 		return combat;
 	}
 
+	/**
+	 * A Dungeon Master starts an encounter: the party is gathered around them (or, failing that, around the nearest
+	 * other player) and every hostile creature near it joins. Null when a fight is already running or there is nobody
+	 * to fight.
+	 */
+	public static Combat startFor(ServerPlayerEntity dm) {
+		if (primary() != null || !(dm.getWorld() instanceof ServerWorld world)) return null;
+		List<ServerPlayerEntity> centers = new ArrayList<>();
+		if (canFight(dm)) centers.add(dm);
+		List<ServerPlayerEntity> others = new ArrayList<>(world.getPlayers(p -> p != dm && canFight(p)));
+		others.sort(java.util.Comparator.comparingDouble(p -> p.squaredDistanceTo(dm)));
+		centers.addAll(others);
+		for (ServerPlayerEntity center : centers) {
+			Combat combat = startAround(world, center, false);
+			if (combat != null) return combat;
+		}
+		return null;
+	}
+
 	public static void endCombat(Combat combat) {
 		combat.end();
 		COMBATS.remove(combat);
@@ -165,6 +189,7 @@ public final class CombatManager {
 	/** The encounter window asked for something (roll initiative, reorder, start ...). */
 	public static void requestEncounter(ServerPlayerEntity player, int op, int entityId, int value) {
 		Combat combat = get(player);
+		if (combat == null && dev.tacticalcombat.character.Roles.isDm(player.getUuid())) combat = primary(); // a DM running a fight from outside it
 		if (combat != null) combat.encounterAction(player, op, entityId, value);
 	}
 

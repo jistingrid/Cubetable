@@ -162,9 +162,9 @@ public final class Combat {
 	public void encounterAction(ServerPlayerEntity player, int op, int entityId, int value) {
 		boolean dm = dev.tacticalcombat.character.Roles.isDm(player.getUuid());
 		if (op == 6 || op == 7) { // the DM's tracker: finish the current turn / stop the fight
-			if (!dm || planning) return;
-			if (op == 6) endTurn();
-			else CombatManager.endCombat(this);
+			if (!dm) return;
+			if (op == 7) CombatManager.endCombat(this);
+			else if (!planning) endTurn();
 			return;
 		}
 		if (!planning) return;
@@ -331,6 +331,9 @@ public final class Combat {
 	/** The active player clicked a square. */
 	public void requestMove(ServerPlayerEntity player, BlockPos target) {
 		Combatant c = get(player);
+		if (!planning && !order.isEmpty() && manualMob(current()) && dev.tacticalcombat.character.Roles.isDm(player.getUuid())) {
+			c = current(); // the Dungeon Master walks the creature whose turn it is
+		}
 		if (planning || c == null || current() != c || c.moving() || moveGrid == null) return;
 
 		Integer idx = moveGrid.index.get(target.asLong());
@@ -346,7 +349,7 @@ public final class Combat {
 
 		c.path = buildPath(moveGrid, idx);
 		c.pathIdx = 0;
-		c.pathPos = player.getPos();
+		c.pathPos = c.entity.getPos();
 		c.moveUsed += node.cost;
 		if (c.lostAfterMove) { // the rest of that bought move is gone
 			c.moveBudget = c.moveUsed;
@@ -681,6 +684,10 @@ public final class Combat {
 	 * then it acts from where it stopped. Mobs that can not use the grid (flying, swimming) walk freely instead.
 	 */
 	private void tickMobTurn(Combatant c) {
+		if (manualMob(c)) { // the Dungeon Master moves it and ends its turn
+			c.planned = true;
+			return;
+		}
 		if (!c.planned) {
 			c.planned = true;
 			planMobMove(c);
@@ -857,20 +864,40 @@ public final class Combat {
 	// ---------------------------------------------------------------- grid
 
 	/** Recomputes the walkable squares for the active player and the enemy threat area, then sends them. */
+	/** Dungeon Masters who are not in this fight but follow and run it (only the oldest running fight is theirs). */
+	private List<ServerPlayerEntity> dmViewers() {
+		List<ServerPlayerEntity> out = new ArrayList<>();
+		if (CombatManager.primary() != this) return out;
+		for (ServerPlayerEntity p : world.getServer().getPlayerManager().getPlayerList()) {
+			if (dev.tacticalcombat.character.Roles.isDm(p.getUuid()) && get(p) == null && !p.isSpectator()) out.add(p);
+		}
+		return out;
+	}
+
+	/** The squares of the current turn have to be worked out again (a setting changed). */
+	public void markGridDirty() {
+		gridDirty = true;
+	}
+
+	/** A creature's turn that the Dungeon Master walks by hand (auto movement is off). */
+	private boolean manualMob(Combatant c) {
+		return !planning && c != null && !c.isPlayer() && !DmTools.autoMovement;
+	}
+
 	private void refreshGrid() {
 		if (order.isEmpty()) return;
 		Combatant cur = current();
 		moveGrid = null;
 		threat = Set.of();
 
-		if (cur.isPlayer() && !cur.moving()) {
+		if ((cur.isPlayer() || manualMob(cur)) && !cur.moving()) {
 			Set<Long> enemyCells = new HashSet<>();
 			Set<Long> occupied = new HashSet<>();
 			for (Combatant o : order) {
 				if (o == cur) continue;
 				long key = Grid.cellOf(o.entity).asLong();
 				occupied.add(key);
-				if (!o.isPlayer()) enemyCells.add(key);
+				if (o.isPlayer() != cur.isPlayer()) enemyCells.add(key); // the other side blocks the way
 			}
 
 			int remaining = Math.max(0, (int) Math.floor(cur.moveBudget - cur.moveUsed + 1.0E-6));
@@ -884,7 +911,7 @@ public final class Combat {
 				if (n.cost == 0 || occupied.contains(n.pos)) n.endable = false;
 			}
 			moveGrid = r;
-			threat = computeThreat(cur);
+			threat = cur.isPlayer() ? computeThreat(cur) : Set.of();
 		}
 		sendGrid();
 	}
@@ -926,6 +953,10 @@ public final class Combat {
 				ServerPlayNetworking.send(p, c == cur ? active : none);
 				notified.add(p);
 			}
+		}
+		for (ServerPlayerEntity dm : dmViewers()) {
+			ServerPlayNetworking.send(dm, manualMob(cur) ? active : none);
+			notified.add(dm);
 		}
 	}
 
@@ -991,6 +1022,10 @@ public final class Combat {
 				ServerPlayNetworking.send(p, payload);
 				notified.add(p);
 			}
+		}
+		for (ServerPlayerEntity dm : dmViewers()) {
+			ServerPlayNetworking.send(dm, payload);
+			notified.add(dm);
 		}
 	}
 

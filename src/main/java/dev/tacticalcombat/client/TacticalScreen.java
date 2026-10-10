@@ -96,7 +96,7 @@ public final class TacticalScreen extends Screen {
 			ClientPlayNetworking.send(new dev.tacticalcombat.net.TargetPayload(ClientGrid.hoverEntity));
 			return true;
 		}
-		if (!ClientCombatState.isMyTurn()) return true;
+		if (!ClientCombatState.canMoveActive()) return true;
 
 		if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {
 			BlockPos target = BlockPos.fromLong(ClientGrid.cells.get(ClientGrid.hover).pos());

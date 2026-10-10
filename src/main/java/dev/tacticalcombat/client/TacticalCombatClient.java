@@ -64,6 +64,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamagePromptPayload.ID,
 				(payload, context) -> context.client().execute(() -> DamagePrompt.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DmStatePayload.ID,
+				(payload, context) -> context.client().execute(() -> DmState.receive(payload)));
 		ServerCharacters.init();
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CharacterUpdatePayload.ID,
 				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveUpdate(payload)));
@@ -84,6 +86,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			ShareCardHud.clear();
 			ServerCharacters.clear();
 			DamagePrompt.clear();
+			DmState.clear();
 		});
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->

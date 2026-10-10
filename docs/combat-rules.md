@@ -142,6 +142,21 @@ the default), `gt`, `lte` or `lt` (roll-under games). Without a `defense` the ro
 
 Not there yet: critical hits, saving throws, and anything at 0 hit points.
 
+## The DM screen
+
+A Dungeon Master can open the encounter window at any time with `J` (or `/encounter`; `J` again closes it). It has
+two tabs.
+
+- **Encounter**: with no fight running it lists the players online, and **Start encounter** gathers the party around
+  the DM (or the nearest player) with every hostile creature nearby. During a fight it is the initiative window
+  (see below) with an **End encounter** button (click twice) next to Start combat.
+- **DM tools**: switches for the DM. *Auto movement* is on by default: creatures take their own turns. Off, the DM walks
+  each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
+  tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.
+
+A Dungeon Master who is not one of the fighters still follows the fight (camera, tracker, grid) and runs it. With
+several fights at once they follow the oldest. The settings last until the server stops.
+
 ## Initiative
 
 ```json

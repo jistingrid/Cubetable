@@ -52,7 +52,7 @@ public final class MousePicker {
 			ClientGrid.hoverEntity = bestId;
 			return;
 		}
-		if (!blockHit || !ClientCombatState.isMyTurn()) return; // squares only matter while it is your turn
+		if (!blockHit || !ClientCombatState.canMoveActive()) return; // squares only matter while you can move the unit on turn
 
 		BlockPos bp = hit.getBlockPos();
 		Direction side = hit.getSide();

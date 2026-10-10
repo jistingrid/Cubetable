@@ -1122,6 +1122,15 @@
                       "rollLabel": "Initiative"
                     }
                   ]
+                },
+                {
+                  "title": "TRAITS",
+                  "items": [
+                    {
+                      "widget": "table",
+                      "collection": "features"
+                    }
+                  ]
                 }
               ]
             }

@@ -1,0 +1,45 @@
+{
+  "format": "generic_d20",
+  "kind": "npc",
+  "text": {
+    "name": "Wolf",
+    "subtitle": "Medium beast, unaligned (CR 1/4)"
+  },
+  "values": {
+    "str": 12,
+    "dex": 15,
+    "con": 12,
+    "int": 3,
+    "wis": 12,
+    "cha": 6,
+    "prof": 2,
+    "level": 1,
+    "hp": 11,
+    "hp_max": 11,
+    "ac": 13,
+    "speed": 40,
+    "sk_perception": 1,
+    "sk_stealth": 1
+  },
+  "collections": {
+    "weapons": [
+      {
+        "name": "Bite",
+        "ability": 1,
+        "dmg": "2d4",
+        "prof": 1,
+        "notes": "Melee, 5 ft, piercing. On a hit the target makes a DC 11 Strength save or is knocked prone."
+      }
+    ],
+    "features": [
+      {
+        "name": "Keen Hearing and Smell",
+        "notes": "Advantage on Wisdom (Perception) checks that rely on hearing or smell."
+      },
+      {
+        "name": "Pack Tactics",
+        "notes": "Advantage on an attack roll against a creature if at least one of the wolf's allies is within 5 feet of the creature and the ally isn't incapacitated."
+      }
+    ]
+  }
+}

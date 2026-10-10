@@ -72,6 +72,8 @@ Players get an action bar at the bottom of the combat view: their bars (hit poin
 
 Clicking a creature in a fight targets it, with an arrow over its model (colored for your own target, gray for others'). Collections marked `targetable` aim their attack rolls at the target and are checked against the pack's `defense`; with `damage` the target's owner gets a Full / Half / Heal / Custom popup: [docs/combat-rules.md](docs/combat-rules.md#targets-attacks-and-damage).
 
+The encounter window doubles as the DM screen (`J` for a DM, any time): start or end an encounter, and a DM tools tab with *Auto movement* (off: the DM walks the creatures by hand): [docs/combat-rules.md](docs/combat-rules.md#the-dm-screen). `packs/generic_d20/characters/wolf.json` is a ready NPC sheet (5e wolf).
+
 ## Shared characters and the Dungeon Master
 
 - **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).

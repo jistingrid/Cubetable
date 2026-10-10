@@ -174,6 +174,16 @@ public final class ClientCombatState {
 		return entries.get(activeIndex).entityId() == mc.player.getId();
 	}
 
+	/**
+	 * You may walk the creature on turn: it is your own turn, or you are the Dungeon Master and the creature
+	 * is a hostile whose movement is in your hands (auto movement off).
+	 */
+	public static boolean canMoveActive() {
+		if (isMyTurn()) return true;
+		if (!active || planning || DmState.autoMovement || !ServerCharacters.isDm()) return false;
+		return activeIndex >= 0 && activeIndex < entries.size() && entries.get(activeIndex).hostile();
+	}
+
 	/** The entity whose turn it is (null if unknown / not loaded). */
 	public static Entity activeEntity(MinecraftClient mc) {
 		if (!active || mc.world == null || activeIndex < 0 || activeIndex >= entries.size()) return null;

@@ -1,6 +1,8 @@
 package dev.tacticalcombat.client;
 
 import dev.tacticalcombat.net.CombatStatePayload;
+import dev.tacticalcombat.net.DmActionPayload;
+import dev.tacticalcombat.net.DmStatePayload;
 import dev.tacticalcombat.net.EncounterActionPayload;
 import dev.tacticalcombat.sheet.SheetLibrary;
 import dev.tacticalcombat.sheet.Theme;
@@ -8,6 +10,8 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 import org.lwjgl.glfw.GLFW;
@@ -16,7 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The encounter manager: opens when a fight starts, for the initiative phase. Once the turns run it closes; the
+ * The encounter manager and, for a Dungeon Master, the DM screen. Players get it for the initiative phase of a
+ * fight. A Dungeon Master can open it at any time (J or /encounter): the Encounter tab lists the party (the players
+ * online when no fight runs, with a Start encounter button; the fighters otherwise, with End encounter) and the
+ * DM tools tab holds switches such as Auto movement.
+ *
+ * <p>The encounter manager: opens when a fight starts, for the initiative phase. Once the turns run it closes; the
  * Dungeon Master then has the compact {@link TrackerPanel} on the screen. Players on the left, enemies on the right, each with their
  * initiative. A player rolls their own; the Dungeon Master rolls the enemies, can adjust any value, reorder
  * the turn order and start the turns. A game whose pack has no initiative roll shows no roll buttons, and the
@@ -30,8 +39,16 @@ public final class EncounterScreen extends Screen {
 	private static final int STRIP_H = 56;
 	private static final int FOOT_H = 24;
 
+	private static final int TAB_H = 14;
+
 	private static boolean pendingOpen;
 	private static boolean pendingAuto;
+	/** A Dungeon Master asked for the screen. */
+	private static boolean pendingDm;
+	/** Remembered between openings: 0 the encounter, 1 the DM tools. */
+	private static int tab;
+	private boolean endArmed;
+	private long endArmedAt;
 
 	private final int bg, panel, panelHover, edge, gold, muted, dim, bannerA, bannerB;
 
@@ -64,16 +81,22 @@ public final class EncounterScreen extends Screen {
 		bannerB = t.get("banner_b");
 	}
 
-	/** From the J key or /encounter: the initiative window while planning, the DM's tracker panel (show / hide) after. */
+	/**
+	 * From the J key or /encounter. A Dungeon Master gets the screen whenever they ask (and J closes it again); a
+	 * player gets the initiative window while the fight is being planned.
+	 */
 	public static void requestOpen() {
-		if (ClientCombatState.active && !ClientCombatState.planning) {
-			if (ServerCharacters.isDm()) TrackerPanel.toggleHidden();
+		MinecraftClient mc = MinecraftClient.getInstance();
+		if (ServerCharacters.isDm()) {
+			if (mc.currentScreen instanceof EncounterScreen es) es.close();
+			else pendingDm = true;
 			return;
 		}
+		if (ClientCombatState.active && !ClientCombatState.planning) return; // nothing to open for players while the turns run
 		pendingOpen = true;
 	}
 
-	/** Called every client tick: opens the window when a fight starts or the command asked for it. */
+	/** Called every client tick: opens the window when a fight starts or somebody asked for it. */
 	public static void tick(MinecraftClient client) {
 		if (ClientCombatState.openEncounterPending) {
 			ClientCombatState.openEncounterPending = false;
@@ -81,18 +104,24 @@ public final class EncounterScreen extends Screen {
 			pendingOpen = true;
 			pendingAuto = true;
 		}
-		if (!pendingOpen || client.player == null) return;
-		if (!ClientCombatState.active) {
+		if (client.player == null) return;
+		boolean free = client.currentScreen == null || client.currentScreen instanceof TacticalScreen;
+		if (pendingDm) {
+			if (free) {
+				client.setScreen(new EncounterScreen(false));
+				pendingDm = false;
+				pendingOpen = false;
+				pendingAuto = false;
+			}
+			return;
+		}
+		if (!pendingOpen) return;
+		if (!ClientCombatState.active || !ClientCombatState.planning) { // nothing to open here any more
 			pendingOpen = false;
 			pendingAuto = false;
 			return;
 		}
-		if (!ClientCombatState.planning) { // the turns run: nothing to open here any more
-			pendingOpen = false;
-			pendingAuto = false;
-			return;
-		}
-		if (client.currentScreen == null || client.currentScreen instanceof TacticalScreen) {
+		if (free) {
 			client.setScreen(new EncounterScreen(pendingAuto));
 			pendingOpen = false;
 			pendingAuto = false;
@@ -111,7 +140,8 @@ public final class EncounterScreen extends Screen {
 
 	@Override
 	public void tick() {
-		if (!ClientCombatState.active || !ClientCombatState.planning) close(); // once the turns run, the DM's tracker panel takes over
+		// opened by the start of a fight (or by a player): it goes when the turns begin. A Dungeon Master who opened it stays.
+		if ((autoClose || !ServerCharacters.isDm()) && (!ClientCombatState.active || !ClientCombatState.planning)) close();
 	}
 
 	@Override
@@ -148,6 +178,7 @@ public final class EncounterScreen extends Screen {
 		mouseX = mx;
 		mouseY = my;
 		hits.clear();
+		if (endArmed && System.currentTimeMillis() - endArmedAt > 3000) endArmed = false;
 
 		int w = Math.min(W, width - 8);
 		int h = Math.min(H, height - 8);
@@ -165,19 +196,45 @@ public final class EncounterScreen extends Screen {
 		g.fill(x, y, x + w, y + h, bg);
 
 		boolean dm = ServerCharacters.isDm();
+		boolean inFight = ClientCombatState.active;
 		boolean planning = ClientCombatState.planning;
 		List<CombatStatePayload.Entry> entries = ClientCombatState.entries;
+		if (!dm) tab = 0;
 
 		// title bar
 		g.fill(x, y, x + w, y + TITLE_H, 0xFF0F1114);
 		g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, edge);
-		String title = planning ? "Encounter - initiative" : "Combat - round " + ClientCombatState.round;
+		String title = dm && tab == 1 ? "DM tools" : !inFight ? "Encounter" : planning ? "Encounter - initiative" : "Combat - round " + ClientCombatState.round;
 		g.drawText(textRenderer, title, x + 6, y + 4, 0xFFC9CCD2, false);
 		int right = x + w - 3;
-		right -= button(g, right - 12, y + 3, "x", this::close, "Close (the fight carries on; /encounter opens this again)", 0xFF7A1C27, 0xFFB8323F) + 3;
+		right -= button(g, right - 12, y + 3, "x", this::close, "Close (the fight carries on; J or /encounter opens this again)", 0xFF7A1C27, 0xFFB8323F) + 3;
 		if (dm) {
 			g.fill(right - tw("DM") - 8, y + 3, right, y + 14, 0xFF6B4E12);
 			g.drawText(textRenderer, "DM", right - tw("DM") - 4, y + 5, gold, false);
+		}
+
+		// tabs (Dungeon Master only)
+		int top = y + TITLE_H;
+		if (dm) {
+			String[] names = {"Encounter", "DM tools"};
+			int tx = x + 6;
+			for (int i = 0; i < names.length; i++) {
+				final int index = i;
+				int tabW = tw(names[i]) + 14;
+				boolean over = hit(tx, top + 2, tabW, TAB_H - 2, () -> tab = index, null);
+				g.fill(tx, top + 2, tx + tabW, top + TAB_H, tab == i ? gold : edge);
+				g.fill(tx + 1, top + 3, tx + tabW - 1, top + TAB_H, tab == i ? panel : over ? panelHover : bg);
+				g.drawText(textRenderer, names[i], tx + 7, top + 5, tab == i ? 0xFFFFFFFF : muted, false);
+				tx += tabW + 3;
+			}
+			g.fill(x + 1, top + TAB_H, x + w - 1, top + TAB_H + 1, edge);
+			top += TAB_H;
+		}
+
+		if (dm && tab == 1) {
+			drawTools(g, x, top, w, h - (top - y));
+			drawTooltip(g, mx, my);
+			return;
 		}
 
 		// column geometry
@@ -185,9 +242,32 @@ public final class EncounterScreen extends Screen {
 		int colW = (w - pad * 3) / 2;
 		int leftX = x + pad;
 		int rightX = x + pad * 2 + colW;
-		int headY = y + TITLE_H + 6;
+		int headY = top + 6;
 		int listY = headY + 16;
-		int listH = h - TITLE_H - 6 - 16 - STRIP_H - FOOT_H - 4;
+		int stripH = inFight ? STRIP_H : 0;
+		int listH = h - (top - y) - 6 - 16 - stripH - FOOT_H - 4;
+		int footY = y + h - FOOT_H;
+
+		if (!inFight) { // a Dungeon Master looking at the table between fights
+			drawHeader(g, leftX, headY, colW, "Party (" + DmState.players.size() + ")");
+			drawHeader(g, rightX, headY, colW, "Enemies");
+			g.enableScissor(x, listY, x + w, listY + listH);
+			drawIdleParty(g, leftX, listY, colW, listH / ROW_H + 1);
+			int ty = listY + 4;
+			for (net.minecraft.text.OrderedText line : textRenderer.wrapLines(
+					Text.literal("Hostile creatures near the party join when the encounter starts."), colW - 10)) {
+				g.drawText(textRenderer, line, rightX + 5, ty, dim, false);
+				ty += 10;
+			}
+			g.disableScissor();
+			g.fill(x + 1, footY, x + w - 1, footY + 1, edge);
+			String start = "Start encounter";
+			button(g, x + w - tw(start) - 22, footY + 6, start, () -> ClientPlayNetworking.send(new DmActionPayload(0, 0)),
+					"Gather the party and every hostile creature nearby", 0xFF6B4E12, gold);
+			g.drawText(textRenderer, "No fight is running.", x + pad, footY + 8, dim, false);
+			drawTooltip(g, mx, my);
+			return;
+		}
 
 		List<CombatStatePayload.Entry> party = new ArrayList<>();
 		List<CombatStatePayload.Entry> foes = new ArrayList<>();
@@ -221,15 +301,19 @@ public final class EncounterScreen extends Screen {
 		drawOrder(g, entries, x + pad, stripY + 15, w - pad * 2, dm && planning);
 
 		// footer
-		int footY = y + h - FOOT_H;
 		g.fill(x + 1, footY, x + w - 1, footY + 1, edge);
+		int fx = x + w - 8;
+		if (dm) {
+			String end = endArmed ? "Really end?" : "End encounter";
+			int ew = tw(end) + 8;
+			fx -= button(g, fx - ew, footY + 6, end, this::endEncounter, "Stop the fight (click twice)", 0xFF7A1C27, 0xFFB8323F);
+			fx -= 6;
+		}
 		if (planning) {
 			if (dm) {
 				String start = "Start combat";
-				int bw = tw(start) + 14;
-				button(g, x + w - bw - 8, footY + 6, start, () -> send(4, 0, 0), "Begin the first turn", 0xFF6B4E12, gold);
-				int sw = button(g, x + pad, footY + 6, "Sort by initiative", () -> send(5, 0, 0), "Put everyone in the order of their results again", panel, 0xFF3B414C);
-				g.drawText(textRenderer, "Move with < >, then start.", x + pad + sw + 8, footY + 8, dim, false);
+				fx -= button(g, fx - tw(start) - 8, footY + 6, start, () -> send(4, 0, 0), "Begin the first turn", 0xFF6B4E12, gold);
+				button(g, x + pad, footY + 6, "Sort by initiative", () -> send(5, 0, 0), "Put everyone in the order of their results again", panel, 0xFF3B414C);
 			} else {
 				g.drawText(textRenderer, "Roll your initiative, then wait for the Dungeon Master.", x + pad, footY + 8, dim, false);
 			}
@@ -238,6 +322,73 @@ public final class EncounterScreen extends Screen {
 		}
 
 		drawTooltip(g, mx, my);
+	}
+
+	private void endEncounter() {
+		if (!endArmed) {
+			endArmed = true;
+			endArmedAt = System.currentTimeMillis();
+			return;
+		}
+		endArmed = false;
+		send(7, 0, 0);
+	}
+
+	/** The players online, for the Dungeon Master between fights. */
+	private void drawIdleParty(DrawContext g, int x, int y, int w, int rows) {
+		List<DmStatePayload.Who> list = DmState.players;
+		if (list.isEmpty()) {
+			g.drawText(textRenderer, "Nobody", x + 5, y + 6, dim, false);
+			return;
+		}
+		scroll = MathHelper.clamp(scroll, 0, Math.max(0, list.size() - rows));
+		for (int i = 0; i < rows && i + scroll < list.size(); i++) {
+			DmStatePayload.Who p = list.get(i + scroll);
+			int ry = y + i * ROW_H;
+			g.fill(x, ry, x + w, ry + ROW_H - 2, panel);
+			g.fill(x, ry, x + 2, ry + ROW_H - 2, 0xFF3CB84A);
+			g.drawItem(new ItemStack(Items.PLAYER_HEAD), x + 5, ry + 3);
+			g.drawText(textRenderer, textRenderer.trimToWidth(p.name(), w - 30), x + 24, ry + 3, 0xFFE6E8EB, false);
+			float frac = p.max() <= 0 ? 0 : Math.max(0f, Math.min(1f, p.hp() / p.max()));
+			int barW = Math.min(70, w - 30);
+			g.fill(x + 24, ry + 14, x + 24 + barW, ry + 17, 0xFF05060A);
+			g.fill(x + 24, ry + 14, x + 24 + Math.round(barW * frac), ry + 17, 0xFF50D060);
+			String hp = Math.round(p.hp()) + "/" + Math.round(p.max());
+			g.drawText(textRenderer, hp, x + 24 + barW + 4, ry + 12, muted, false);
+		}
+	}
+
+	/** The DM tools tab: a list of tools, each a row with a switch. */
+	private void drawTools(DrawContext g, int x, int top, int w, int h) {
+		int pad = 8;
+		int ry = top + 8;
+		ry += tool(g, x + pad, ry, w - pad * 2, "Auto movement",
+				"On: creatures take their own turns. Off: you walk each creature yourself on its turn - click a square, then End turn in the tracker.",
+				DmState.autoMovement, () -> ClientPlayNetworking.send(new DmActionPayload(1, DmState.autoMovement ? 0 : 1)));
+		ry += tool(g, x + pad, ry, w - pad * 2, "Combat tracker",
+				"The compact list of the fight at the corner of the screen.",
+				TrackerPanel.visible(), TrackerPanel::toggleHidden);
+	}
+
+	/** One tool row: a name, a description and an On / Off switch. Returns the height used. */
+	private int tool(DrawContext g, int x, int y, int w, String name, String description, boolean on, Runnable toggle) {
+		List<net.minecraft.text.OrderedText> lines = textRenderer.wrapLines(Text.literal(description), w - 80);
+		int rowH = Math.max(34, 16 + lines.size() * 10);
+		g.fill(x, y, x + w, y + rowH, panel);
+		g.fill(x, y, x + 2, y + rowH, on ? 0xFF3CB84A : 0xFF7A1C27);
+		g.drawText(textRenderer, name, x + 8, y + 5, 0xFFE6E8EB, false);
+		int ty = y + 16;
+		for (net.minecraft.text.OrderedText line : lines) {
+			g.drawText(textRenderer, line, x + 8, ty, dim, false);
+			ty += 10;
+		}
+		String label = on ? "On" : "Off";
+		int bw = 48;
+		boolean over = hit(x + w - bw - 6, y + 6, bw, 14, toggle, "Click to switch");
+		g.fill(x + w - bw - 6, y + 6, x + w - 6, y + 20, on ? 0xFF3CB84A : 0xFFB8323F);
+		g.fill(x + w - bw - 5, y + 7, x + w - 7, y + 19, over ? panelHover : on ? 0xFF1E4A25 : 0xFF4A1219);
+		g.drawCenteredTextWithShadow(textRenderer, label, x + w - bw / 2 - 6, y + 10, 0xFFFFFFFF);
+		return rowH + 4;
 	}
 
 	private void drawTooltip(DrawContext g, int mx, int my) {
@@ -375,7 +526,7 @@ public final class EncounterScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+		if (keyCode == GLFW.GLFW_KEY_ESCAPE || (ServerCharacters.isDm() && TacticalCombatClient.ENCOUNTER_KEY.matchesKey(keyCode, scanCode))) {
 			close();
 			return true;
 		}
