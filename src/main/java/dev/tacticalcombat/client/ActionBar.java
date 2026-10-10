@@ -38,8 +38,8 @@ public final class ActionBar {
 	private static final int ROW = 11;
 	private static final int SEP = 7;
 	private static final int MAX_SLOTS = 9;
-	/** Distance from the bottom of the screen: clears the vanilla hotbar and the status icons. */
-	private static final int LIFT = 54;
+	/** Distance from the bottom of the screen in the default place (Minecraft's own hotbar is hidden in a fight). */
+	private static final int MARGIN = 6;
 
 	private static final int PANEL = 0xE61D2029;
 	private static final int EDGE = 0xFF3A3F4D;
@@ -57,6 +57,11 @@ public final class ActionBar {
 
 	/** Index of the selected slot, -1 = none. Nothing consumes it yet; attacks still use a click on the target. */
 	public static int selected = -1;
+
+	/** Where the player dragged the bar: its centre and bottom edge (so it keeps its anchor as it changes width). -1 = default. */
+	private static int customCx = -1;
+	private static int customBottom = -1;
+	private static boolean dragging;
 
 	private static final Map<String, ItemStack> ICONS = new HashMap<>();
 
@@ -258,8 +263,10 @@ public final class ActionBar {
 		for (int h : heights) maxH = Math.max(maxH, h);
 		L.w = Math.max(total, 40);
 		L.h = PAD * 2 + Math.max(maxH, ROW);
-		L.x = (screenW - L.w) / 2;
-		L.y = screenH - LIFT - L.h;
+		int cxBar = customCx >= 0 ? customCx : screenW / 2;
+		int bottom = customBottom >= 0 ? customBottom : screenH - MARGIN;
+		L.x = Math.max(2, Math.min(screenW - L.w - 2, cxBar - L.w / 2));
+		L.y = Math.max(2, Math.min(screenH - L.h - 2, bottom - L.h));
 
 		// place the groups left to right, each one centred vertically
 		int cx = L.x + PAD;
@@ -380,7 +387,17 @@ public final class ActionBar {
 					L.end[0] + L.end[2] / 2, L.end[1] + 12, 0xFFE9B4BA);
 		}
 
+		if (tip == null && !dragging && inside(mx, my, new int[] {L.x, L.y, L.w, L.h}) && !overControl(L, mx, my)) {
+			tip = List.of(Text.translatable("tacticalcombat.bar.drag"));
+		}
 		if (tip != null) ctx.drawTooltip(font, tip, (int) mx, (int) my);
+	}
+
+	/** The pointer is on a slot, a move button or End Turn (as opposed to the bar's background, which drags it). */
+	private static boolean overControl(Layout L, double mx, double my) {
+		for (int[] r : L.slotRects) if (inside(mx, my, r)) return true;
+		for (int[] r : L.moveRects) if (inside(mx, my, r)) return true;
+		return L.end != null && inside(mx, my, L.end);
 	}
 
 	private static void drawSep(DrawContext ctx, Layout L, int[] group, int top, int bottom) {
@@ -532,31 +549,60 @@ public final class ActionBar {
 		return mx >= L.x - 1 && mx < L.x + L.w + 1 && my >= L.y - 1 && my < L.y + L.h + 1;
 	}
 
-	/** Handles a left click on the bar; true when the click landed on it. */
+	/**
+	 * Handles a click on the bar; true when it landed on it. Left click on a control uses it; left click on the
+	 * background starts dragging the bar; right click on the background puts the bar back in its default place.
+	 */
 	public static boolean mouseClicked(double mx, double my, int button, int screenW, int screenH) {
 		if (!ClientCombatState.active) return false;
 		MinecraftClient mc = MinecraftClient.getInstance();
 		Layout L = current(mc, screenW, screenH);
 		if (!(mx >= L.x - 1 && mx < L.x + L.w + 1 && my >= L.y - 1 && my < L.y + L.h + 1)) return false;
-		if (button != 0 || !ClientCombatState.isMyTurn()) return true;
+		boolean control = overControl(L, mx, my);
 
-		for (int i = 0; i < L.moveRects.size(); i++) {
-			if (inside(mx, my, L.moveRects.get(i))) {
-				CombatStatePayload.MoveButton b = ClientCombatState.moveButtons.get(i);
-				if (b.enabled()) ClientPlayNetworking.send(new dev.tacticalcombat.net.BuyMovePayload(b.id()));
+		if (button == 1 && !control) {
+			customCx = -1;
+			customBottom = -1;
+			return true;
+		}
+		if (button != 0) return true;
+
+		if (ClientCombatState.isMyTurn()) {
+			for (int i = 0; i < L.moveRects.size(); i++) {
+				if (inside(mx, my, L.moveRects.get(i))) {
+					CombatStatePayload.MoveButton b = ClientCombatState.moveButtons.get(i);
+					if (b.enabled()) ClientPlayNetworking.send(new dev.tacticalcombat.net.BuyMovePayload(b.id()));
+					return true;
+				}
+			}
+			for (int i = 0; i < L.slotRects.size(); i++) {
+				if (inside(mx, my, L.slotRects.get(i))) {
+					toggle(i);
+					return true;
+				}
+			}
+			if (L.end != null && inside(mx, my, L.end)) {
+				TacticalCombatClient.sendEndTurn();
 				return true;
 			}
 		}
-		for (int i = 0; i < L.slotRects.size(); i++) {
-			if (inside(mx, my, L.slotRects.get(i))) {
-				toggle(i);
-				return true;
-			}
-		}
-		if (L.end != null && inside(mx, my, L.end)) {
-			TacticalCombatClient.sendEndTurn();
-		}
+		if (!control) dragging = true;
 		return true;
+	}
+
+	/** Moves the bar while the background is dragged; true when a drag is in progress. */
+	public static boolean mouseDragged(double dx, double dy, int screenW, int screenH) {
+		if (!dragging) return false;
+		Layout L = current(MinecraftClient.getInstance(), screenW, screenH);
+		customCx = (int) Math.round(L.x + L.w / 2.0 + dx);
+		customBottom = (int) Math.round(L.y + L.h + dy);
+		return true;
+	}
+
+	public static boolean mouseReleased() {
+		boolean was = dragging;
+		dragging = false;
+		return was;
 	}
 
 	/** Number keys 1 to 9 pick the matching slot. True when the key was used. */
@@ -576,6 +622,7 @@ public final class ActionBar {
 
 	public static void reset() {
 		selected = -1;
+		dragging = false;
 		lastSlots = List.of();
 		lastVisible = 0;
 	}

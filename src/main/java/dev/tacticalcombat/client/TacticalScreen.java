@@ -103,6 +103,7 @@ public final class TacticalScreen extends Screen {
 	@Override
 	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
 		if (button == 0 && TrackerPanel.mouseDragged(deltaX, deltaY)) return true;
+		if (button == 0 && ActionBar.mouseDragged(deltaX, deltaY, width, height)) return true;
 		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
 			ClientCombatState.camYawTarget += (float) deltaX * 0.4f;
 			ClientCombatState.camPitch = MathHelper.clamp(ClientCombatState.camPitch + (float) deltaY * 0.25f, 25f, 80f);
@@ -114,6 +115,7 @@ public final class TacticalScreen extends Screen {
 	@Override
 	public boolean mouseReleased(double mouseX, double mouseY, int button) {
 		if (TrackerPanel.mouseReleased()) return true;
+		if (ActionBar.mouseReleased()) return true;
 		return super.mouseReleased(mouseX, mouseY, button);
 	}
 

@@ -21,6 +21,7 @@
   "tacticalcombat.hud.end_turn_short": "End Turn",
   "tacticalcombat.bar.level": "Level %s",
   "tacticalcombat.bar.cost": "Cost: %s",
+  "tacticalcombat.bar.drag": "Drag to move, right click to reset",
   "tacticalcombat.bar.unavailable": "Not available right now",
   "tacticalcombat.hud.controls": "Click: move / attack  |  WASD: pan  |  Wheel: zoom  |  Middle drag or arrows: rotate",
   "tacticalcombat.tip.move": "Move here (%s squares)",
