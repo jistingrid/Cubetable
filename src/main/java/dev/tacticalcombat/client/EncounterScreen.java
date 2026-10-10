@@ -365,6 +365,9 @@ public final class EncounterScreen extends Screen {
 		ry += tool(g, x + pad, ry, w - pad * 2, "Auto movement",
 				"Off (default): while you are connected you walk every creature yourself on its turn - click a square, then End turn in the tracker. On: creatures take their own turns. (Each Actor can also be set to DM control in the Actors window.)",
 				DmState.autoMovement, () -> ClientPlayNetworking.send(new DmActionPayload(1, DmState.autoMovement ? 0 : 1)));
+		ry += tool(g, x + pad, ry, w - pad * 2, "Time pause",
+				"On: players can not walk or touch blocks (breaking, placing, using); you still can. A player in a fight keeps using the grid. Looking around, the sheet and chat keep working.",
+				DmState.paused, () -> ClientPlayNetworking.send(new DmActionPayload(2, DmState.paused ? 0 : 1)));
 		ry += opener(g, x + pad, ry, w - pad * 2, "Actors",
 				"Create, place and control the Actors of the world: sheet, model, side, and whether you walk them in a fight. Also /actors.",
 				() -> MinecraftClient.getInstance().setScreen(new ActorsScreen(this)));

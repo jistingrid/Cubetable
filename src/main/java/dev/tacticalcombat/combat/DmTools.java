@@ -33,6 +33,7 @@ public final class DmTools {
 							? "tacticalcombat.msg.already_fighting" : "tacticalcombat.msg.no_enemies"), false);
 				}
 			}
+			case 2 -> TimePause.set(player.getServer(), value != 0);
 			case 1 -> {
 				autoMovement = value != 0;
 				Combat running = CombatManager.primary();

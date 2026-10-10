@@ -82,6 +82,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamagePromptPayload.ID,
 				(payload, context) -> context.client().execute(() -> DamagePrompt.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PausePayload.ID,
+				(payload, context) -> context.client().execute(() -> DmState.paused = payload.paused()));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PossessPayload.ID,
 				(payload, context) -> context.client().execute(() -> DmState.possessed = payload.bodyId()));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DmStatePayload.ID,
@@ -143,6 +145,9 @@ public class TacticalCombatClient implements ClientModInitializer {
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
 		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
 			MinecraftClient mc = MinecraftClient.getInstance();
+			if (mc.player != null && DmState.paused && !mc.options.hudHidden) {
+				ctx.drawCenteredTextWithShadow(mc.textRenderer, "TIME PAUSED", ctx.getScaledWindowWidth() / 2, 18, 0xFF6FB7FF);
+			}
 			if (mc.player == null || DmState.possessed < 0 || mc.options.hudHidden) return;
 			String name = "an Actor";
 			for (dev.tacticalcombat.net.DmStatePayload.ActorInfo a : DmState.actors) if (a.entityId() == DmState.possessed) name = a.name();

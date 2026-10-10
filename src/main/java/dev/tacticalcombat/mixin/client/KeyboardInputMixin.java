@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class KeyboardInputMixin extends Input {
 	@Inject(method = "tick", at = @At("TAIL"))
 	private void tacticalcombat$lockMovement(CallbackInfo ci) {
-		if (ClientCombatState.isFrozen()) {
+		if (ClientCombatState.isFrozen() || dev.tacticalcombat.client.DmState.holdsPlayer()) {
 			this.pressingForward = false;
 			this.pressingBack = false;
 			this.pressingLeft = false;

@@ -186,6 +186,11 @@ two tabs.
   each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
   tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.
 
+- **Time pause** (also in the DM tools tab): while it is on, players cannot walk, jump or touch blocks (break, place,
+  use), and a "TIME PAUSED" banner shows. DMs are not held, and neither are players inside a fight (the grid
+  rules their movement). Looking around, the sheet, dice and chat keep working. Like the other settings it lasts
+  until the server stops.
+
 A Dungeon Master who is not one of the fighters still follows the fight (camera, tracker, grid) and runs it. With
 several fights at once they follow the oldest. The settings last until the server stops.
 
