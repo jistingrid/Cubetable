@@ -989,6 +989,15 @@ public final class Combat {
 			for (Grid.Node n : r.nodes) {
 				if (n.cost == 0 || occupied.contains(n.pos)) n.endable = false;
 			}
+			if (!cur.isPlayer() && remaining <= 0 && cur.moveUsed <= 1.0E-6) {
+				// a creature the DM walks that has no movement at all: say why there are no squares
+				for (ServerPlayerEntity p : world.getServer().getPlayerManager().getPlayerList()) {
+					if (dev.tacticalcombat.character.Roles.isDm(p.getUuid())) {
+						p.sendMessage(net.minecraft.text.Text.literal(Damage.nameOf(cur.entity)
+								+ " has no movement this turn (check the speed on its sheet)."), true);
+					}
+				}
+			}
 			moveGrid = r;
 			threat = cur.isPlayer() ? computeThreat(cur) : Set.of();
 		}
@@ -1029,7 +1038,9 @@ public final class Combat {
 		GridPayload none = GridPayload.empty();
 		for (Combatant c : order) {
 			if (c.entity instanceof ServerPlayerEntity p) {
-				ServerPlayNetworking.send(p, c == cur ? active : none);
+				// a Dungeon Master who is also one of the fighters walks the creatures on their turns too
+				boolean dmWalks = manualMob(cur) && dev.tacticalcombat.character.Roles.isDm(p.getUuid());
+				ServerPlayNetworking.send(p, c == cur || dmWalks ? active : none);
 				notified.add(p);
 			}
 		}
