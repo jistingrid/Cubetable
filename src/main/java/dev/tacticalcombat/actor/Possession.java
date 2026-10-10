@@ -37,7 +37,10 @@ public final class Possession {
 	public static void register() {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			State s = ACTIVE.remove(handler.player.getUuid());
-			if (s != null) handler.player.removeStatusEffect(StatusEffects.INVISIBILITY);
+			if (s != null) {
+				settle(server, s);
+				handler.player.removeStatusEffect(StatusEffects.INVISIBILITY);
+			}
 		});
 	}
 
@@ -63,6 +66,7 @@ public final class Possession {
 
 		ACTIVE.put(dm.getUuid(), new State(r.id, here, dm.getPos(), dm.getYaw(), dm.getPitch()));
 		dm.teleport(there, body.getX(), body.getY(), body.getZ(), body.getYaw(), body.getPitch());
+		body.noClip = true; // the body stands exactly where the DM does: it must not push (or be pushed by) them
 		hide(dm);
 		ServerPlayNetworking.send(dm, new PossessPayload(body.getId()));
 		dm.sendMessage(Text.literal("You are " + r.name + ". Press P to release."), true);
@@ -73,9 +77,17 @@ public final class Possession {
 	public static void release(ServerPlayerEntity dm, boolean back) {
 		State s = ACTIVE.remove(dm.getUuid());
 		if (s == null) return;
+		settle(dm.getServer(), s);
 		dm.removeStatusEffect(StatusEffects.INVISIBILITY);
 		if (back) dm.teleport(s.world, s.origin.x, s.origin.y, s.origin.z, s.yaw, s.pitch);
 		ServerPlayNetworking.send(dm, new PossessPayload(-1));
+	}
+
+	/** The body is solid again once nobody walks it. */
+	private static void settle(MinecraftServer server, State s) {
+		ActorRecord r = server == null ? null : ActorRegistry.get(s.actorId);
+		LivingEntity body = r == null ? null : ActorRegistry.bodyOf(server, r);
+		if (body != null) body.noClip = false;
 	}
 
 	private static void hide(ServerPlayerEntity dm) {
@@ -101,12 +113,14 @@ public final class Possession {
 			else if (body.getWorld() != dm.getWorld()) stop = "You left the Actor's dimension: possession ends.";
 			if (stop != null) {
 				it.remove();
+				if (body != null) body.noClip = false;
 				dm.removeStatusEffect(StatusEffects.INVISIBILITY);
 				ServerPlayNetworking.send(dm, new PossessPayload(-1));
 				dm.sendMessage(Text.literal(stop), false);
 				continue;
 			}
 			if (body instanceof MobEntity m) m.getNavigation().stop();
+			body.noClip = true;
 			body.refreshPositionAndAngles(dm.getX(), dm.getY(), dm.getZ(), dm.getYaw(), dm.getPitch());
 			body.setHeadYaw(dm.getHeadYaw());
 			body.setBodyYaw(dm.getBodyYaw());

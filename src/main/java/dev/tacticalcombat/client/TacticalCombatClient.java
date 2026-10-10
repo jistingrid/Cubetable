@@ -178,6 +178,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			CharacterSheetScreen.tick(client);
 			EncounterScreen.tick(client);
 			ActorStageScreen.tick(client);
+			keepPossessedBodyApart(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {
 				pollCameraKeys(client);
@@ -208,6 +209,25 @@ public class TacticalCombatClient implements ClientModInitializer {
 				sendEndTurn();
 			}
 		});
+	}
+
+	private static int lastPossessed = -1;
+
+	/**
+	 * The Actor a Dungeon Master possesses stands exactly where the DM does. On this client too its copy must not push
+	 * the DM's player around (it would otherwise slide as the two bodies shove each other).
+	 */
+	private static void keepPossessedBodyApart(MinecraftClient client) {
+		if (client.world == null) return;
+		if (lastPossessed != DmState.possessed) {
+			net.minecraft.entity.Entity old = lastPossessed < 0 ? null : client.world.getEntityById(lastPossessed);
+			if (old != null) old.noClip = false;
+			lastPossessed = DmState.possessed;
+		}
+		if (DmState.possessed >= 0) {
+			net.minecraft.entity.Entity body = client.world.getEntityById(DmState.possessed);
+			if (body != null) body.noClip = true;
+		}
 	}
 
 	public static void sendEndTurn() {
