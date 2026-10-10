@@ -652,7 +652,9 @@ public final class ActionBar {
 	private static void use(int index, boolean damage) {
 		if (index < 0 || index >= lastSlots.size()) return;
 		Slot s = lastSlots.get(index);
-		if (!s.usable()) return;
+		// a greyed slot (its cost is paid, its spell slots gone) can not attack any more, but its damage is free: the
+		// attack roll that just spent the action must still be followed by a damage roll
+		if (!s.usable() && !damage) return;
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
 		if (!ClientPlayNetworking.canSend(DiceRequestPayload.ID)) return;

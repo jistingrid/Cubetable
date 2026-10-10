@@ -40,7 +40,7 @@
   "tacticalcombat.msg.no_enemies": "No hostile creature near the party: nothing to start an encounter with.",
   "tacticalcombat.bar.use": "Click: attack / roll  -  Right click: damage",
   "tacticalcombat.bar.drag": "Drag to move, right click to reset",
-  "tacticalcombat.bar.unavailable": "Not available right now",
+  "tacticalcombat.bar.unavailable": "Attack not available right now - right click still rolls its damage",
   "tacticalcombat.hud.controls": "Click: target / move  |  WASD: pan  |  Wheel: zoom  |  Arrows: rotate",
   "tacticalcombat.tip.move": "Move here (%s squares)",
   "tacticalcombat.tip.attack": "Attack %s",
