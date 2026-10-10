@@ -28,6 +28,7 @@ per-turn resources; attacks, defense and hit points come in later steps.
 | `movement.speed` | Formula: the distance of one full move (in `unit`s). |
 | `movement.pool` | Formula: distance you may walk as soon as the turn starts. Default: the speed. Use `"0"` when you must pay to move. |
 | `movement.moves` | Ways to buy more movement with resources (see below). |
+| `defense` | What an attack roll has to beat on the target's sheet (see Targets, attacks and damage). |
 
 ## Bars (hit points, sanity, stamina ...)
 
@@ -104,6 +105,42 @@ The slots come from the `actions` block:
 action) shows nothing, a bonus action shows `B`, three actions shows `3`. `always` writes every cost (a good
 fit for three-action games), `never` none. Slots that do not fit on a narrow screen are left off; the bar shows
 how many.
+
+## Targets, attacks and damage
+
+In a fight, clicking a creature or a player character targets it (click it again to drop the target). An arrow
+floats over every targeted model: a blue one for your own target, gray ones for other players' targets; several
+arrows on the same model sit side by side. Targets are only for the creatures in the fight.
+
+What a roll does with the target comes from the format. A collection can be marked in its JSON:
+
+```json
+{ "id": "weapons", "targetable": true, "damage": true, ... }
+```
+
+| Key | Meaning |
+|---|---|
+| `targetable` | Rolls of this collection are aimed at your target. Its `roll` columns are attack rolls. |
+| `damage` | Only with `targetable`: its `dice` columns (and a spell's cast dice) are damage. |
+
+and the combat block says what an attack roll has to beat:
+
+```json
+"defense": { "value": "ac", "label": "AC", "hit": "gte" }
+```
+
+`value` is a formula on the **target's** sheet, `label` is how it is written in chat, `hit` is `gte` (meet or beat,
+the default), `gt`, `lte` or `lt` (roll-under games). Without a `defense` the roll is only shown against the target.
+
+- **Attack roll:** after the dice, chat gets a line such as `17 vs AC 15: hits Goblin` (green) or `misses` (red).
+  Nothing is spent or blocked by a miss; the player decides whether to roll damage.
+- **Damage roll:** the owner of the target (the player of a player character, a Dungeon Master for everything else)
+  gets a small popup, `Goblin takes 5 damage`, with **Full**, **Half** (rounded down), **Heal** and **Custom** (a number,
+  then Damage or Heal). Whatever they press is applied (the sheet's health bar when the target has one) and chat says
+  `Goblin received 5 damage` or `Goblin healed 5 HP`. With no Dungeon Master online, damage to a creature is applied in full.
+- A roll with no target picked is an ordinary roll, with a reminder in chat.
+
+Not there yet: critical hits, saving throws, and anything at 0 hit points.
 
 ## Initiative
 

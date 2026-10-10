@@ -70,6 +70,8 @@ their game has one, the Dungeon Master rolls the enemies, orders the turns and s
 
 Players get an action bar at the bottom of the combat view: their bars (hit points ...), the resources of the turn, movement with the moves they can buy, a slot for each weapon / spell / feature the pack lists, and End Turn. The pack's `actions` block decides the slots and when a cost is written on them: [docs/combat-rules.md](docs/combat-rules.md#the-action-bar).
 
+Clicking a creature in a fight targets it, with an arrow over its model (colored for your own target, gray for others'). Collections marked `targetable` aim their attack rolls at the target and are checked against the pack's `defense`; with `damage` the target's owner gets a Full / Half / Heal / Custom popup: [docs/combat-rules.md](docs/combat-rules.md#targets-attacks-and-damage).
+
 ## Shared characters and the Dungeon Master
 
 - **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).

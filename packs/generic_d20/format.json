@@ -254,6 +254,7 @@
     "resources": { "action": "1", "bonus": "1" },
     "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
     "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
+    "defense": { "value": "ac", "label": "AC", "hit": "gte" },
     "actions": {
       "showCost": "auto",
       "sources": [
@@ -1132,6 +1133,8 @@
   "collections": [
     {
       "id": "weapons",
+      "targetable": true,
+      "damage": true,
       "label": "Weapons",
       "addLabel": "Weapon",
       "columns": [
@@ -1279,6 +1282,8 @@
     },
     {
       "id": "spells",
+      "targetable": true,
+      "damage": true,
       "label": "Spells",
       "addLabel": "Spell",
       "columns": [

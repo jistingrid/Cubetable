@@ -45,7 +45,8 @@ public final class TacticalScreen extends Screen {
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		boolean onPanel = TrackerPanel.contains(mouseX, mouseY, width, height)
-				|| ActionBar.contains(mouseX, mouseY, width, height);
+				|| ActionBar.contains(mouseX, mouseY, width, height)
+				|| DamagePrompt.contains(mouseX, mouseY, width);
 		if (onPanel) { // the pointer is on the DM's tracker, not on the battlefield
 			ClientGrid.hover = -1;
 			ClientGrid.hoverEntity = -1;
@@ -64,13 +65,12 @@ public final class TacticalScreen extends Screen {
 		if (ClientGrid.hoverEntity >= 0 && mc.world != null && mc.player != null) {
 			Entity target = mc.world.getEntityById(ClientGrid.hoverEntity);
 			if (target == null) return null;
-			boolean inReach = Grid.distanceToBox(mc.player.getEyePos(), target.getBoundingBox()) <= Grid.ATTACK_REACH;
-			if (ClientCombatState.actionUsed()) {
-				return Text.translatable("tacticalcombat.tip.no_action");
+			for (dev.tacticalcombat.net.CombatStatePayload.Target t : ClientCombatState.targets) {
+				if (t.by() == mc.player.getId() && t.at() == target.getId()) {
+					return Text.translatable("tacticalcombat.tip.untarget", target.getName());
+				}
 			}
-			return inReach
-					? Text.translatable("tacticalcombat.tip.attack", target.getName())
-					: Text.translatable("tacticalcombat.tip.too_far", target.getName());
+			return Text.translatable("tacticalcombat.tip.target", target.getName());
 		}
 		if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {
 			return Text.translatable("tacticalcombat.tip.move", ClientCombatState.distance(ClientGrid.cells.get(ClientGrid.hover).cost()));
@@ -87,12 +87,18 @@ public final class TacticalScreen extends Screen {
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (TrackerPanel.mouseClicked(mouseX, mouseY, button, width, height)) return true;
+		if (DamagePrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (ActionBar.mouseClicked(mouseX, mouseY, button, width, height)) return true;
-		if (button != 0 || !ClientCombatState.isMyTurn()) return true;
+		if (button != 0) return true;
 
+		// a creature under the pointer: it becomes (or stops being) your target, on anyone's turn
 		if (ClientGrid.hoverEntity >= 0) {
-			ClientPlayNetworking.send(new AttackRequestPayload(ClientGrid.hoverEntity));
-		} else if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {
+			ClientPlayNetworking.send(new dev.tacticalcombat.net.TargetPayload(ClientGrid.hoverEntity));
+			return true;
+		}
+		if (!ClientCombatState.isMyTurn()) return true;
+
+		if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {
 			BlockPos target = BlockPos.fromLong(ClientGrid.cells.get(ClientGrid.hover).pos());
 			ClientPlayNetworking.send(new MoveRequestPayload(target));
 			ClientGrid.hover = -1; // the server clears the highlights while the walk is in progress
@@ -135,9 +141,15 @@ public final class TacticalScreen extends Screen {
 	// ---------------------------------------------------------------- keys
 
 	@Override
+	public boolean charTyped(char chr, int modifiers) {
+		return DamagePrompt.charTyped(chr) || super.charTyped(chr, modifiers);
+	}
+
+	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 
+		if (DamagePrompt.keyPressed(keyCode)) return true;
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			mc.setScreen(new GameMenuScreen(true));
 			return true;

@@ -62,6 +62,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.ShareCardPayload.ID,
 				(payload, context) -> ShareCardHud.receive(payload));
 
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamagePromptPayload.ID,
+				(payload, context) -> context.client().execute(() -> DamagePrompt.receive(payload)));
 		ServerCharacters.init();
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CharacterUpdatePayload.ID,
 				(payload, context) -> context.client().execute(() -> ServerCharacters.receiveUpdate(payload)));
@@ -81,6 +83,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			DiceAnimation.clear();
 			ShareCardHud.clear();
 			ServerCharacters.clear();
+			DamagePrompt.clear();
 		});
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -104,6 +107,10 @@ public class TacticalCombatClient implements ClientModInitializer {
 		HudRenderCallback.EVENT.register(CombatHud::render);
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
 		HudRenderCallback.EVENT.register(ShareCardHud::render);
+		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
+			MinecraftClient mc = MinecraftClient.getInstance();
+			if (mc.player != null && !mc.options.hudHidden) DamagePrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
+		});
 		net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) ->
 				net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterRender(screen).register(
 						(s, ctx, mouseX, mouseY, delta) -> ShareCardHud.drawOverScreen(ctx, delta, mouseX, mouseY)));

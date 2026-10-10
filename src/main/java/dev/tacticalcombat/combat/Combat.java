@@ -48,6 +48,8 @@ public final class Combat {
 
 	private final ServerWorld world;
 	private List<Combatant> order = new ArrayList<>();
+	/** Who targets whom: entity id of the targeting player -> entity id of the target. */
+	private final java.util.Map<Integer, Integer> targets = new java.util.LinkedHashMap<>();
 	private int turn = 0;
 	private int round = 1;
 	private int tickCounter = 0;
@@ -258,6 +260,27 @@ public final class Combat {
 
 	public boolean contains(Entity entity) {
 		return get(entity) != null;
+	}
+
+	/**
+	 * A player picks (or, picking the same one again, drops) the creature they aim their rolls at. Only
+	 * combatants can target, and only combatants can be targeted.
+	 */
+	public void setTarget(ServerPlayerEntity player, int entityId) {
+		if (get(player) == null) return;
+		Entity e = world.getEntityById(entityId);
+		if (!(e instanceof LivingEntity target) || !target.isAlive() || get(target) == null) return;
+		if (Integer.valueOf(entityId).equals(targets.get(player.getId()))) targets.remove(player.getId());
+		else targets.put(player.getId(), entityId);
+		sync();
+	}
+
+	/** The creature this player is aiming at, or null. */
+	public LivingEntity targetOf(ServerPlayerEntity player) {
+		Integer id = targets.get(player.getId());
+		if (id == null) return null;
+		Entity e = world.getEntityById(id);
+		return e instanceof LivingEntity le && le.isAlive() && get(le) != null ? le : null;
 	}
 
 	/** True if {@code entity} is in this fight and it is currently its turn. */
@@ -952,9 +975,16 @@ public final class Combat {
 			}
 			buttons.add(new CombatStatePayload.MoveButton(m.id(), m.label(), cost.toString(), cur.canPay(m.cost()) && !cur.moving()));
 		}
+		targets.entrySet().removeIf(t -> {
+			Entity by = world.getEntityById(t.getKey());
+			Entity at = world.getEntityById(t.getValue());
+			return by == null || at == null || get(by) == null || get(at) == null || !at.isAlive();
+		});
+		List<CombatStatePayload.Target> targetList = new ArrayList<>();
+		targets.forEach((by, at) -> targetList.add(new CombatStatePayload.Target(by, at)));
 		CombatStatePayload payload = new CombatStatePayload(true, planning, round, turn,
 				(float) cur.moveUsed, (float) cur.moveBudget, (float) cur.setup.square, cur.setup.unit,
-				resources, buttons, entries);
+				resources, buttons, entries, targetList);
 
 		for (Combatant c : order) {
 			if (c.entity instanceof ServerPlayerEntity p) {

@@ -22,7 +22,8 @@ public record CombatStatePayload(
 		String unit,
 		List<Res> resources,
 		List<MoveButton> moves,
-		List<Entry> entries
+		List<Entry> entries,
+		List<Target> targets
 ) implements CustomPayload {
 
 	public static final Id<CombatStatePayload> ID =
@@ -50,7 +51,10 @@ public record CombatStatePayload(
 			for (int i = 0; i < n; i++) {
 				entries.add(Entry.read(buf));
 			}
-			return new CombatStatePayload(active, planning, round, activeIndex, moveUsed, moveBudget, square, unit, resources, moves, entries);
+			int tn = buf.readVarInt();
+			List<Target> targets = new ArrayList<>(tn);
+			for (int i = 0; i < tn; i++) targets.add(new Target(buf.readVarInt(), buf.readVarInt()));
+			return new CombatStatePayload(active, planning, round, activeIndex, moveUsed, moveBudget, square, unit, resources, moves, entries, targets);
 		}
 
 		@Override
@@ -80,17 +84,25 @@ public record CombatStatePayload(
 			for (Entry e : p.entries) {
 				e.write(buf);
 			}
+			buf.writeVarInt(p.targets.size());
+			for (Target t : p.targets) {
+				buf.writeVarInt(t.by);
+				buf.writeVarInt(t.at);
+			}
 		}
 	};
 
 	public static CombatStatePayload inactive() {
-		return new CombatStatePayload(false, false, 0, 0, 0f, 0f, 1f, "", List.of(), List.of(), List.of());
+		return new CombatStatePayload(false, false, 0, 0, 0f, 0f, 1f, "", List.of(), List.of(), List.of(), List.of());
 	}
 
 	@Override
 	public Id<? extends CustomPayload> getId() {
 		return ID;
 	}
+
+	/** One player targeting one creature: entity ids of the targeter and of the target. */
+	public record Target(int by, int at) {}
 
 	/** A per-turn resource of the active combatant (action, bonus, ...). */
 	public record Res(String id, int left, int max) {}

@@ -45,8 +45,16 @@ public class TacticalCombatMod implements ModInitializer {
 		PayloadTypeRegistry.playC2S().register(DiceRequestPayload.ID, DiceRequestPayload.CODEC);
 		dev.tacticalcombat.character.CharacterSync.register();
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
-				context.server().execute(() -> DiceService.roll(context.player(), payload.label(), payload.type(),
-						payload.count(), payload.modifier(), payload.mode())));
+				context.server().execute(() -> dev.tacticalcombat.combat.Strikes.roll(context.player(), payload.label(),
+						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind())));
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.TargetPayload.ID, dev.tacticalcombat.net.TargetPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.DamagePromptPayload.ID, dev.tacticalcombat.net.DamagePromptPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.DamageChoicePayload.ID, dev.tacticalcombat.net.DamageChoicePayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.TargetPayload.ID, (payload, context) ->
+				context.server().execute(() -> CombatManager.requestTarget(context.player(), payload.entityId())));
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamageChoicePayload.ID, (payload, context) ->
+				context.server().execute(() -> dev.tacticalcombat.combat.Damage.resolve(context.player(), payload.id(),
+						payload.mode(), payload.amount())));
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.ShareCardPayload.ID, dev.tacticalcombat.net.ShareCardPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.ShareCardRequestPayload.ID, dev.tacticalcombat.net.ShareCardRequestPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.ShareCardRequestPayload.ID, (payload, context) ->
@@ -81,7 +89,10 @@ public class TacticalCombatMod implements ModInitializer {
 		// ... and a player with sheet hit points loses those instead of Minecraft health
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register(dev.tacticalcombat.combat.SheetHealth::allowDamage);
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.SheetHealth::tick);
-		ServerLifecycleEvents.SERVER_STOPPING.register(server -> dev.tacticalcombat.combat.SheetHealth.clear());
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			dev.tacticalcombat.combat.SheetHealth.clear();
+			dev.tacticalcombat.combat.Damage.clear();
+		});
 
 		UseItemCallback.EVENT.register((player, world, hand) -> {
 			if (world.isClient || CombatManager.canActNow(player)) {

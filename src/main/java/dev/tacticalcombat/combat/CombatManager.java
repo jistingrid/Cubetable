@@ -180,6 +180,11 @@ public final class CombatManager {
 	}
 
 	/** A player clicked an enemy to attack it. */
+	public static void requestTarget(ServerPlayerEntity player, int entityId) {
+		Combat combat = get(player);
+		if (combat != null) combat.setTarget(player, entityId);
+	}
+
 	public static void requestAttack(ServerPlayerEntity player, int entityId) {
 		Combat combat = get(player);
 		if (combat != null) combat.requestAttack(player, entityId);

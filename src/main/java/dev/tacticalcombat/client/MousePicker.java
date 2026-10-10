@@ -23,7 +23,7 @@ public final class MousePicker {
 	public static void update(MinecraftClient mc, double mouseX, double mouseY) {
 		ClientGrid.hover = -1;
 		ClientGrid.hoverEntity = -1;
-		if (!ClientCombatState.isMyTurn() || mc.world == null || mc.player == null) return;
+		if (!ClientCombatState.active || mc.world == null || mc.player == null) return;
 
 		Camera camera = mc.gameRenderer.getCamera();
 		Vec3d origin = camera.getPos();
@@ -34,11 +34,10 @@ public final class MousePicker {
 		boolean blockHit = hit.getType() == HitResult.Type.BLOCK;
 		double blockDist = blockHit ? hit.getPos().distanceTo(origin) : Double.MAX_VALUE;
 
-		// hostile combatants first, if they are in front of the terrain
+		// any combatant (creatures and players alike) can be clicked to target it, if it is in front of the terrain
 		double best = blockDist;
 		int bestId = -1;
 		for (CombatStatePayload.Entry e : ClientCombatState.entries) {
-			if (!e.hostile()) continue;
 			Entity entity = mc.world.getEntityById(e.entityId());
 			if (entity == null) continue;
 			Optional<Vec3d> r = entity.getBoundingBox().expand(0.2).raycast(origin, end);
@@ -53,7 +52,7 @@ public final class MousePicker {
 			ClientGrid.hoverEntity = bestId;
 			return;
 		}
-		if (!blockHit) return;
+		if (!blockHit || !ClientCombatState.isMyTurn()) return; // squares only matter while it is your turn
 
 		BlockPos bp = hit.getBlockPos();
 		Direction side = hit.getSide();
@@ -93,6 +92,25 @@ public final class MousePicker {
 			if (start.squaredDistanceTo(end) < 0.01) break;
 		}
 		return BlockHitResult.createMissed(end, Direction.UP, BlockPos.ofFloored(end));
+	}
+
+	/**
+	 * Where a point of the world lands on the GUI (scaled pixels), or null when it is behind the camera.
+	 * The inverse of {@link #rayDirection}.
+	 */
+	public static double[] project(MinecraftClient mc, Vec3d point) {
+		Camera camera = mc.gameRenderer.getCamera();
+		Vec3d forward = Vec3d.fromPolar(camera.getPitch(), camera.getYaw());
+		Vec3d right = forward.crossProduct(new Vec3d(0, 1, 0)).normalize();
+		Vec3d up = right.crossProduct(forward);
+		Vec3d d = point.subtract(camera.getPos());
+		double depth = d.dotProduct(forward);
+		if (depth < 0.1) return null;
+		double tanHalfFov = Math.tan(Math.toRadians(mc.options.getFov().getValue()) / 2.0);
+		double aspect = (double) mc.getWindow().getFramebufferWidth() / (double) mc.getWindow().getFramebufferHeight();
+		double nx = d.dotProduct(right) / depth / (tanHalfFov * aspect);
+		double ny = -d.dotProduct(up) / depth / tanHalfFov;
+		return new double[] {(nx + 1.0) / 2.0 * mc.getWindow().getScaledWidth(), (ny + 1.0) / 2.0 * mc.getWindow().getScaledHeight()};
 	}
 
 	/** Direction of the ray through the given GUI pixel, for the current camera. */

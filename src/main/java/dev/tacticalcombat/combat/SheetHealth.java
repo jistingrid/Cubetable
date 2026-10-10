@@ -158,6 +158,13 @@ public final class SheetHealth {
 		return true;
 	}
 
+	/** Id of the health bar of the player's Active Actor, or null when there is none. */
+	public static String vitalId(ServerPlayerEntity player) {
+		CharacterStore.Entry e = Actors.entryOf(player.getUuid());
+		CombatRules.Bar vital = e == null ? null : vitalOf(e);
+		return vital == null ? null : vital.id();
+	}
+
 	/** Damage to the character's health bar. */
 	public static boolean damage(MinecraftServer server, ServerPlayerEntity player, double amount) {
 		CharacterStore.Entry e = Actors.entryOf(player.getUuid());

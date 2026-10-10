@@ -30,6 +30,8 @@ public final class ClientCombatState {
 	public static List<CombatStatePayload.Res> resources = List.of();
 	public static List<CombatStatePayload.MoveButton> moveButtons = List.of();
 	public static List<CombatStatePayload.Entry> entries = List.of();
+	/** Who targets whom (entity ids), for the arrows over the models. */
+	public static List<CombatStatePayload.Target> targets = List.of();
 
 	// ---- tactical camera
 	public static float camPitch = 55f;
@@ -65,6 +67,7 @@ public final class ClientCombatState {
 		resources = p.resources();
 		moveButtons = p.moves();
 		entries = p.entries();
+		targets = p.targets();
 		if (!active) {
 			ClientGrid.clear();
 		}
@@ -85,6 +88,7 @@ public final class ClientCombatState {
 	public static void reset() {
 		active = false;
 		entries = List.of();
+		targets = List.of();
 		blend = 0;
 		prevBlend = 0;
 		wasActive = false;

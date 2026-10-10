@@ -43,6 +43,7 @@ public final class CombatHud {
 		int screenH = ctx.getScaledWindowHeight();
 
 		drawInitiativeBar(ctx, font, screenW, entries);
+		TargetArrows.render(ctx, mc, tickCounter.getTickDelta(false));
 		ActionBar.render(ctx, mc, font, screenW, screenH);
 	}
 
@@ -50,7 +51,7 @@ public final class CombatHud {
 		int n = entries.size();
 		int total = n * (SLOT + GAP) - GAP;
 		int x0 = (screenW - total) / 2;
-		int y0 = 6;
+		int y0 = 18;
 
 		for (int i = 0; i < n; i++) {
 			CombatStatePayload.Entry e = entries.get(i);
@@ -79,9 +80,9 @@ public final class CombatHud {
 		ctx.drawTextWithShadow(font, Text.translatable("tacticalcombat.hud.round", ClientCombatState.round),
 				x0, y0 + SLOT + 12, 0xFFDDDDDD);
 
-		// control hints, centred under the bar
+		// control hints, small and out of the way above the bar
 		ctx.drawCenteredTextWithShadow(font, Text.translatable("tacticalcombat.hud.controls"),
-				screenW / 2, y0 + SLOT + 26, 0xFF9A9A9A);
+				screenW / 2, 4, 0xFF9A9A9A);
 	}
 
 	static String resourceLabel(String id) {

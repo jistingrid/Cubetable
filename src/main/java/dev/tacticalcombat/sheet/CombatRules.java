@@ -27,6 +27,7 @@ import java.util.Map;
  *     "moves": [ { "id": "dash", "label": "Dash", "cost": { "action": 1 }, "grants": "speed",
  *                  "auto": false, "unused": "keep" } ]
  *   },
+ *   "defense": { "value": "ac", "label": "AC", "hit": "gte" },   // what an attack roll must beat
  *   "actions": {                                          // the action bar's slots
  *     "showCost": "auto",                                 // auto | always | never (per source too)
  *     "sources": [ { "collection": "weapons", "label": "name", "cost": { "action": "1" }, "icon": "minecraft:iron_sword" },
@@ -72,6 +73,25 @@ public final class CombatRules {
 	/** Same as {@link #vital()}: the hit point bar. */
 	public Bar hp() {
 		return vital();
+	}
+
+	/** What an attack roll against this character is compared with; null = no hit check (the roll is just shown). */
+	public Defense defense;
+
+	/**
+	 * @param value formula for the number to beat (armor class, a difficulty ...)
+	 * @param label shown in the result ("AC")
+	 * @param hit   "gte" (the roll meets or beats it, default), "gt", "lte" or "lt" (roll-under games)
+	 */
+	public record Defense(String value, String label, String hit) {
+		public boolean hits(double roll, double against) {
+			return switch (hit) {
+				case "gt" -> roll > against;
+				case "lte" -> roll <= against;
+				case "lt" -> roll < against;
+				default -> roll >= against;
+			};
+		}
 	}
 
 	/** Where the action bar's slots come from, in order. Empty = the bar shows no slots. */
@@ -165,6 +185,15 @@ public final class CombatRules {
 					r.bars.removeIf(x -> x.id().equals(b.id()) || vital && x.vital());
 					r.bars.add(b);
 				}
+			}
+		}
+		if (o.has("defense") && o.get("defense").isJsonObject()) {
+			JsonObject d = o.getAsJsonObject("defense");
+			if (d.has("value") && !d.get("value").getAsString().isBlank()) {
+				String hit = d.has("hit") ? d.get("hit").getAsString().toLowerCase(Locale.ROOT) : "gte";
+				if (!hit.equals("gt") && !hit.equals("lte") && !hit.equals("lt")) hit = "gte";
+				r.defense = new Defense(d.get("value").getAsString(),
+						d.has("label") ? d.get("label").getAsString() : "Defense", hit);
 			}
 		}
 		if (o.has("actions") && o.get("actions").isJsonObject()) {

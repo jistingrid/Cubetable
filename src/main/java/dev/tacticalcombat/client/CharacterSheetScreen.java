@@ -1043,7 +1043,7 @@ public final class CharacterSheetScreen extends Screen {
 		SheetFormat.Col diceCol = col.diceCol == null ? null : coll.column(col.diceCol);
 		String formula = diceCol == null ? null : diceFormula(diceCol, row);
 		if (formula != null) {
-			rollPlan(sc, label, () -> sc.plan(coll, row, formula));
+			rollPlan(sc, label, () -> sc.plan(coll, row, formula), coll.targetable && coll.damage ? 2 : 0);
 		} else {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null) {
@@ -1055,7 +1055,11 @@ public final class CharacterSheetScreen extends Screen {
 
 	private void rollRowDice(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, String formula) {
 		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row));
-		rollPlan(sc, label, () -> sc.plan(coll, row, formula));
+		// a targetable collection aims its attack rolls (roll columns) and, if it has damage, its dice columns
+		int kind = 0;
+		if (coll.targetable && col.type.equals("roll")) kind = 1;
+		else if (coll.targetable && coll.damage && col.type.equals("dice")) kind = 2;
+		rollPlan(sc, label, () -> sc.plan(coll, row, formula), kind);
 	}
 
 	// view state of tables (not saved): filter text, sort column ("col" or "-col") and opened rows
@@ -2136,6 +2140,11 @@ public final class CharacterSheetScreen extends Screen {
 	}
 
 	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner) {
+		rollPlan(sc, label, planner, 0);
+	}
+
+	/** kind: 0 plain, 1 attack against the player's target, 2 damage for it (see {@link DiceRequestPayload}). */
+	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
 		try {
@@ -2146,7 +2155,7 @@ public final class CharacterSheetScreen extends Screen {
 				return;
 			}
 			int mode = roll.type() == DiceType.D20 && roll.count() == 1 && hasRollMode(sc) ? rollMode : 0;
-			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode));
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 		}

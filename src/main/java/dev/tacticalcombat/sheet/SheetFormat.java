@@ -109,6 +109,13 @@ public final class SheetFormat {
 		public String groupBy = "";
 		/** Entries get a "show to everyone" button. */
 		public boolean share;
+		/**
+		 * Rolls of this collection are aimed at the target the player picked: a "roll" column is an attack checked
+		 * against the target's defense (see combat.defense).
+		 */
+		public boolean targetable;
+		/** Only with {@link #targetable}: its "dice" columns are damage; the target's owner is asked how to apply it. */
+		public boolean damage;
 		public final List<Col> columns = new ArrayList<>();
 		public final List<Footer> footers = new ArrayList<>();
 
@@ -309,6 +316,8 @@ public final class SheetFormat {
 		}
 		if (c.columns.isEmpty()) throw new IllegalArgumentException("collection '" + c.id + "' has no columns");
 		c.share = bool(o, "share");
+		c.targetable = bool(o, "targetable");
+		c.damage = c.targetable && bool(o, "damage");
 		c.groupBy = str(o, "groupBy", "").toLowerCase(Locale.ROOT);
 		if (!c.groupBy.isEmpty() && c.column(c.groupBy) == null) {
 			throw new IllegalArgumentException("collection '" + c.id + "': groupBy names an unknown column '" + c.groupBy + "'");

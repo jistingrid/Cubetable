@@ -8,8 +8,12 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
 /** Server -> client: a die roll to animate on screen, then print in chat. The result is decided by the server. */
-/** keep: 0 = every die counts, 1 = only the highest (advantage), 2 = only the lowest (disadvantage). */
-public record DiceRollPayload(String roller, String label, DiceType type, int modifier, int keep, int[] results) implements CustomPayload {
+/**
+ * keep: 0 = every die counts, 1 = only the highest (advantage), 2 = only the lowest (disadvantage).
+ * outcome / verdict: a line printed under the roll in chat ("17 vs AC 15: hits Goblin"); outcome 0 neutral, 1 hit, 2 miss.
+ */
+public record DiceRollPayload(String roller, String label, DiceType type, int modifier, int keep, int[] results,
+							  int outcome, String verdict) implements CustomPayload {
 	public static final Id<DiceRollPayload> ID =
 			new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "dice_roll"));
 
@@ -26,7 +30,9 @@ public record DiceRollPayload(String roller, String label, DiceType type, int mo
 			for (int i = 0; i < n; i++) {
 				results[i] = buf.readVarInt();
 			}
-			return new DiceRollPayload(roller, label, type, modifier, keep, results);
+			int outcome = buf.readVarInt();
+			String verdict = buf.readString(160);
+			return new DiceRollPayload(roller, label, type, modifier, keep, results, outcome, verdict);
 		}
 
 		@Override
@@ -40,6 +46,8 @@ public record DiceRollPayload(String roller, String label, DiceType type, int mo
 			for (int r : p.results) {
 				buf.writeVarInt(r);
 			}
+			buf.writeVarInt(p.outcome);
+			buf.writeString(p.verdict, 160);
 		}
 	};
 

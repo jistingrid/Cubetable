@@ -51,6 +51,11 @@ public final class DiceAnimation {
 		QUEUE.add(roll);
 	}
 
+	/** A roll is still tumbling or waiting its turn. */
+	public static boolean busy() {
+		return current != null || !QUEUE.isEmpty();
+	}
+
 	public static void clear() {
 		QUEUE.clear();
 		current = null;
@@ -106,6 +111,10 @@ public final class DiceAnimation {
 			if (face == 1) text = text.copy().append(Text.literal("  Critical fail!").formatted(Formatting.RED));
 		}
 		client.inGameHud.getChatHud().addMessage(text);
+		if (!roll.verdict().isEmpty()) {
+			Formatting color = roll.outcome() == 1 ? Formatting.GREEN : roll.outcome() == 2 ? Formatting.RED : Formatting.GRAY;
+			client.inGameHud.getChatHud().addMessage(Text.literal("  -> " + roll.verdict()).formatted(color));
+		}
 	}
 
 	public static void render(DrawContext ctx, RenderTickCounter tickCounter) {
