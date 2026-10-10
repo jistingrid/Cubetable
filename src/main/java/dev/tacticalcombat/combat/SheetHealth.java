@@ -44,6 +44,10 @@ public final class SheetHealth {
 	}
 
 	/** The character a creature fights with: a player's Active Actor, or the sheet of an Actor body. */
+	public static CharacterStore.Entry entryOf(LivingEntity who) {
+		return entryFor(who);
+	}
+
 	private static CharacterStore.Entry entryFor(LivingEntity who) {
 		if (who instanceof ServerPlayerEntity p) return Actors.entryOf(p.getUuid());
 		return dev.tacticalcombat.actor.ActorRegistry.sheetEntryOf(who);

@@ -82,6 +82,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamagePromptPayload.ID,
 				(payload, context) -> context.client().execute(() -> DamagePrompt.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DownedPayload.ID,
+				(payload, context) -> context.client().execute(() -> DownedCard.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PausePayload.ID,
 				(payload, context) -> context.client().execute(() -> DmState.paused = payload.paused()));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PossessPayload.ID,
@@ -110,6 +112,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			ShareCardHud.clear();
 			ServerCharacters.clear();
 			DamagePrompt.clear();
+			DownedCard.clear();
 			DmState.clear();
 		});
 
@@ -156,7 +159,10 @@ public class TacticalCombatClient implements ClientModInitializer {
 		HudRenderCallback.EVENT.register(ShareCardHud::render);
 		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
 			MinecraftClient mc = MinecraftClient.getInstance();
-			if (mc.player != null && !mc.options.hudHidden) DamagePrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
+			if (mc.player != null && !mc.options.hudHidden) {
+				DamagePrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
+				DownedCard.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
+			}
 		});
 		net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) ->
 				net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterRender(screen).register(

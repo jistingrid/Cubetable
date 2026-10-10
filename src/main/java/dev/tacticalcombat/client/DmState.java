@@ -14,7 +14,7 @@ public final class DmState {
 
 	/** True when this client's player is stopped by the pause (a Dungeon Master never is). */
 	public static boolean holdsPlayer() {
-		return paused && !ServerCharacters.isDm();
+		return (paused && !ServerCharacters.isDm()) || DownedCard.selfDown();
 	}
 	public static List<DmStatePayload.Who> players = List.of();
 	public static List<DmStatePayload.ActorInfo> actors = List.of();

@@ -102,6 +102,7 @@ public final class Damage {
 	/** A negative amount is damage, a positive one healing. Announced to everyone. */
 	private static void apply(MinecraftServer server, LivingEntity target, int signed, String name) {
 		int n = Math.abs(signed);
+		boolean wasDown = Downed.isDown(target);
 		if (signed < 0) {
 			if (SheetHealth.of(target) != null) { // a player's Active Actor or an Actor's own sheet
 				SheetHealth.damage(server, target, n);
@@ -120,6 +121,8 @@ public final class Damage {
 			}
 			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_healed", name, n), false);
 		}
+		if (signed < 0) Downed.afterDamage(server, target, n, wasDown);
+		else Downed.check(server, target);
 		Combat combat = CombatManager.get(target);
 		if (combat != null) combat.sync();
 	}

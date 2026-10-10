@@ -11,6 +11,7 @@ import net.minecraft.text.Text;
  */
 public final class DamageScreen extends Screen {
 	private static long lastOpenedFor;
+	private static long lastCard;
 
 	public DamageScreen() {
 		super(Text.empty());
@@ -20,12 +21,15 @@ public final class DamageScreen extends Screen {
 	public static void tick(MinecraftClient client) {
 		if (client.player == null || client.world == null) return;
 		if (client.currentScreen instanceof DamageScreen) {
-			if (!DamagePrompt.pending()) client.setScreen(null);
+			if (!DamagePrompt.pending() && !DownedCard.visible()) client.setScreen(null);
 			return;
 		}
 		long id = DamagePrompt.firstId();
-		if (client.currentScreen == null && DamagePrompt.visible() && id != lastOpenedFor) {
+		long card = DownedCard.key();
+		if (client.currentScreen == null && ((DamagePrompt.visible() && id != lastOpenedFor)
+				|| (DownedCard.visible() && card != lastCard))) {
 			lastOpenedFor = id;
+			lastCard = card;
 			client.setScreen(new DamageScreen());
 		}
 	}
@@ -47,7 +51,7 @@ public final class DamageScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		DamagePrompt.mouseClicked(mouseX, mouseY, button, width);
+		if (!DamagePrompt.mouseClicked(mouseX, mouseY, button, width)) DownedCard.mouseClicked(mouseX, mouseY, button, width);
 		return true;
 	}
 

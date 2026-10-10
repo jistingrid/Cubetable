@@ -44,7 +44,7 @@ public final class TimePause {
 
 	/** True when this player is stopped by the pause. */
 	private static boolean held(PlayerEntity p) {
-		return paused && !Roles.isDm(p.getUuid());
+		return (paused && !Roles.isDm(p.getUuid())) || Downed.isDown(p);
 	}
 
 	public static void set(MinecraftServer server, boolean on) {
@@ -60,9 +60,10 @@ public final class TimePause {
 
 	/** Every tick: a player who has been pushed or has moved while time is stopped is put back. */
 	public static void tick(MinecraftServer server) {
-		if (!paused) return;
+		if (!paused && !Downed.any()) return;
 		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
-			if (Roles.isDm(p.getUuid()) || p.isSpectator() || CombatManager.isInCombat(p)) {
+			boolean stopped = (paused && !Roles.isDm(p.getUuid())) || Downed.isDown(p);
+			if (!stopped || p.isSpectator() || (CombatManager.isInCombat(p) && !Downed.isDown(p))) {
 				HOLD.remove(p.getUuid());
 				continue;
 			}

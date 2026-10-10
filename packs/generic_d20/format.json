@@ -255,6 +255,13 @@
     "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
     "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
     "defense": { "value": "ac", "label": "AC", "hit": "gte" },
+    "downed": {
+      "label": "Downed",
+      "applies": "pc",
+      "save": { "label": "Death save", "dice": "d20", "modifier": "0", "target": 10, "hit": "gte",
+                "successes": 3, "failures": 3, "natSuccess": 20, "natHeal": 1, "natFailure": 1, "natFailures": 2,
+                "damageFails": 1 }
+    },
     "actions": {
       "showCost": "auto",
       "sources": [

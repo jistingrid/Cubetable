@@ -75,6 +75,26 @@ public final class CombatRules {
 		return vital();
 	}
 
+	/** What happens at 0 hit points; null = nothing special (the sheet just shows 0). */
+	public Downed downed;
+
+	/**
+	 * @param label   the state's name ("Downed", "Dying" ...)
+	 * @param all     true: every sheet with a health bar is downed; false (default): only player characters are, a
+	 *                creature's sheet (kind "npc") is simply dead at 0
+	 * @param save    the death save, or null when the game has none (the DM then decides what happens)
+	 */
+	public record Downed(String label, boolean all, Save save) {}
+
+	/**
+	 * A death save: roll {@code dice} (+ {@code modifier}), succeed when it {@code hit}s {@code target}.
+	 * {@code successes} before {@code failures} makes the character stable, the other way round dead.
+	 * A natural {@code natSuccess} gets up with {@code natHeal} points; a natural {@code natFailure} counts
+	 * {@code natFailures} failures; each hit taken while down counts {@code damageFails}.
+	 */
+	public record Save(String label, String dice, String modifier, double target, String hit, int successes, int failures,
+					   int natSuccess, int natHeal, int natFailure, int natFailures, int damageFails) {}
+
 	/** What an attack roll against this character is compared with; null = no hit check (the roll is just shown). */
 	public Defense defense;
 
@@ -195,6 +215,28 @@ public final class CombatRules {
 				r.defense = new Defense(d.get("value").getAsString(),
 						d.has("label") ? d.get("label").getAsString() : "Defense", hit);
 			}
+		}
+		if (o.has("downed") && o.get("downed").isJsonObject()) {
+			JsonObject d = o.getAsJsonObject("downed");
+			Save save = null;
+			if (d.has("save") && d.get("save").isJsonObject()) {
+				JsonObject s = d.getAsJsonObject("save");
+				String hit = s.has("hit") ? s.get("hit").getAsString().toLowerCase(Locale.ROOT) : "gte";
+				if (!hit.equals("gt") && !hit.equals("lte") && !hit.equals("lt")) hit = "gte";
+				save = new Save(s.has("label") ? s.get("label").getAsString() : "Death save",
+						s.has("dice") ? s.get("dice").getAsString() : "d20",
+						s.has("modifier") ? s.get("modifier").getAsString() : "0",
+						s.has("target") ? s.get("target").getAsDouble() : 10, hit,
+						Math.max(1, s.has("successes") ? s.get("successes").getAsInt() : 3),
+						Math.max(1, s.has("failures") ? s.get("failures").getAsInt() : 3),
+						s.has("natSuccess") ? s.get("natSuccess").getAsInt() : 0,
+						s.has("natHeal") ? s.get("natHeal").getAsInt() : 1,
+						s.has("natFailure") ? s.get("natFailure").getAsInt() : 0,
+						s.has("natFailures") ? s.get("natFailures").getAsInt() : 2,
+						s.has("damageFails") ? s.get("damageFails").getAsInt() : 1);
+			}
+			r.downed = new Downed(d.has("label") ? d.get("label").getAsString() : "Downed",
+					d.has("applies") && d.get("applies").getAsString().equalsIgnoreCase("all"), save);
 		}
 		if (o.has("actions") && o.get("actions").isJsonObject()) {
 			JsonObject a = o.getAsJsonObject("actions");

@@ -9,6 +9,7 @@
     "ChatHudAccessor",
     "GameRendererMixin",
     "InGameHudMixin",
+    "LivingEntityRendererMixin",
     "KeyboardInputMixin"
   ],
   "injectors": {

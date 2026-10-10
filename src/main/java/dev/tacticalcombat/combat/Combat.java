@@ -334,9 +334,23 @@ public final class Combat {
 		sync();
 	}
 
+	private int skipDepth;
+
 	private void beginTurn() {
 		Combatant c = current();
 		c.resetTurnResources(setupFor(c.entity));
+		if (Downed.isDown(c.entity) && world.getServer() != null) {
+			// a downed combatant has nothing to spend; a stable or dead one loses its turn
+			if (Downed.onTurn(world.getServer(), c.entity, c) && skipDepth < order.size()) {
+				skipDepth++;
+				try {
+					endTurn();
+				} finally {
+					skipDepth--;
+				}
+				return;
+			}
+		}
 		if (c.entity instanceof ServerPlayerEntity p) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.your_turn"), true);
 		}
@@ -714,6 +728,10 @@ public final class Combat {
 	 * then it acts from where it stopped. Mobs that can not use the grid (flying, swimming) walk freely instead.
 	 */
 	private void tickMobTurn(Combatant c) {
+		if (Downed.isDown(c.entity)) { // lying on the ground: the death save (or the DM) ends its turn
+			c.planned = true;
+			return;
+		}
 		if (manualMob(c)) { // the Dungeon Master moves it and ends its turn
 			c.planned = true;
 			return;

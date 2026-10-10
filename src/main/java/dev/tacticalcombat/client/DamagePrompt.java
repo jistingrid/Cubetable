@@ -24,10 +24,6 @@ public final class DamagePrompt {
 	private static final StringBuilder TYPED = new StringBuilder();
 
 	private static final int W = 214;
-	private static final int PANEL = 0xF01D2029;
-	private static final int EDGE = 0xFFE0B84C;
-	private static final int BUTTON = 0xFF252936;
-	private static final int BUTTON_EDGE = 0xFF3A3F4D;
 
 	private DamagePrompt() {}
 
@@ -68,7 +64,7 @@ public final class DamagePrompt {
 
 	/** x, y, w, h of the panel. */
 	private static int[] panel(int screenW) {
-		int h = custom ? 74 : 62;
+		int h = custom ? 82 : 66;
 		return new int[] {(screenW - W) / 2, 78, W, h};
 	}
 
@@ -88,24 +84,22 @@ public final class DamagePrompt {
 		if (!visible()) return;
 		Entry e = QUEUE.get(0);
 		int[] p = panel(screenW);
-		ctx.fill(p[0] - 1, p[1] - 1, p[0] + p[2] + 1, p[1] + p[3] + 1, EDGE);
-		ctx.fill(p[0], p[1], p[0] + p[2], p[1] + p[3], PANEL);
-
-		ctx.drawCenteredTextWithShadow(font, Text.translatable("tacticalcombat.prompt.takes", e.target(), e.amount()),
-				p[0] + p[2] / 2, p[1] + 6, 0xFFFFFFFF);
+		CardStyle.frame(ctx, p[0], p[1], p[2], p[3], CardStyle.GOLD);
+		ctx.drawText(font, font.trimToWidth(Text.translatable("tacticalcombat.prompt.takes", e.target(), e.amount()).getString(), p[2] - 28),
+				p[0] + 6, p[1] + 7, CardStyle.WHITE, true);
 		String from = e.attacker() + (e.label().isEmpty() ? "" : " - " + e.label());
-		ctx.drawCenteredTextWithShadow(font, font.trimToWidth(from, p[2] - 12), p[0] + p[2] / 2, p[1] + 18, 0xFF9AA0AE);
+		CardStyle.small(ctx, font, from, p[0] + 6, p[1] + CardStyle.HEADER + 4, CardStyle.MUTED, p[2] - 12);
 		if (QUEUE.size() > 1) {
 			String more = "+" + (QUEUE.size() - 1);
-			ctx.drawTextWithShadow(font, more, p[0] + p[2] - font.getWidth(more) - 4, p[1] + 4, 0xFF9AA0AE);
+			ctx.drawText(font, more, p[0] + p[2] - font.getWidth(more) - 5, p[1] + 7, CardStyle.MUTED, true);
 		}
 
 		double mx = mc.mouse.getX() * mc.getWindow().getScaledWidth() / (double) mc.getWindow().getWidth();
 		double my = mc.mouse.getY() * mc.getWindow().getScaledHeight() / (double) mc.getWindow().getHeight();
 		if (custom) {
 			int fx = p[0] + 6;
-			int fy = p[1] + 30;
-			ctx.fill(fx - 1, fy - 1, fx + p[2] - 11, fy + 13, BUTTON_EDGE);
+			int fy = p[1] + CardStyle.HEADER + 18;
+			ctx.fill(fx - 1, fy - 1, fx + p[2] - 11, fy + 13, CardStyle.EDGE);
 			ctx.fill(fx, fy, fx + p[2] - 12, fy + 12, 0xFF0F1117);
 			boolean caret = (System.currentTimeMillis() / 500) % 2 == 0;
 			ctx.drawTextWithShadow(font, TYPED + (caret ? "_" : ""), fx + 3, fy + 2, 0xFFFFFFFF);
@@ -122,9 +116,7 @@ public final class DamagePrompt {
 		for (int i = 0; i < btns.length; i++) {
 			int[] b = btns[i];
 			boolean over = mx >= b[0] && mx < b[0] + b[2] && my >= b[1] && my < b[1] + b[3];
-			ctx.fill(b[0], b[1], b[0] + b[2], b[1] + b[3], BUTTON_EDGE);
-			ctx.fill(b[0] + 1, b[1] + 1, b[0] + b[2] - 1, b[1] + b[3] - 1, over ? 0xFF343A4C : BUTTON);
-			ctx.drawCenteredTextWithShadow(font, labels[i], b[0] + b[2] / 2, b[1] + 4, 0xFFFFFFFF);
+			CardStyle.button(ctx, font, b[0], b[1], b[2], b[3], labels[i], over);
 		}
 	}
 

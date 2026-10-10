@@ -174,6 +174,46 @@ where it stands and hands the creature to the DM, who walks it by hand from then
 
 Not there yet: critical hits, saving throws, advantage on bar rolls, and anything at 0 hit points.
 
+## At 0 hit points
+
+The format's `combat.downed` block says what happens when the vital bar reaches 0, whatever lowered it (a damage
+prompt, an edit by the DM, a rest gone wrong):
+
+```json
+"downed": {
+  "label": "Downed",
+  "applies": "pc",
+  "save": { "label": "Death save", "dice": "d20", "modifier": "0", "target": 10, "hit": "gte",
+            "successes": 3, "failures": 3, "natSuccess": 20, "natHeal": 1, "natFailure": 1, "natFailures": 2,
+            "damageFails": 1 }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `label` | The state's name, shown in the card and in chat ("Downed", "Dying" ...). |
+| `applies` | `pc` (default): player characters go down, a creature's sheet (kind `npc`) is simply dead at 0. `all`: every sheet goes down. |
+| `save` | The death save. Leave it out for a game without one: the character then stays down until healed or until a DM steps in. |
+
+The death save rolls `dice` plus `modifier` (a formula on the sheet) and succeeds when it `hit`s `target`
+(`gte` default, `gt`, `lte`, `lt`). `successes` before `failures` makes the character **stable**, the other way round
+**dead**. A natural `natSuccess` gets the character up with `natHeal` points; a natural `natFailure` counts
+`natFailures` failures; each hit taken while down counts `damageFails` failures (a stable character that is hit is
+dying again). Any healing above 0 gets a character up.
+
+What the people at the table see:
+
+- The model of a downed, stable or dead character or Actor **lies on the ground** for everyone, and a downed player
+  cannot walk or touch blocks. Chat says who went down and how each save went.
+- The player gets a **card** (the look of the shown-entry cards) with the save buttons and the successes and failures
+  so far. In a fight the save is rolled **on their own turn**, once, and ends the turn; stable and dead combatants
+  lose their turns, a downed one has nothing to spend.
+- A Dungeon Master gets a card for everyone who goes down, with **Stable**, **Kill** and **Revive** (1 point) buttons,
+  and rolls the save for a downed Actor.
+
+Not there yet: dead Actors stay in the initiative order (their turns are skipped), and what dead means for a
+player's character (a new sheet, a revival) is up to the table.
+
 ## The DM screen
 
 A Dungeon Master can open the encounter window at any time with `J` (or `/encounter`; `J` again closes it). It has
