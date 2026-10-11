@@ -30,6 +30,7 @@ import java.util.Map;
  *   "defense": { "value": "ac", "label": "AC", "hit": "gte" },   // what an attack roll must beat
  *   "actions": {                                          // the action bar's slots
  *     "showCost": "auto",                                 // auto | always | never (per source too)
+ *     "trays": [ { "id": "spells", "label": "Spells", "icon": "minecraft:enchanted_book" } ],   // pop-up lists above the bar
  *     "sources": [ { "collection": "weapons", "label": "name", "cost": { "action": "1" }, "icon": "minecraft:iron_sword" },
  *                  { "collection": "spells", "when": "row.prepared", "cost": { "action": "1" },
  *                    "slot": { "store": "slots_", "level": "level" } } ]
@@ -130,6 +131,17 @@ public final class CombatRules {
 	public final List<Source> sources = new ArrayList<>();
 	/** "auto" shows a cost only when it is not the plain default, "always" and "never" force it. */
 	public String showCost = "auto";
+	/** Pop-up lists the action bar offers (spells, features ...); a source with a {@code tray} puts its rows there instead of on the bar. */
+	public final List<Tray> trays = new ArrayList<>();
+
+	/**
+	 * A tray: a button on the action bar that opens a list of entries, grouped under headings and scrollable.
+	 *
+	 * @param id    what a source's {@code tray} refers to
+	 * @param label the button's name and the list's title
+	 * @param icon  item id drawn on the button
+	 */
+	public record Tray(String id, String label, String icon) {}
 
 	/**
 	 * A collection whose rows become slots on the action bar.
@@ -142,9 +154,13 @@ public final class CombatRules {
 	 * @param slotLevel  id of the column holding the level of the row (0 = free, no slot is spent)
 	 * @param show       "auto", "always" or "never": whether the cost is written on the slot
 	 * @param icon       item id drawn on the slot ("minecraft:iron_sword"); empty = a default
+	 * @param tray       id of a tray: its rows are listed there (and can be pinned to the bar) instead of filling the bar; empty = on the bar
+	 * @param group      id of a column whose value heads the rows in the tray (a spell's level); empty = no headings
+	 * @param info       id of a column whose text is the slot's tooltip (default: "notes" when the collection has one)
 	 */
 	public record Source(String collection, String label, Map<String, String> cost, String when,
-						 String slotStore, String slotLevel, String show, String icon) {}
+						 String slotStore, String slotLevel, String show, String icon,
+						 String tray, String group, String info) {}
 
 	/** How this game decides who goes first; null = no initiative roll (the Dungeon Master orders the turns). */
 	public Initiative initiative;
@@ -262,6 +278,15 @@ public final class CombatRules {
 		if (o.has("actions") && o.get("actions").isJsonObject()) {
 			JsonObject a = o.getAsJsonObject("actions");
 			if (a.has("showCost")) r.showCost = showMode(a.get("showCost").getAsString(), "auto");
+			if (a.has("trays") && a.get("trays").isJsonArray()) {
+				for (JsonElement e : a.getAsJsonArray("trays")) {
+					if (!e.isJsonObject() || !e.getAsJsonObject().has("id")) continue;
+					JsonObject to = e.getAsJsonObject();
+					String id = to.get("id").getAsString().toLowerCase(Locale.ROOT);
+					r.trays.add(new Tray(id, to.has("label") ? to.get("label").getAsString() : capitalise(id),
+							to.has("icon") ? to.get("icon").getAsString() : ""));
+				}
+			}
 			if (a.has("sources") && a.get("sources").isJsonArray()) {
 				for (JsonElement e : a.getAsJsonArray("sources")) {
 					if (!e.isJsonObject()) continue;
@@ -284,7 +309,16 @@ public final class CombatRules {
 							so.has("label") ? so.get("label").getAsString().toLowerCase(Locale.ROOT) : "name",
 							cost, so.has("when") ? so.get("when").getAsString() : "", store, level,
 							showMode(so.has("showCost") ? so.get("showCost").getAsString() : "", ""),
-							so.has("icon") ? so.get("icon").getAsString() : ""));
+							so.has("icon") ? so.get("icon").getAsString() : "",
+							so.has("tray") ? so.get("tray").getAsString().toLowerCase(Locale.ROOT) : "",
+							so.has("group") ? so.get("group").getAsString().toLowerCase(Locale.ROOT) : "",
+							so.has("info") ? so.get("info").getAsString().toLowerCase(Locale.ROOT) : ""));
+				}
+			}
+			// a source may name a tray the block did not declare: it gets one called after its id
+			for (Source s : r.sources) {
+				if (!s.tray().isEmpty() && r.trays.stream().noneMatch(t -> t.id().equals(s.tray()))) {
+					r.trays.add(new Tray(s.tray(), capitalise(s.tray()), ""));
 				}
 			}
 		}
@@ -312,5 +346,10 @@ public final class CombatRules {
 			}
 		}
 		return r;
+	}
+
+	private static String capitalise(String id) {
+		String t = id.replace('_', ' ').trim();
+		return t.isEmpty() ? t : Character.toUpperCase(t.charAt(0)) + t.substring(1);
 	}
 }

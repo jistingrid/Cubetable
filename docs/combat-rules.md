@@ -71,34 +71,53 @@ A player with an **Active Actor** gets all of their format's bars tracked, in an
 
 ## The action bar
 
-During a fight every player has one bar at the bottom centre of the screen: your tracked bars (hit points ...),
-the resources of the turn as pips, the movement bar with the moves you can buy, a slot for each action the
-pack lists, and End Turn. A game with no bars or no actions just gets a smaller bar. Number keys `1` to `9`
-select slots; a slot is dimmed when you cannot pay for it (it is not your turn, a resource is spent, no spell
-slot is left). Selecting a slot does not do anything yet: attacks are still a click on the target.
+During a fight every player has one bar at the bottom of the screen: your tracked bars (hit points ...), the
+resources of the turn as pips, the movement bar with the moves you can buy, a slot for each action the pack puts
+on the bar, **tray buttons**, End Turn and a three-dot settings button. The bar glows on your turn. A game with
+no bars or no actions just gets a smaller bar.
 
-The slots come from the `actions` block:
+- **Slots:** number keys `1` to `9` (or a click) use a slot: its attack roll, or its dice when it has no attack;
+  right click rolls its damage (free). A slot is dimmed when you cannot pay for it. Shift + click rolls critical
+  damage on purpose (see Critical hits).
+- **Trays:** a source with a `tray` does not take a slot; its entries live in a pop-up list opened by the tray's
+  button (or `T`; pressing it again moves on to the next tray). Entries can be grouped under headings, show their
+  icon, level, cost and spell-slot dots, and the star on an entry **pins** it to the bar (pins are remembered per
+  character). Click an entry to use it, right click for its damage. `Esc` or a click elsewhere closes the tray.
+- **Settings** (the three dots): size, opacity, and whether to show health bars, resources, movement and key
+  numbers. Drag the bar's background to move it, right click the background to put it back. Everything is saved
+  in `config/tacticalcombat/actionbar.json`.
+
+The slots and trays come from the `actions` block:
 
 ```json
 "actions": {
   "showCost": "auto",
+  "trays": [
+    { "id": "spells", "label": "Spells", "icon": "minecraft:enchanted_book" },
+    { "id": "features", "label": "Features", "icon": "minecraft:nether_star" }
+  ],
   "sources": [
     { "collection": "weapons", "cost": { "action": "1" }, "icon": "minecraft:iron_sword" },
     { "collection": "spells", "when": "max(row.prepared, 1 - min(row.level, 1))", "cost": { "action": "1" },
-      "slot": { "store": "slots_", "level": "level" }, "icon": "minecraft:enchanted_book" },
-    { "collection": "features", "icon": "minecraft:nether_star" }
+      "slot": { "store": "slots_", "level": "level" }, "icon": "minecraft:enchanted_book",
+      "tray": "spells", "group": "level" },
+    { "collection": "features", "icon": "minecraft:nether_star", "tray": "features" }
   ]
 }
 ```
 
 | Key | Meaning |
 |---|---|
+| `trays` | Optional list of `{id, label, icon}`. A source naming an undeclared tray gets one made for it. |
 | `collection` | The sheet collection whose rows become slots, in the order of the sources. |
 | `label` | The column holding the name (default `name`); rows without a name get no slot. |
 | `when` | Formula on the row; the row gets a slot only when it is not 0. Empty: every row. |
 | `cost` | Resource id to a formula on the row (`row.actions` works), what using it spends. Empty: free. |
 | `slot` | `store` is the prefix of the stored counters (`slots_` means `slots_1`, `slots_1_max` ...), `level` the column holding the level. Level 0 spends nothing. |
 | `icon` | An item id drawn on the slot (default: paper). |
+| `tray` | Tray id: the rows go in that tray instead of on the bar. Empty: on the bar. |
+| `group` | Column whose value heads the sections of the tray (`level` gives "Level 1", "Level 2" ...). |
+| `info` | Column shown as the description in the tooltip. |
 | `showCost` | `auto`, `always` or `never` - here for every source, or inside a source to override. |
 
 `auto` writes a cost only when it is not the plain default: one of the first resource (an attack costing one

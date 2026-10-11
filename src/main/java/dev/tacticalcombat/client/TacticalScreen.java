@@ -136,6 +136,7 @@ public final class TacticalScreen extends Screen {
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
 		if (TrackerPanel.mouseScrolled(mouseX, mouseY, verticalAmount, width, height)) return true;
+		if (ActionBar.mouseScrolled(mouseX, mouseY, verticalAmount)) return true;
 		ClientCombatState.zoomTarget = MathHelper.clamp(ClientCombatState.zoomTarget - verticalAmount * 2.0, 8.0, 40.0);
 		return true;
 	}
@@ -152,6 +153,7 @@ public final class TacticalScreen extends Screen {
 		MinecraftClient mc = MinecraftClient.getInstance();
 
 		if (DamagePrompt.keyPressed(keyCode)) return true;
+		if (keyCode == GLFW.GLFW_KEY_ESCAPE && ActionBar.keyPressed(keyCode)) return true;
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			mc.setScreen(new GameMenuScreen(true));
 			return true;
