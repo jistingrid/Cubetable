@@ -18,6 +18,7 @@ public final class DmState {
 	}
 	public static List<DmStatePayload.Who> players = List.of();
 	public static List<DmStatePayload.ActorInfo> actors = List.of();
+	public static List<String> folders = List.of();
 
 	private DmState() {}
 
@@ -25,6 +26,7 @@ public final class DmState {
 		autoMovement = p.autoMovement();
 		players = p.players();
 		actors = p.actors();
+		folders = p.folders();
 	}
 
 	/** True when the Dungeon Master walks and acts for the Actor with this entity id (its own switch). */
@@ -39,5 +41,6 @@ public final class DmState {
 		paused = false;
 		players = List.of();
 		actors = List.of();
+		folders = List.of();
 	}
 }

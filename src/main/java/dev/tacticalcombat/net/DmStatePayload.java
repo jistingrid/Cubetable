@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Server -> Dungeon Masters: the DM tool settings and the players online (shown when no fight is running). */
-public record DmStatePayload(boolean autoMovement, List<Who> players, List<ActorInfo> actors) implements CustomPayload {
+public record DmStatePayload(boolean autoMovement, List<Who> players, List<ActorInfo> actors, List<String> folders) implements CustomPayload {
 	public static final Id<DmStatePayload> ID = new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "dm_state"));
 
 	/** One player: entity id, name, health (the sheet's when they have one), and whether they are in a fight. */
@@ -18,7 +18,8 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 
 	/** One Actor for the Actors window; entityId is -1 while it is not placed in the world. */
 	public record ActorInfo(String id, String name, String sheetId, boolean ownsSheet, String kind, String value,
-							int disposition, boolean dmControl, int entityId, float hp, float max, boolean inFight) {}
+							int disposition, boolean dmControl, int entityId, float hp, float max, boolean inFight,
+							String folder, String tags) {}
 
 	public static final PacketCodec<RegistryByteBuf, DmStatePayload> CODEC = new PacketCodec<>() {
 		@Override
@@ -34,9 +35,12 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			for (int i = 0; i < m; i++) {
 				actors.add(new ActorInfo(buf.readString(64), buf.readString(64), buf.readString(64), buf.readBoolean(),
 						buf.readString(16), buf.readString(128), buf.readVarInt(), buf.readBoolean(), buf.readVarInt(),
-						buf.readFloat(), buf.readFloat(), buf.readBoolean()));
+						buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readString(32), buf.readString(300)));
 			}
-			return new DmStatePayload(auto, list, actors);
+			int f = buf.readVarInt();
+			List<String> folders = new ArrayList<>(f);
+			for (int i = 0; i < f; i++) folders.add(buf.readString(32));
+			return new DmStatePayload(auto, list, actors, folders);
 		}
 
 		@Override
@@ -64,7 +68,11 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 				buf.writeFloat(a.hp);
 				buf.writeFloat(a.max);
 				buf.writeBoolean(a.inFight);
+				buf.writeString(a.folder, 32);
+				buf.writeString(a.tags, 300);
 			}
+			buf.writeVarInt(p.folders.size());
+			for (String f : p.folders) buf.writeString(f, 32);
 		}
 	};
 

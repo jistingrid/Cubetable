@@ -159,6 +159,21 @@ Actor has:
 Create and manage Actors in the **Actors tab** of the DM window (`J`, then the third tab; or `/actors`) or with `/actor create|spawn|recall|model|sheet|...`.
 Vanilla mobs that are not Actors no longer take part in fights.
 
+**Their own space.** The private copy of an Actor's sheet is kept out of the normal sheet lists (the character window and
+the pickers), so a bestiary of fifty goblins does not bury your party's sheets. Open it from the Actors tab (*Open sheet*)
+or by clicking the creature in the tracker. A sheet the DM has shared with players still shows in the lists.
+
+**Folders and tags.** The left list of the Actors tab is a folder tree. *+ Folder* makes an empty folder (click it to
+rename or delete it; deleting never deletes the Actors in it); an Actor's *Folder* button files it. Tags are free labels
+(`undead`, `act 2`): every tag in use is a switch on the Actor, and the box adds a new one. The search box finds by
+name, folder or tag; start with `#` to match tags only (`#undead`). Folders are one level deep. Commands:
+`/actor folder <actor> <name>`, `/actor unfile <actor>`, `/actor tags <actor> a,b,c`.
+
+**Import.** *Import sheets...* lists every sheet the server knows (yours and the players') with a check box each. Pick
+some, choose Own copy or Shared, a side, a folder and tags for the whole batch, and press *Import*: each becomes an
+Actor named after its sheet, looking like the Minecraft creature of that name when there is one (a sheet called
+"Wolf" gives a wolf), otherwise a villager - change the model afterwards.
+
 - **DM attacking a player:** on the turn of an Actor the DM controls, the action bar shows the Actor's sheet, slot
   clicks roll with its numbers, chat names the Actor as the roller, and costs come from its own resources.
 - **Anyone attacking an Actor:** the attack is compared with the `defense` formula on the Actor's sheet.

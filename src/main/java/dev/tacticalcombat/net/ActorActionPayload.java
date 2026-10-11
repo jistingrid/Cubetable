@@ -10,10 +10,15 @@ import net.minecraft.util.Identifier;
  * Client -> server, from a Dungeon Master's Actors window. {@code id} is the Actor; {@code a}, {@code b}, {@code c} and
  * {@code n} depend on the op (see the constants).
  */
-public record ActorActionPayload(int op, String id, String a, String b, String c, int n) implements CustomPayload {
+public record ActorActionPayload(int op, String id, String a, String b, String c, int n, String d) implements CustomPayload {
+	/** Without the extra text (only CREATE uses it: tags). */
+	public ActorActionPayload(int op, String id, String a, String b, String c, int n) {
+		this(op, id, a, b, c, n, "");
+	}
+
 	public static final Id<ActorActionPayload> ID = new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "actor_action"));
 
-	/** a = name, b = sheet id, c = "kind:value", n = bit 0 linked, bits 1-2 disposition. */
+	/** a = name, b = sheet id, c = "kind:value", n = bit 0 linked, bits 1-2 disposition, id = folder ("" none), d = tags. */
 	public static final int CREATE = 0;
 	public static final int DELETE = 1;
 	public static final int DUPLICATE = 2;
@@ -41,6 +46,19 @@ public record ActorActionPayload(int op, String id, String a, String b, String c
 	/** Stop possessing (id ignored). */
 	public static final int RELEASE = 14;
 
+	/** File the Actor in a folder: a = folder name (made when new), empty = take it out of its folder. */
+	public static final int FOLDER = 15;
+	/** a = tags, comma separated (replaces its tags). */
+	public static final int TAGS = 16;
+	/** a = a new, empty folder. */
+	public static final int FOLDER_NEW = 17;
+	/** a = old name, b = new name. */
+	public static final int FOLDER_RENAME = 18;
+	/** a = folder name; its Actors go back to the top level. */
+	public static final int FOLDER_DELETE = 19;
+	/** Make an Actor out of a sheet, named after it. id = folder ("" none), b = sheet id, c = "kind:value", n as CREATE, d = tags. */
+	public static final int IMPORT = 20;
+
 	public static ActorActionPayload of(int op, String id) {
 		return new ActorActionPayload(op, id, "", "", "", 0);
 	}
@@ -48,18 +66,19 @@ public record ActorActionPayload(int op, String id, String a, String b, String c
 	public static final PacketCodec<RegistryByteBuf, ActorActionPayload> CODEC = new PacketCodec<>() {
 		@Override
 		public ActorActionPayload decode(RegistryByteBuf buf) {
-			return new ActorActionPayload(buf.readVarInt(), buf.readString(64), buf.readString(64), buf.readString(64),
-					buf.readString(128), buf.readVarInt());
+			return new ActorActionPayload(buf.readVarInt(), buf.readString(64), buf.readString(128), buf.readString(64),
+					buf.readString(128), buf.readVarInt(), buf.readString(128));
 		}
 
 		@Override
 		public void encode(RegistryByteBuf buf, ActorActionPayload p) {
 			buf.writeVarInt(p.op);
 			buf.writeString(p.id, 64);
-			buf.writeString(p.a, 64);
+			buf.writeString(p.a, 128);
 			buf.writeString(p.b, 64);
 			buf.writeString(p.c, 128);
 			buf.writeVarInt(p.n);
+			buf.writeString(p.d, 128);
 		}
 	};
 

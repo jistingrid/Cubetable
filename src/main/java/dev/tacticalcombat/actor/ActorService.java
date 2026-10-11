@@ -40,7 +40,11 @@ public final class ActorService {
 	public static void handle(ServerPlayerEntity dm, ActorActionPayload p) {
 		if (!Roles.isDm(dm.getUuid()) || dm.getServer() == null) return;
 		String error = switch (p.op()) {
-			case ActorActionPayload.CREATE -> create(dm, p.a(), p.b(), (p.n() & 1) != 0, kindOf(p.c()), valueOf(p.c()), (p.n() >> 1) & 3);
+			case ActorActionPayload.CREATE -> {
+				String made = create(dm, p.a(), p.b(), (p.n() & 1) != 0, kindOf(p.c()), valueOf(p.c()), (p.n() >> 1) & 3);
+				if (made == null) fileAs(p.a().trim(), p.id(), p.d());
+				yield made;
+			}
 			case ActorActionPayload.DELETE -> delete(dm.getServer(), p.id());
 			case ActorActionPayload.DUPLICATE -> duplicate(dm, p.id());
 			case ActorActionPayload.SPAWN -> spawn(dm, p.id());
@@ -58,6 +62,15 @@ public final class ActorService {
 			}
 			case ActorActionPayload.TAKEOVER -> takeOver(dm, p.id());
 			case ActorActionPayload.MOVE -> move(dm, p.id(), p.c());
+			case ActorActionPayload.FOLDER -> setFolder(p.id(), p.a());
+			case ActorActionPayload.TAGS -> setTags(p.id(), p.a());
+			case ActorActionPayload.FOLDER_NEW -> ActorRegistry.ensureFolder(p.a()) == null ? "A folder name is 1 to 32 characters." : null;
+			case ActorActionPayload.FOLDER_RENAME -> ActorRegistry.renameFolder(p.a(), p.b()) ? null : "Could not rename the folder (the name is empty or taken).";
+			case ActorActionPayload.FOLDER_DELETE -> {
+				ActorRegistry.deleteFolder(p.a());
+				yield null;
+			}
+			case ActorActionPayload.IMPORT -> importSheet(dm, p.b(), p.id(), p.d(), kindOf(p.c()), valueOf(p.c()), (p.n() & 1) != 0, (p.n() >> 1) & 3);
 			default -> "Unknown Actor action.";
 		};
 		if (error != null) dm.sendMessage(Text.literal(error), false);
@@ -77,6 +90,10 @@ public final class ActorService {
 	// ---------------------------------------------------------------- records
 
 	public static String create(ServerPlayerEntity dm, String name, String sheetId, boolean linked, String kind, String value, int disposition) {
+		return create(dm, name, sheetId, linked, kind, value, disposition, true);
+	}
+
+	private static String create(ServerPlayerEntity dm, String name, String sheetId, boolean linked, String kind, String value, int disposition, boolean announce) {
 		name = name == null ? "" : name.trim();
 		if (name.isEmpty() || name.length() > 40) return "Give the Actor a name (up to 40 characters).";
 		if (ActorRegistry.nameTaken(name)) return "There is already an Actor called " + name + ".";
@@ -91,7 +108,62 @@ public final class ActorService {
 		r.disposition = Math.max(0, Math.min(2, disposition));
 		attachSheet(dm.getServer(), dm, r, template, linked);
 		ActorRegistry.put(r);
-		dm.sendMessage(Text.literal("Created Actor " + name + ". Place it with Spawn."), false);
+		if (announce) dm.sendMessage(Text.literal("Created Actor " + name + ". Place it with Spawn."), false);
+		return null;
+	}
+
+	/**
+	 * Import: makes an Actor out of an existing sheet, named after it (a free name when taken), filed in a folder and
+	 * tagged. The Actors window calls this once per picked sheet.
+	 */
+	public static String importSheet(ServerPlayerEntity dm, String sheetId, String folder, String tags, String kind, String value, boolean linked, int disposition) {
+		CharacterStore.Entry template = CharacterStore.get(sheetId);
+		if (template == null) return "No such sheet.";
+		String name = ActorRegistry.nameOfSheet(template).trim();
+		if (name.isEmpty()) name = "Actor";
+		if (name.length() > 36) name = name.substring(0, 36).trim();
+		name = ActorRegistry.freeName(name);
+		if (checkModel(kind, value) != null) {
+			kind = "mob";
+			value = "minecraft:villager";
+		}
+		String err = create(dm, name, sheetId, linked, kind, value, disposition, false);
+		if (err != null) return err;
+		fileAs(name, folder, tags);
+		return null;
+	}
+
+	/** Puts the just-made Actor in its folder and gives it its tags. */
+	private static void fileAs(String name, String folder, String tags) {
+		ActorRecord r = ActorRegistry.find(name);
+		if (r == null) return;
+		String f = folder == null || folder.isBlank() ? null : ActorRegistry.ensureFolder(folder);
+		r.folder = f == null ? "" : f;
+		r.tags.clear();
+		r.tags.addAll(ActorRegistry.parseTags(tags));
+		ActorRegistry.save();
+	}
+
+	public static String setFolder(String id, String folder) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		if (folder == null || folder.isBlank()) {
+			r.folder = "";
+		} else {
+			String f = ActorRegistry.ensureFolder(folder);
+			if (f == null) return "A folder name is 1 to 32 characters.";
+			r.folder = f;
+		}
+		ActorRegistry.save();
+		return null;
+	}
+
+	public static String setTags(String id, String csv) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		r.tags.clear();
+		r.tags.addAll(ActorRegistry.parseTags(csv));
+		ActorRegistry.save();
 		return null;
 	}
 
@@ -147,6 +219,8 @@ public final class ActorService {
 		r.value = src.value;
 		r.disposition = src.disposition;
 		r.dmControl = src.dmControl;
+		r.folder = src.folder;
+		r.tags.addAll(src.tags);
 		attachSheet(dm.getServer(), dm, r, sheet, !src.ownsSheet); // a copy of a private sheet gets its own, a shared one stays shared
 		ActorRegistry.put(r);
 		return null;

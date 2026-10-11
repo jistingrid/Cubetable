@@ -30,6 +30,8 @@ public final class ActorRegistry {
 	public static final String TAG = "tbc_actor:";
 
 	private static final Map<String, ActorRecord> RECORDS = new LinkedHashMap<>();
+	/** Folders that exist even when empty (a folder that Actors use exists by itself). */
+	private static final List<String> FOLDERS = new ArrayList<>();
 	private static Path file;
 
 	private ActorRegistry() {}
@@ -39,16 +41,23 @@ public final class ActorRegistry {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			save();
 			RECORDS.clear();
+			FOLDERS.clear();
 			file = null;
 		});
 	}
 
 	private static void load(MinecraftServer server) {
 		RECORDS.clear();
+		FOLDERS.clear();
 		file = CharacterStore.folder(server).resolve("scene_actors.json");
 		if (!Files.isRegularFile(file)) return;
 		try {
-			for (JsonElement el : JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonArray()) {
+			JsonElement root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8));
+			JsonArray list = root.isJsonArray() ? root.getAsJsonArray() : root.getAsJsonObject().getAsJsonArray("actors"); // the first version was a bare list
+			if (root.isJsonObject() && root.getAsJsonObject().has("folders")) {
+				for (JsonElement f : root.getAsJsonObject().getAsJsonArray("folders")) FOLDERS.add(f.getAsString());
+			}
+			for (JsonElement el : list) {
 				JsonObject o = el.getAsJsonObject();
 				ActorRecord r = new ActorRecord(o.get("id").getAsString(), o.get("name").getAsString());
 				if (o.has("sheet")) r.sheetId = o.get("sheet").getAsString();
@@ -58,6 +67,8 @@ public final class ActorRegistry {
 				if (o.has("disposition")) r.disposition = o.get("disposition").getAsInt();
 				if (o.has("dm")) r.dmControl = o.get("dm").getAsBoolean();
 				if (o.has("body")) r.entityUuid = UUID.fromString(o.get("body").getAsString());
+				if (o.has("folder")) r.folder = o.get("folder").getAsString();
+				if (o.has("tags")) for (JsonElement t : o.getAsJsonArray("tags")) r.tags.add(t.getAsString());
 				RECORDS.put(r.id, r);
 			}
 		} catch (Exception ex) {
@@ -81,9 +92,20 @@ public final class ActorRegistry {
 				o.addProperty("disposition", r.disposition);
 				o.addProperty("dm", r.dmControl);
 				if (r.entityUuid != null) o.addProperty("body", r.entityUuid.toString());
+				if (!r.folder.isEmpty()) o.addProperty("folder", r.folder);
+				if (!r.tags.isEmpty()) {
+					JsonArray tags = new JsonArray();
+					for (String t : r.tags) tags.add(t);
+					o.add("tags", tags);
+				}
 				arr.add(o);
 			}
-			Files.writeString(file, new GsonBuilder().setPrettyPrinting().create().toJson(arr), StandardCharsets.UTF_8);
+			JsonObject root = new JsonObject();
+			JsonArray folders = new JsonArray();
+			for (String f : FOLDERS) folders.add(f);
+			root.add("folders", folders);
+			root.add("actors", arr);
+			Files.writeString(file, new GsonBuilder().setPrettyPrinting().create().toJson(root), StandardCharsets.UTF_8);
 		} catch (IOException ex) {
 			TacticalCombatMod.LOGGER.error("Could not write {}: {}", file, ex.toString());
 		}
@@ -129,6 +151,84 @@ public final class ActorRegistry {
 		if (!nameTaken(stem)) return stem;
 		for (int i = 2; i < 1000; i++) if (!nameTaken(stem + " " + i)) return stem + " " + i;
 		return stem + " " + UUID.randomUUID().toString().substring(0, 4);
+	}
+
+	// ---------------------------------------------------------------- folders and tags
+
+	/** Every folder: the ones made on purpose plus any an Actor is filed in, alphabetical. */
+	public static List<String> folders() {
+		List<String> out = new ArrayList<>(FOLDERS);
+		for (ActorRecord r : RECORDS.values()) {
+			if (!r.folder.isEmpty() && out.stream().noneMatch(f -> f.equalsIgnoreCase(r.folder))) out.add(r.folder);
+		}
+		out.sort(String.CASE_INSENSITIVE_ORDER);
+		return out;
+	}
+
+	/** The folder's spelling as stored, or null when there is none of that name. */
+	public static String folderNamed(String name) {
+		if (name == null) return null;
+		for (String f : folders()) if (f.equalsIgnoreCase(name.trim())) return f;
+		return null;
+	}
+
+	/** Makes the folder if needed. Returns its stored spelling, or null when the name is not usable. */
+	public static String ensureFolder(String name) {
+		name = cleanFolder(name);
+		if (name == null) return null;
+		String have = folderNamed(name);
+		if (have != null) return have;
+		FOLDERS.add(name);
+		save();
+		return name;
+	}
+
+	/** Trimmed, 1 to 32 characters, or null. */
+	public static String cleanFolder(String name) {
+		if (name == null) return null;
+		name = name.trim();
+		return name.isEmpty() || name.length() > 32 ? null : name;
+	}
+
+	public static boolean renameFolder(String from, String to) {
+		String old = folderNamed(from);
+		to = cleanFolder(to);
+		if (old == null || to == null) return false;
+		String clash = folderNamed(to);
+		if (clash != null && !clash.equalsIgnoreCase(old)) return false;
+		FOLDERS.removeIf(f -> f.equalsIgnoreCase(old));
+		FOLDERS.add(to);
+		for (ActorRecord r : RECORDS.values()) if (r.folder.equalsIgnoreCase(old)) r.folder = to;
+		save();
+		return true;
+	}
+
+	/** Deletes the folder; the Actors in it are not deleted, they go back to the top level. */
+	public static void deleteFolder(String name) {
+		String old = folderNamed(name);
+		if (old == null) return;
+		FOLDERS.removeIf(f -> f.equalsIgnoreCase(old));
+		for (ActorRecord r : RECORDS.values()) if (r.folder.equalsIgnoreCase(old)) r.folder = "";
+		save();
+	}
+
+	/** "Undead, act 2,#boss" -> [undead, act 2, boss]: trimmed, no duplicates (ignoring case), at most 12, 20 characters each. */
+	public static List<String> parseTags(String csv) {
+		List<String> out = new ArrayList<>();
+		if (csv == null) return out;
+		for (String part : csv.split(",")) {
+			String t = part.trim();
+			while (t.startsWith("#")) t = t.substring(1).trim();
+			if (t.isEmpty()) continue;
+			if (t.length() > 20) t = t.substring(0, 20);
+			final String tag = t;
+			if (out.stream().noneMatch(x -> x.equalsIgnoreCase(tag)) && out.size() < 12) out.add(tag);
+		}
+		return out;
+	}
+
+	public static String joinTags(List<String> tags) {
+		return String.join(",", tags);
 	}
 
 	// ---------------------------------------------------------------- bodies

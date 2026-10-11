@@ -85,9 +85,9 @@ public final class DmTools {
 			}
 			actors.add(new DmStatePayload.ActorInfo(r.id, r.name, r.sheetId, r.ownsSheet, r.kind, r.value, r.disposition,
 					r.dmControl, body == null ? -1 : body.getId(), hp == null ? 0f : (float) hp.now(), hp == null ? 0f : (float) hp.max(),
-					body != null && CombatManager.isInCombat(body)));
+					body != null && CombatManager.isInCombat(body), r.folder, dev.tacticalcombat.actor.ActorRegistry.joinTags(r.tags)));
 		}
-		DmStatePayload payload = new DmStatePayload(autoMovement, who, actors);
+		DmStatePayload payload = new DmStatePayload(autoMovement, who, actors, dev.tacticalcombat.actor.ActorRegistry.folders());
 		for (ServerPlayerEntity dm : dms) ServerPlayNetworking.send(dm, payload);
 	}
 }

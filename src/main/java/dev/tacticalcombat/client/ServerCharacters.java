@@ -43,6 +43,11 @@ public final class ServerCharacters {
 	private static final Set<String> KNOWN = new HashSet<>();
 	/** Who may see each character besides its owner and the DMs ("" nobody, "*" everyone, else uuids). */
 	private static final Map<String, String> SHARE = new HashMap<>();
+	/** Server ids of sheets that belong to Actors (held by the server, no player owns them): kept out of the sheet lists. */
+	private static final Set<String> ACTOR_SHEETS = new HashSet<>();
+	private static final String SERVER_OWNER = "00000000-0000-0000-0000-000000000000";
+	/** An Actor's sheet that is open right now, so the sheet window can show it. */
+	private static String revealed = "";
 	private static boolean dm;
 	/** Server id of the character this player's model stands for ("" = none). */
 	private static String activeId = "";
@@ -109,13 +114,29 @@ public final class ServerCharacters {
 		SERVER_VERSION.clear();
 		KNOWN.clear();
 		SHARE.clear();
+		ACTOR_SHEETS.clear();
+		revealed = "";
 		activeId = "";
 		dm = false;
 	}
 
-	/** Other players' characters, ordered by owner then name. */
+	/** True for a sheet that belongs to an Actor and is not shared with players: it lives in the Actors tab only. */
+	public static boolean isActorSheet(String id) {
+		return ACTOR_SHEETS.contains(id);
+	}
+
+	/** Lets the sheet window list this Actor sheet while it is open (empty = none). */
+	public static void reveal(String id) {
+		revealed = id == null ? "" : id;
+	}
+
+	/** Other players' characters, ordered by owner then name. Actors' own sheets are left out. */
 	public static List<CharacterData> remotes() {
-		List<CharacterData> list = new ArrayList<>(REMOTE.values());
+		List<CharacterData> list = new ArrayList<>();
+		for (CharacterData c : REMOTE.values()) {
+			boolean hidden = ACTOR_SHEETS.contains(c.link) && SHARE.getOrDefault(c.link, "").isEmpty() && !c.link.equals(revealed);
+			if (!hidden) list.add(c);
+		}
 		list.sort((a, b) -> {
 			int c = a.ownerName.compareToIgnoreCase(b.ownerName);
 			return c != 0 ? c : a.displayName().compareToIgnoreCase(b.displayName());
@@ -238,6 +259,8 @@ public final class ServerCharacters {
 		SHARE.put(p.id(), p.share());
 		SERVER_JSON.put(p.id(), norm);
 		SERVER_VERSION.put(p.id(), p.version());
+		if (SERVER_OWNER.equals(p.ownerUuid())) ACTOR_SHEETS.add(p.id());
+		else ACTOR_SHEETS.remove(p.id());
 
 		boolean mine = mc.player != null && p.ownerUuid().equals(mc.player.getUuidAsString());
 		if (!mine) {
@@ -280,10 +303,12 @@ public final class ServerCharacters {
 		SERVER_JSON.remove(p.id());
 		SERVER_VERSION.remove(p.id());
 		SHARE.remove(p.id());
+		ACTOR_SHEETS.remove(p.id());
 	}
 
 	public static void receiveRemove(CharacterRemovePayload p) {
 		SHARE.remove(p.id());
+		ACTOR_SHEETS.remove(p.id());
 		REMOTE.remove(p.id());
 		SERVER_JSON.remove(p.id());
 		SERVER_VERSION.remove(p.id());

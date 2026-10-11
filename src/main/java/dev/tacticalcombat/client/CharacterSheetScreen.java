@@ -188,6 +188,8 @@ public final class CharacterSheetScreen extends Screen {
 	/** The character a combat entry stands for: by its server id, else the first one shared by that player. */
 	public static CharacterData find(String link, String ownerName) {
 		for (CharacterData c : allCharacters()) if (!link.isEmpty() && link.equals(c.link)) return c;
+		CharacterData actorSheet = ServerCharacters.byId(link);
+		if (actorSheet != null && ServerCharacters.isActorSheet(link)) return actorSheet;
 		if (!ownerName.isEmpty()) for (CharacterData c : allCharacters()) if (c.remote && ownerName.equals(c.ownerName)) return c;
 		return null;
 	}
@@ -200,15 +202,23 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		CharacterData c = find(link, ownerName);
 		if (c == null) return;
+		ServerCharacters.reveal(ServerCharacters.isActorSheet(c.link) ? c.link : ""); // an Actor's sheet is not in the lists otherwise
 		charIndex = allCharacters().indexOf(c);
 		CharacterSheetScreen screen = new CharacterSheetScreen();
 		screen.back = back;
 		client.setScreen(screen);
+		ServerCharacters.reveal(ServerCharacters.isActorSheet(c.link) ? c.link : ""); // the screen it replaced may have cleared it
 	}
 
 	@Override
 	public void close() {
 		if (client != null) client.setScreen(back);
+	}
+
+	@Override
+	public void removed() {
+		ServerCharacters.reveal("");
+		super.removed();
 	}
 
 	/** Open from anywhere (a key, a command): it opens on the next client tick, once the chat has closed. */

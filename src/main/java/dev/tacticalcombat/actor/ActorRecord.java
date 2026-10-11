@@ -1,5 +1,7 @@
 package dev.tacticalcombat.actor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,6 +26,10 @@ public final class ActorRecord {
 	public int disposition = HOSTILE;
 	/** The Dungeon Master walks and acts for this Actor in a fight, whatever the Auto movement switch says. */
 	public boolean dmControl;
+	/** The folder it is filed in ("" = none). Folders are one level deep. */
+	public String folder = "";
+	/** Free labels for searching and filtering ("undead", "act 2"). */
+	public final List<String> tags = new ArrayList<>();
 	/** The body in the world, null while the Actor is only a record. */
 	public UUID entityUuid;
 

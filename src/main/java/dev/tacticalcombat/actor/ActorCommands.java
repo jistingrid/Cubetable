@@ -87,7 +87,9 @@ public final class ActorCommands {
 				String line = r.name + " - " + r.kind + " " + r.value + ", "
 						+ (r.disposition == 0 ? "hostile" : r.disposition == 1 ? "neutral" : "friendly")
 						+ (r.dmControl ? ", DM controlled" : "") + (r.ownsSheet ? ", own sheet" : ", shared sheet")
-						+ (placed ? ", placed" : ", not placed");
+						+ (placed ? ", placed" : ", not placed")
+						+ (r.folder.isEmpty() ? "" : ", folder " + r.folder)
+						+ (r.tags.isEmpty() ? "" : ", tags " + String.join("/", r.tags));
 				ctx.getSource().sendFeedback(() -> Text.literal(line), false);
 			}
 			return all.size();
@@ -169,6 +171,13 @@ public final class ActorCommands {
 
 		root.then(lit("rename").then(actorArg().then(CommandManager.argument("to", StringArgumentType.string()).executes(ctx -> run(ctx,
 				c -> ActorService.rename(c.getSource().getServer(), actorId(c), StringArgumentType.getString(c, "to")), "Renamed.")))));
+
+		// /actor folder <actor> <name...>   and   /actor unfile <actor>   and   /actor tags <actor> <a,b,c>
+		root.then(lit("folder").then(actorArg().then(CommandManager.argument("name", StringArgumentType.greedyString()).executes(ctx -> run(ctx,
+				c -> ActorService.setFolder(actorId(c), StringArgumentType.getString(c, "name")), "Filed.")))));
+		root.then(lit("unfile").then(actorArg().executes(ctx -> run(ctx, c -> ActorService.setFolder(actorId(c), ""), "Out of its folder."))));
+		root.then(lit("tags").then(actorArg().then(CommandManager.argument("tags", StringArgumentType.greedyString()).executes(ctx -> run(ctx,
+				c -> ActorService.setTags(actorId(c), StringArgumentType.getString(c, "tags")), "Tags set.")))));
 
 		dispatcher.register(root);
 	}
