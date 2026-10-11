@@ -144,6 +144,35 @@ the default), `gt`, `lte` or `lt` (roll-under games). Without a `defense` the ro
   right-click rolls its damage (the first `dice` column). The slot's `cost` is spent from whoever acts, and a
   levelled spell uses up a slot. Outside the acting combatant's turn the cost is refused.
 
+### Critical hits
+
+Criticals are defined by the pack, per column, so a game without them never shows one. A roll column says what a
+critical is, a dice column says what a critical does to its damage:
+
+```json
+{ "id": "hit", "type": "roll", "roll": "d20 + ...", "crit": "row.crit", "fumble": "1" },
+{ "id": "dmg", "type": "dice", "critDamage": "double" },
+{ "id": "crit", "type": "number", "label": "Crit range (lowest natural roll)", "default": 20, "hidden": true }
+```
+
+| Key | Meaning |
+|---|---|
+| `crit` | Roll column. A formula on the row: the **natural** roll (the dice, without the modifier; the kept die with advantage) that is a critical hit, or higher. Usually a hidden number column, so each weapon or spell can have its own range (19 for a keen blade) in its entry editor (the `...` button). |
+| `critMode` | `gte` (default: the natural roll must reach `crit`) or `lte` (roll-under games: it must be at most `crit`). |
+| `fumble` | Roll column. A formula: the natural roll that is a fumble, at the other end (1, or 96 or more for roll-under). |
+| `critDamage` | Dice column. `double` (twice the dice, the modifier once), `x2` ... `x10` (the dice and the modifier times that), or `max` (the modifier grows by the most the dice can show). |
+
+- A critical hit always hits and a fumble always misses, whatever the target's defense. Chat says `Critical hit!` or
+  `Critical fail!` after the roll, and the line under it says so (`27 vs AC 15: critical hit on Goblin`). With no target
+  the roll is still marked.
+- **Critical damage is earned, not asked for.** After a critical hit on a target, your next damage roll on that target is
+  rolled as a critical (`Critical damage!` in chat, the dice doubled or as the rule says) if its dice have a
+  `critDamage`; the line under the attack says so. Rolling any damage, or a new attack, ends it, and it lapses after two
+  minutes. **Shift** + click (or Shift + right-click on the action bar) rolls critical damage on purpose; **Ctrl** +
+  click rolls it normally even after a critical hit.
+- Dice without a `critDamage` never ask, never mark and never change; rolls from columns without `crit` never say
+  `Critical hit`. (A natural 20 on a saving throw or a skill is not a critical.)
+
 ### Actors: the creatures of a fight
 
 Every enemy (and every NPC that fills a scene) is an **Actor**, made by a Dungeon Master and placed like a token. An
@@ -205,7 +234,7 @@ Inside a fight an Actor moves on the grid, not by dragging. When it is the selec
 itself (Auto movement on), the panel's *Take over* button (or `Y`, for whatever creature is on turn) cancels the walk
 where it stands and hands the creature to the DM, who walks it by hand from then on (its DM control switch is turned on).
 
-Not there yet: critical hits, saving throws, advantage on bar rolls, and anything at 0 hit points.
+Not there yet: saving throws and advantage on bar rolls.
 
 ## At 0 hit points
 

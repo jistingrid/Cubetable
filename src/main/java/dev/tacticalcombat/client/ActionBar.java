@@ -685,6 +685,9 @@ public final class ActionBar {
 			return;
 		}
 		int kind = isDamage ? (aimed && s.coll().damage ? 2 : 0) : (aimed ? 1 : 0);
+		// criticals: only a column that defines them takes part (Shift + right-click forces critical damage, Ctrl + right-click a normal one)
+		String crit = isDamage ? dev.tacticalcombat.sheet.Crits.damage(col) : dev.tacticalcombat.sheet.Crits.attack(s.sc(), s.coll(), s.row(), col);
+		int force = isDamage ? (net.minecraft.client.gui.screen.Screen.hasShiftDown() ? 1 : net.minecraft.client.gui.screen.Screen.hasControlDown() ? 2 : 0) : 0;
 		String label = col.rollLabel.replace("{name}", s.name());
 		StringBuilder cost = new StringBuilder();
 		if (!damage) {
@@ -695,7 +698,7 @@ public final class ActionBar {
 		}
 		try {
 			Expr.Roll roll = s.sc().plan(s.coll(), s.row(), formula);
-			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), 0, kind, cost.toString()));
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), 0, kind, cost.toString(), crit, force));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(net.minecraft.util.Formatting.RED), false);
 			return;

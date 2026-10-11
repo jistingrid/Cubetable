@@ -105,11 +105,10 @@ public final class DiceAnimation {
 			text = text.copy().append(Text.literal(" = ").formatted(Formatting.GRAY))
 					.append(Text.literal(String.valueOf(roll.total())).formatted(Formatting.GOLD, Formatting.BOLD));
 		}
-		if (roll.type() == DiceType.D20 && rolled == 1) {
-			int face = roll.results()[Math.max(kept, 0)];
-			if (face == 20) text = text.copy().append(Text.literal("  Critical hit!").formatted(Formatting.GREEN));
-			if (face == 1) text = text.copy().append(Text.literal("  Critical fail!").formatted(Formatting.RED));
-		}
+		// only a roll that has a critical rule (the sheet's crit range, a damage roll's critical rule) is ever critical
+		if (roll.crit() == 1) text = text.copy().append(Text.literal("  Critical hit!").formatted(Formatting.GREEN, Formatting.BOLD));
+		if (roll.crit() == 2) text = text.copy().append(Text.literal("  Critical fail!").formatted(Formatting.RED, Formatting.BOLD));
+		if (roll.crit() == 3) text = text.copy().append(Text.literal("  Critical damage!").formatted(Formatting.GOLD, Formatting.BOLD));
 		client.inGameHud.getChatHud().addMessage(text);
 		if (!roll.verdict().isEmpty()) {
 			Formatting color = roll.outcome() == 1 ? Formatting.GREEN : roll.outcome() == 2 ? Formatting.RED : Formatting.GRAY;

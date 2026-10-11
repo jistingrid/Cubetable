@@ -17,9 +17,19 @@ public final class DiceService {
 		rollTotal(player, label, type, count, modifier, mode);
 	}
 
-	/** A line printed under the roll in chat. outcome: 0 neutral, 1 hit, 2 miss. */
-	public record Verdict(int outcome, String text) {
-		public static final Verdict NONE = new Verdict(0, "");
+	/** A line printed under the roll in chat. outcome: 0 neutral, 1 hit, 2 miss. crit: see DiceRollPayload (0 none). */
+	public record Verdict(int outcome, String text, int crit) {
+		public static final Verdict NONE = new Verdict(0, "", 0);
+
+		public Verdict(int outcome, String text) {
+			this(outcome, text, 0);
+		}
+	}
+
+	/** Decides the verdict from the total and the natural roll (the kept dice without the modifier). */
+	@FunctionalInterface
+	public interface RollVerdict {
+		Verdict apply(int total, int natural);
 	}
 
 	/** Same as {@link #roll} and returns the total (kept dice plus modifier) so the server can use it. */
@@ -36,6 +46,13 @@ public final class DiceService {
 	/** As above, shown as rolled by {@code roller} (a creature a Dungeon Master rolls for); null = the player. */
 	public static int rollTotal(ServerPlayerEntity player, String roller, String label, DiceType type, int count, int modifier,
 								int mode, java.util.function.IntFunction<Verdict> verdict) {
+		return rollNatural(player, roller, label, type, count, modifier, mode,
+				verdict == null ? null : (total, natural) -> verdict.apply(total));
+	}
+
+	/** The full form: the verdict also sees the natural roll, which is what a critical is decided on. */
+	public static int rollNatural(ServerPlayerEntity player, String roller, String label, DiceType type, int count, int modifier,
+								  int mode, RollVerdict verdict) {
 		count = Math.max(1, Math.min(DiceSpec.MAX_COUNT, count));
 		modifier = Math.max(-999, Math.min(999, modifier));
 		int keep = 0;
@@ -59,9 +76,9 @@ public final class DiceService {
 		}
 		total += modifier;
 
-		Verdict v = verdict == null ? Verdict.NONE : verdict.apply(total);
+		Verdict v = verdict == null ? Verdict.NONE : verdict.apply(total, total - modifier);
 		DiceRollPayload payload = new DiceRollPayload(roller == null || roller.isBlank() ? player.getGameProfile().getName() : roller, label, type, modifier, keep, results,
-				v.outcome(), v.text());
+				v.outcome(), v.text(), v.crit());
 		for (ServerPlayerEntity p : player.getServer().getPlayerManager().getPlayerList()) {
 			ServerPlayNetworking.send(p, payload);
 		}

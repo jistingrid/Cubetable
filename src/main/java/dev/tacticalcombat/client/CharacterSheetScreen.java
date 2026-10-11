@@ -1056,7 +1056,8 @@ public final class CharacterSheetScreen extends Screen {
 		SheetFormat.Col diceCol = col.diceCol == null ? null : coll.column(col.diceCol);
 		String formula = diceCol == null ? null : diceFormula(diceCol, row);
 		if (formula != null) {
-			rollPlan(sc, label, () -> sc.plan(coll, row, formula), coll.targetable && coll.damage ? 2 : 0);
+			rollPlan(sc, label, () -> sc.plan(coll, row, formula), coll.targetable && coll.damage ? 2 : 0,
+					dev.tacticalcombat.sheet.Crits.damage(diceCol), critForce());
 		} else {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null) {
@@ -1072,7 +1073,14 @@ public final class CharacterSheetScreen extends Screen {
 		int kind = 0;
 		if (coll.targetable && col.type.equals("roll")) kind = 1;
 		else if (coll.targetable && coll.damage && col.type.equals("dice")) kind = 2;
-		rollPlan(sc, label, () -> sc.plan(coll, row, formula), kind);
+		String crit = col.type.equals("roll") ? dev.tacticalcombat.sheet.Crits.attack(sc, coll, row, col)
+				: col.type.equals("dice") ? dev.tacticalcombat.sheet.Crits.damage(col) : "";
+		rollPlan(sc, label, () -> sc.plan(coll, row, formula), kind, crit, col.type.equals("dice") ? critForce() : 0);
+	}
+
+	/** Shift while rolling damage forces a critical (when the dice have a critical rule), Ctrl rolls it normally. */
+	private static int critForce() {
+		return hasShiftDown() ? 1 : hasControlDown() ? 2 : 0;
 	}
 
 	// view state of tables (not saved): filter text, sort column ("col" or "-col") and opened rows
@@ -1532,7 +1540,8 @@ public final class CharacterSheetScreen extends Screen {
 					if (!Double.isNaN(m) && Math.round(m) != 0) t += SheetContext.format(m, true);
 				}
 				int bw = Math.min(w, tw(t) + 8);
-				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, formula), "Roll " + tr(col.rollLabel).replace("{name}", rowName(coll, row)));
+				boolean over = hit(x, y + 1, bw, 11, () -> rollRowDice(sc, coll, row, col, formula), "Roll " + tr(col.rollLabel).replace("{name}", rowName(coll, row))
+						+ (col.critDamage != null ? ". Shift-click: critical damage. Ctrl-click: normal damage" : ""));
 				g.fill(x, y + 1, x + bw, y + 12, ROLL_EDGE);
 				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
 				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
@@ -2236,6 +2245,10 @@ public final class CharacterSheetScreen extends Screen {
 
 	/** kind: 0 plain, 1 attack against the player's target, 2 damage for it (see {@link DiceRequestPayload}). */
 	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind) {
+		rollPlan(sc, label, planner, kind, "", 0);
+	}
+
+	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind, String crit, int force) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
 		try {
@@ -2246,7 +2259,7 @@ public final class CharacterSheetScreen extends Screen {
 				return;
 			}
 			int mode = roll.type() == DiceType.D20 && roll.count() == 1 && hasRollMode(sc) ? rollMode : 0;
-			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, ""));
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, "", crit, force));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 		}

@@ -1247,7 +1247,9 @@
           "signed": true,
           "value": "pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + prof * row.prof + row.bonus",
           "roll": "d20 + pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + prof * row.prof + row.bonus",
-          "rollLabel": "{name} attack"
+          "rollLabel": "{name} attack",
+          "crit": "row.crit",
+          "fumble": "1"
         },
         {
           "id": "dmg",
@@ -1255,7 +1257,8 @@
           "type": "dice",
           "width": 1.5,
           "modifier": "pick(row.ability, str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod) + row.bonus",
-          "rollLabel": "{name} damage"
+          "rollLabel": "{name} damage",
+          "critDamage": "double"
         },
         {
           "id": "ability",
@@ -1287,6 +1290,14 @@
           "width": 0.6,
           "signed": true,
           "detail": true
+        },
+        {
+          "id": "crit",
+          "label": "Crit range (lowest natural roll)",
+          "type": "number",
+          "width": 0.6,
+          "default": 20,
+          "hidden": true
         },
         {
           "id": "notes",
@@ -1428,7 +1439,9 @@
           "value": "spell_atk",
           "roll": "d20 + spell_atk",
           "rollLabel": "{name} attack",
-          "enabled": "row.attack"
+          "enabled": "row.attack",
+          "crit": "row.crit",
+          "fumble": "1"
         },
         {
           "id": "cast",
@@ -1446,7 +1459,8 @@
           "type": "dice",
           "width": 1.0,
           "rollLabel": "{name}",
-          "detail": true
+          "detail": true,
+          "critDamage": "double"
         },
         {
           "id": "prepared",
@@ -1493,6 +1507,14 @@
           "id": "attack",
           "label": "Spell attack roll",
           "type": "toggle",
+          "hidden": true
+        },
+        {
+          "id": "crit",
+          "label": "Crit range (lowest natural roll)",
+          "type": "number",
+          "width": 0.6,
+          "default": 20,
           "hidden": true
         }
       ],

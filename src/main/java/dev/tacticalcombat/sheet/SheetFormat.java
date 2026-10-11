@@ -74,6 +74,17 @@ public final class SheetFormat {
 		public String rollLabel = "{name}";
 		/** dice column: optional formula added to the dice text when rolled, e.g. an ability modifier. */
 		public String modifier;
+		/**
+		 * roll column: formula (on the row) for its critical range: a natural roll of at least this is a critical hit
+		 * (at most it with {@link #critLow}). Usually a hidden number column such as "row.crit". Null = never critical.
+		 */
+		public String crit;
+		/** roll column: criticals are low rolls (roll-under games): the natural roll must be at most the range. */
+		public boolean critLow;
+		/** roll column: formula for the natural roll that is a fumble (an automatic miss), the opposite end. Null = none. */
+		public String fumble;
+		/** dice column: what a critical does to its dice: "double", "x2" / "x3" ... or "max". Null = no critical damage. */
+		public String critDamage;
 		/** choice column: the labels; the row stores the index. */
 		public final List<String> options = new ArrayList<>();
 		/** choice column used by "groupBy": a heading per option (else the option itself). */
@@ -310,6 +321,23 @@ public final class SheetFormat {
 			col.roll = str(co, "roll", null);
 			col.rollLabel = str(co, "rollLabel", "{name}");
 			col.modifier = str(co, "modifier", null);
+			col.crit = str(co, "crit", null);
+			col.fumble = str(co, "fumble", null);
+			String critMode = str(co, "critMode", "gte").toLowerCase(Locale.ROOT);
+			if (!critMode.equals("gte") && !critMode.equals("lte")) {
+				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "' critMode must be gte or lte");
+			}
+			col.critLow = critMode.equals("lte");
+			col.critDamage = str(co, "critDamage", null);
+			if ((col.crit != null || col.fumble != null) && !col.type.equals("roll")) {
+				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "': crit and fumble belong on a roll column");
+			}
+			if (col.critDamage != null && !col.type.equals("dice")) {
+				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "': critDamage belongs on a dice column");
+			}
+			if (col.critDamage != null && !dev.tacticalcombat.dice.CritSpec.validRule(col.critDamage.toLowerCase(Locale.ROOT).trim())) {
+				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "': critDamage must be double, max, x2 ... x10 or multiply:N");
+			}
 			for (JsonElement oe : arr(co, "options")) col.options.add(oe.getAsString());
 			for (JsonElement oe : arr(co, "groupLabels")) col.groupLabels.add(oe.getAsString());
 			col.spend = str(co, "spend", null);

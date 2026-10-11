@@ -106,6 +106,8 @@ A collection can set `groupBy` to a column (usually a `choice`): the table gets 
 
 `enabled` on a column is a row formula: the cell only shows when it is above 0, e.g. `"enabled": "row.attack"` on a roll button, with a hidden `attack` toggle column that is switched in the entry editor.
 
+Critical hits are opt-in per column (see [combat-rules.md](combat-rules.md#critical-hits)): a `roll` column takes `crit` (a row formula: the lowest natural roll that is a critical, usually a hidden number column such as `"crit": "row.crit"` with `"default": 20`), `critMode` (`gte`, the default, or `lte` for roll-under games) and `fumble` (a formula: the natural roll that is an automatic miss, e.g. `"1"`); a `dice` column takes `critDamage` (`double`, `x2` ... `x10` / `multiply:N`, or `max`). A column without them is never critical: no chat note, no critical damage option.
+
 `hidden: true` on a column removes it from the sheet entirely (it is only in the entry editor), e.g. a spell's level when the table is already grouped by level.
 
 `detail: true` on a column keeps it out of the table: its value is summarised in small text under the row (toggles show their label when on, numbers when not 0) and is edited in the row editor. Use it for setup columns so the main row stays readable, e.g. a weapon row shows name, hit and damage, with `STR - Prof` underneath.
