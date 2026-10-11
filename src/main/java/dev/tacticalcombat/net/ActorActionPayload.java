@@ -56,6 +56,16 @@ public record ActorActionPayload(int op, String id, String a, String b, String c
 	public static final int FOLDER_RENAME = 18;
 	/** a = folder name; its Actors go back to the top level. */
 	public static final int FOLDER_DELETE = 19;
+	/** Turn the placed Actor by n degrees (negative = left). Allowed in a fight. */
+	public static final int TURN = 21;
+	/** c = "x z": face that point; empty: face the Dungeon Master. */
+	public static final int FACE = 22;
+	/** Centre it on its block and turn it to the nearest 45 degrees. */
+	public static final int SNAP = 23;
+	/** c = "dx dy dz": move it by that many blocks (outside a fight). */
+	public static final int NUDGE = 24;
+	/** Make a copy of the Actor and place it beside the original. */
+	public static final int CLONE = 25;
 	/** Make an Actor out of a sheet, named after it. id = folder ("" none), b = sheet id, c = "kind:value", n as CREATE, d = tags. */
 	public static final int IMPORT = 20;
 

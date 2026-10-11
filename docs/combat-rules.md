@@ -182,7 +182,25 @@ Actor named after its sheet, looking like the Minecraft creature of that name wh
 
 `G` (or `/stage`, or the Stage row in the DM tools tab) gives a DM a free cursor over the world, like Foundry's token
 layer. Click an Actor to select it (an arrow and its name show over it), drag it to walk it, or right-click the ground
-to send the selected Actor there. A small panel offers *DM control*, *Add to fight*, *Recall* and the Actors tab.
+to send the selected Actor there. A line on the ground shows which way the selected Actor faces.
+
+Posing a scene:
+
+| Do this | To |
+|---|---|
+| `Q` / `E`, the `<` `>` buttons, or the mouse wheel over the Actor | turn it 15 degrees left / right (hold Shift, or use `<<` `>>`, for 90) |
+| Shift + right-click the ground | make it face that spot |
+| *Face me* | turn it toward you |
+| *Snap to block* | centre it on its block and straighten it to the nearest 45 degrees |
+| Arrow keys | nudge it one block (Shift: half a block); up is away from your camera |
+| *Clone beside* | copy it (with its own sheet, folder and tags) one block to its right |
+| *Lock* | stop drags, turns and nudges on it until unlocked (kept for this session) |
+| `Tab` / Shift+`Tab`, or *Prev* / *Next* | select the next / previous placed Actor |
+| `Delete` | recall it (take it out of the world) |
+| *Snap drag* (top left) | dragging puts the Actor in the middle of a block (on by default) |
+
+The panel also has *DM control*, *Add to fight*, *Recall* / *Take over*, *Possess* and the Actors tab. Turning works in a
+fight; moving does not (the grid does that). `/actor turn <actor> <degrees>` does the same from chat.
 Inside a fight an Actor moves on the grid, not by dragging. When it is the selected Actor's turn and it is walking by
 itself (Auto movement on), the panel's *Take over* button (or `Y`, for whatever creature is on turn) cancels the walk
 where it stands and hands the creature to the DM, who walks it by hand from then on (its DM control switch is turned on).

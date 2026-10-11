@@ -175,6 +175,8 @@ public final class ActorCommands {
 		// /actor folder <actor> <name...>   and   /actor unfile <actor>   and   /actor tags <actor> <a,b,c>
 		root.then(lit("folder").then(actorArg().then(CommandManager.argument("name", StringArgumentType.greedyString()).executes(ctx -> run(ctx,
 				c -> ActorService.setFolder(actorId(c), StringArgumentType.getString(c, "name")), "Filed.")))));
+		root.then(lit("turn").then(actorArg().then(CommandManager.argument("degrees", com.mojang.brigadier.arguments.IntegerArgumentType.integer(-360, 360)).executes(ctx -> run(ctx,
+				c -> ActorService.turn(c.getSource().getServer(), actorId(c), com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "degrees")), "Turned.")))));
 		root.then(lit("unfile").then(actorArg().executes(ctx -> run(ctx, c -> ActorService.setFolder(actorId(c), ""), "Out of its folder."))));
 		root.then(lit("tags").then(actorArg().then(CommandManager.argument("tags", StringArgumentType.greedyString()).executes(ctx -> run(ctx,
 				c -> ActorService.setTags(actorId(c), StringArgumentType.getString(c, "tags")), "Tags set.")))));

@@ -22,6 +22,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
@@ -62,6 +63,11 @@ public final class ActorService {
 			}
 			case ActorActionPayload.TAKEOVER -> takeOver(dm, p.id());
 			case ActorActionPayload.MOVE -> move(dm, p.id(), p.c());
+			case ActorActionPayload.TURN -> turn(dm.getServer(), p.id(), p.n());
+			case ActorActionPayload.FACE -> face(dm, p.id(), p.c());
+			case ActorActionPayload.SNAP -> snap(dm.getServer(), p.id());
+			case ActorActionPayload.NUDGE -> nudge(dm, p.id(), p.c());
+			case ActorActionPayload.CLONE -> cloneHere(dm, p.id());
 			case ActorActionPayload.FOLDER -> setFolder(p.id(), p.a());
 			case ActorActionPayload.TAGS -> setTags(p.id(), p.a());
 			case ActorActionPayload.FOLDER_NEW -> ActorRegistry.ensureFolder(p.a()) == null ? "A folder name is 1 to 32 characters." : null;
@@ -428,6 +434,106 @@ public final class ActorService {
 		body.setVelocity(Vec3d.ZERO);
 		body.refreshPositionAndAngles(x, y, z, body.getYaw(), body.getPitch());
 		return null;
+	}
+
+	// ---------------------------------------------------------------- posing
+
+	private static void setYaw(LivingEntity body, float yaw) {
+		body.refreshPositionAndAngles(body.getX(), body.getY(), body.getZ(), yaw, body.getPitch());
+		body.setHeadYaw(yaw);
+		body.setBodyYaw(yaw);
+	}
+
+	/** Turns a placed Actor by {@code degrees} (negative = to the left). */
+	public static String turn(MinecraftServer server, String id, int degrees) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		LivingEntity body = ActorRegistry.bodyOf(server, r);
+		if (body == null) return r.name + " is not placed in the world.";
+		setYaw(body, MathHelper.wrapDegrees(body.getYaw() + MathHelper.clamp(degrees, -360, 360)));
+		return null;
+	}
+
+	/** Turns a placed Actor to face a point ("x z"), or the Dungeon Master when none is given. */
+	public static String face(ServerPlayerEntity dm, String id, String where) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		LivingEntity body = ActorRegistry.bodyOf(dm.getServer(), r);
+		if (body == null) return r.name + " is not placed in the world.";
+		double tx = dm.getX();
+		double tz = dm.getZ();
+		String[] parts = where == null ? new String[0] : where.trim().split("\\s+");
+		if (parts.length == 2) {
+			try {
+				tx = Double.parseDouble(parts[0]);
+				tz = Double.parseDouble(parts[1]);
+			} catch (NumberFormatException ex) {
+				return "Bad position.";
+			}
+		}
+		double dx = tx - body.getX();
+		double dz = tz - body.getZ();
+		if (!Double.isFinite(dx) || !Double.isFinite(dz) || dx * dx + dz * dz < 1.0e-4) return null;
+		setYaw(body, (float) (MathHelper.atan2(dz, dx) * 57.29577951308232) - 90.0f);
+		return null;
+	}
+
+	/** Centres a placed Actor on its block and turns it to the nearest 45 degrees. */
+	public static String snap(MinecraftServer server, String id) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		LivingEntity body = ActorRegistry.bodyOf(server, r);
+		if (body == null) return r.name + " is not placed in the world.";
+		float yaw = Math.round(body.getYaw() / 45.0f) * 45.0f;
+		if (!CombatManager.isInCombat(body)) {
+			if (body instanceof MobEntity m) m.getNavigation().stop();
+			body.setVelocity(Vec3d.ZERO);
+			body.refreshPositionAndAngles(Math.floor(body.getX()) + 0.5, body.getY(), Math.floor(body.getZ()) + 0.5, yaw, body.getPitch());
+		}
+		setYaw(body, yaw);
+		return null;
+	}
+
+	/** Moves a placed Actor by a few blocks ("dx dy dz"), outside a fight. */
+	public static String nudge(ServerPlayerEntity dm, String id, String delta) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		LivingEntity body = ActorRegistry.bodyOf(dm.getServer(), r);
+		if (body == null) return r.name + " is not placed in the world.";
+		String[] parts = delta == null ? new String[0] : delta.trim().split("\\s+");
+		if (parts.length != 3) return "Bad step.";
+		double dx, dy, dz;
+		try {
+			dx = Double.parseDouble(parts[0]);
+			dy = Double.parseDouble(parts[1]);
+			dz = Double.parseDouble(parts[2]);
+		} catch (NumberFormatException ex) {
+			return "Bad step.";
+		}
+		if (!Double.isFinite(dx) || !Double.isFinite(dy) || !Double.isFinite(dz) || Math.abs(dx) > 4 || Math.abs(dy) > 4 || Math.abs(dz) > 4) return "Bad step.";
+		return move(dm, id, String.format(Locale.ROOT, "%.3f %.3f %.3f", body.getX() + dx, body.getY() + dy, body.getZ() + dz));
+	}
+
+	/** A copy of the Actor (own sheet when it has one), placed one block beside it with the same facing. */
+	public static String cloneHere(ServerPlayerEntity dm, String id) {
+		ActorRecord src = ActorRegistry.find(id);
+		if (src == null) return "No such Actor.";
+		LivingEntity body = ActorRegistry.bodyOf(dm.getServer(), src);
+		if (body == null || !(body.getWorld() instanceof ServerWorld w)) return src.name + " is not placed in the world.";
+		CharacterStore.Entry sheet = ActorRegistry.sheetOf(src);
+		if (sheet == null) return src.name + " has no sheet to copy.";
+		ActorRecord r = new ActorRecord(UUID.randomUUID().toString().substring(0, 8), ActorRegistry.freeName(src.name));
+		r.kind = src.kind;
+		r.value = src.value;
+		r.disposition = src.disposition;
+		r.dmControl = src.dmControl;
+		r.folder = src.folder;
+		r.tags.addAll(src.tags);
+		attachSheet(dm.getServer(), dm, r, sheet, !src.ownsSheet);
+		ActorRegistry.put(r);
+		double yaw = Math.toRadians(body.getYaw()); // one block to its right (facing is (-sin, cos), its right is (-cos, -sin))
+		Vec3d at = body.getPos().add(-Math.cos(yaw), 0, -Math.sin(yaw));
+		return place(w, r, at, body.getYaw());
 	}
 
 	/** Cancels an Actor's automatic turn and hands it to the Dungeon Master. */
