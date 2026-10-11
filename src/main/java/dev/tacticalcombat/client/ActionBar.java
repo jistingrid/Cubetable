@@ -1142,7 +1142,8 @@ public final class ActionBar {
 		}
 		try {
 			Expr.Roll roll = s.sc().plan(s.coll(), s.row(), formula);
-			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), 0, kind, cost.toString(), crit, force));
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), 0, kind, cost.toString(), crit, force,
+					dev.tacticalcombat.sheet.ConditionRules.rowRules(s.coll(), s.row())));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 			return;

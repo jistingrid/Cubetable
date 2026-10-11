@@ -28,6 +28,7 @@
         "ability": 1,
         "dmg": "2d4",
         "prof": 1,
+        "rules": "hit||check|str_save|11\ncheck_failed||apply|Prone|",
         "notes": "Melee, 5 ft, piercing. On a hit the target makes a DC 11 Strength save or is knocked prone."
       }
     ],

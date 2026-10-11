@@ -370,6 +370,8 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `damaged` / `healed` | a damage prompt was applied to the owner (`damage` = the amount) |
 | `downed` | the owner dropped to 0 and is down |
 | `applied` | this condition was just added (from the sheet or by another rule) |
+| `used` | (on an entry) its damage roll was made |
+| `check_passed` / `check_failed` | a `check` effect of the same rule list was rolled and met / missed its DC |
 
 | Do | target | value |
 |---|---|---|
@@ -377,6 +379,7 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `resource` | resource id (`action`) | what the owner has of it this turn (`0` = loses it) |
 | `speed` | - | the movement of this turn in the game's unit; may use sheet values (`speed / 2`) |
 | `message` | - | text for chat |
+| `check` | check id (`str_save`) | asks the creature to roll that check against the DC in the value (a formula; blank: no DC) - see Roll requests |
 | `apply` | condition name | adds the pack's preset condition of that name to the owner |
 | `remove` | condition name (blank: this one) | removes that condition; its `expired` rules run |
 | `advantage` / `disadvantage` | - | on a single d20; the roll is made with two dice. One of each cancels out, as does any number of both. |
@@ -395,6 +398,34 @@ Unconscious adds Prone when applied, and Concentrating reminds
 its owner of the save when they take damage and ends when they go down. Quick conditions that need no tracking: Frightened,
 Grappled, Incapacitated and Petrified. Ones that tick: Burning (1d6 a turn for 3 turns), Bleeding (1d4 at turn end),
 Regenerating (heal 5), Slowed, Hasted and Dodging (1 turn). Not yet: saving throws and rules on spending resources.
+
+### Rules on weapons, features and spells
+
+Any collection can have a `rules` column too. Its rules run when the entry is rolled with a target: `hit` / `miss`
+when its attack roll hits or misses, `used` when its damage roll is made. Formulas (damage, DC) use the roller's sheet;
+the effects (`damage`, `heal`, `apply`, `remove`, `check`, `message`) happen to the **target**. The wolf's Bite:
+
+```
+hit   | | check | str_save | 11        My attack hits: ask for a Strength save, DC 11
+check_failed | | apply | Prone |      Check failed: add Prone
+```
+
+A DC from the sheet works the same: `8 + prof + str_mod`. The rules ride along with the roll request, so the bar and
+the sheet both trigger them.
+
+### Roll requests
+
+A `check` effect asks the affected creature to roll: the owner (a player their own character, the Dungeon Master a
+creature) gets a prompt with **Roll / Advantage / Disadvantage**, like the damage prompt. The server rolls it with
+that creature's sheet, shows the dice to everyone with "DC 11: success / failure", then fires `check_passed` or
+`check_failed`. The checks come from the format's `combat.checks`:
+
+```json
+"checks": [ { "id": "str_save", "label": "Strength save", "roll": "d20 + save_str" }, ... ]
+```
+
+The creature's own conditions can change the roll (Poisoned's `roll` disadvantage applies to its saves). Other
+mechanics can use the same request later (`Checks.request` on the server), in a fight or out of one.
 
 ## Initiative
 

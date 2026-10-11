@@ -1079,7 +1079,7 @@ public final class CharacterSheetScreen extends Screen {
 		String formula = diceCol == null ? null : diceFormula(diceCol, row);
 		if (formula != null) {
 			rollPlan(sc, label, () -> sc.plan(coll, row, formula), coll.targetable && coll.damage ? 2 : 0,
-					dev.tacticalcombat.sheet.Crits.damage(diceCol), critForce());
+					dev.tacticalcombat.sheet.Crits.damage(diceCol), critForce(), dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row));
 		} else {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null) {
@@ -1098,7 +1098,8 @@ public final class CharacterSheetScreen extends Screen {
 		else if (coll.targetable && coll.damage && col.type.equals("dice")) kind = 2;
 		String crit = col.type.equals("roll") ? dev.tacticalcombat.sheet.Crits.attack(sc, coll, row, col)
 				: col.type.equals("dice") ? dev.tacticalcombat.sheet.Crits.damage(col) : "";
-		rollPlan(sc, label, () -> sc.plan(coll, row, formula), kind, crit, col.type.equals("dice") ? critForce() : 0);
+		rollPlan(sc, label, () -> sc.plan(coll, row, formula), kind, crit, col.type.equals("dice") ? critForce() : 0,
+				dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row));
 	}
 
 	/** Shift while rolling damage forces a critical (when the dice have a critical rule), Ctrl rolls it normally. */
@@ -1854,7 +1855,7 @@ public final class CharacterSheetScreen extends Screen {
 				rb.target().setX(vx);
 				rb.target().setY(y1);
 				rb.target().render(g, mouseX, mouseY, 0);
-				String hint = r.effect().equals("resource") ? "resource" : r.effect().equals("apply") || r.effect().equals("remove") ? "condition" : "bar";
+				String hint = r.effect().equals("resource") ? "resource" : r.effect().equals("apply") || r.effect().equals("remove") ? "condition" : r.effect().equals("check") ? "check id" : "bar";
 				if (rb.target().getText().isEmpty() && !rb.target().isFocused()) g.drawText(textRenderer, hint, vx + 3, y1 + 2, DIM, false);
 				vx += 74;
 			}
@@ -1866,6 +1867,7 @@ public final class CharacterSheetScreen extends Screen {
 					case "damage", "heal" -> "e.g. 1d4";
 					case "message" -> "text for chat";
 					case "advantage", "disadvantage", "apply", "remove" -> "nothing needed";
+					case "check" -> "DC, e.g. 8 + prof + str_mod";
 					case "bonus" -> "e.g. -2";
 					default -> "a number or formula";
 				};
@@ -2402,6 +2404,11 @@ public final class CharacterSheetScreen extends Screen {
 	}
 
 	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind, String crit, int force) {
+		rollPlan(sc, label, planner, kind, crit, force, "");
+	}
+
+	/** {@code rules}: the rules of the entry rolled ("on hit ..."), sent along with the roll. */
+	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind, String crit, int force, String rules) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
 		try {
@@ -2412,7 +2419,7 @@ public final class CharacterSheetScreen extends Screen {
 				return;
 			}
 			int mode = roll.type() == DiceType.D20 && roll.count() == 1 && hasRollMode(sc) ? rollMode : 0;
-			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, "", crit, force));
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, "", crit, force, rules));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 		}

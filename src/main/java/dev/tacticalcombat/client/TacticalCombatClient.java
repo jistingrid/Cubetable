@@ -82,6 +82,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamagePromptPayload.ID,
 				(payload, context) -> context.client().execute(() -> DamagePrompt.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CheckPromptPayload.ID,
+				(payload, context) -> context.client().execute(() -> CheckPrompt.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DownedPayload.ID,
 				(payload, context) -> context.client().execute(() -> DownedCard.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PausePayload.ID,
@@ -112,6 +114,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			ShareCardHud.clear();
 			ServerCharacters.clear();
 			DamagePrompt.clear();
+			CheckPrompt.clear();
 			DownedCard.clear();
 			DmState.clear();
 		});
@@ -161,6 +164,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null && !mc.options.hudHidden) {
 				DamagePrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
+				CheckPrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
 				DownedCard.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
 			}
 		});

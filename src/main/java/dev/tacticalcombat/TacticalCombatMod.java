@@ -54,7 +54,7 @@ public class TacticalCombatMod implements ModInitializer {
 				context.server().execute(() -> dev.tacticalcombat.character.FormatUpload.receive(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> dev.tacticalcombat.combat.Strikes.roll(context.player(), payload.label(),
-						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind(), payload.cost(), payload.crit(), payload.force())));
+						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind(), payload.cost(), payload.crit(), payload.force(), payload.rules())));
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.DmStatePayload.ID, dev.tacticalcombat.net.DmStatePayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.DmActionPayload.ID, dev.tacticalcombat.net.DmActionPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DmActionPayload.ID, (payload, context) ->
@@ -74,6 +74,10 @@ public class TacticalCombatMod implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.TimePause::tick);
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.actor.Possession::tick);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.TargetPayload.ID, dev.tacticalcombat.net.TargetPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.CheckPromptPayload.ID, dev.tacticalcombat.net.CheckPromptPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.CheckChoicePayload.ID, dev.tacticalcombat.net.CheckChoicePayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CheckChoicePayload.ID, (payload, context) ->
+				context.server().execute(() -> dev.tacticalcombat.combat.Checks.resolve(context.player(), payload.id(), payload.mode())));
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.DamagePromptPayload.ID, dev.tacticalcombat.net.DamagePromptPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.DamageChoicePayload.ID, dev.tacticalcombat.net.DamageChoicePayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.TargetPayload.ID, (payload, context) ->
@@ -118,6 +122,7 @@ public class TacticalCombatMod implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			dev.tacticalcombat.combat.SheetHealth.clear();
 			dev.tacticalcombat.combat.Damage.clear();
+			dev.tacticalcombat.combat.Checks.clear();
 		});
 
 		UseItemCallback.EVENT.register((player, world, hand) -> {

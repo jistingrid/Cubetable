@@ -22,18 +22,26 @@ import java.util.List;
  * {@code downed} (the owner dropped to 0) and {@code applied} (the condition was just added). They take the effects
  * {@code damage}, {@code heal}, {@code message}, {@code apply} (add the preset condition named by the target) and
  * {@code remove} (remove the condition named by the target; blank: this one). In "if" and in messages
- * ({@code {damage}}) the names above are replaced by their numbers. The "if" is a formula: the rule applies when it is not 0 (blank: always).
+ * ({@code {damage}}) the names above are replaced by their numbers.
+ *
+ * <p><b>Rules on entries</b> (a weapon, a feature, a spell with a {@code rules} column) work the same, with the
+ * entry's attacker as the owner and the <i>target</i> of its roll as who the effects happen to: {@code hit} /
+ * {@code miss} fire when its attack roll hits or misses, {@code used} when its damage roll is made. Formulas
+ * (damage, DC) use the attacker's sheet. The {@code check} effect asks the affected creature to roll the pack's check
+ * named by the target ({@code str_save}), against the DC in the value (blank: no DC); {@code check_passed} /
+ * {@code check_failed} then fire on the same rule list. The "if" is a formula: the rule applies when it is not 0 (blank: always).
  */
 public final class ConditionRules {
 	private ConditionRules() {}
 
 	public static final List<String> WHEN = List.of("turn_start", "turn_end", "expired", "roll", "attack", "attacked",
-			"round_start", "moved", "hit", "miss", "struck", "dodged", "damaged", "healed", "downed", "applied");
+			"round_start", "moved", "hit", "miss", "struck", "dodged", "damaged", "healed", "downed", "applied",
+			"used", "check_passed", "check_failed");
 	public static final List<String> WHEN_LABEL = List.of("Turn starts", "Turn ends", "Ends", "I roll", "I attack", "I'm attacked",
 			"Round starts", "I finish moving", "My attack hits", "My attack misses", "I'm hit", "An attack misses me", "I take damage",
-			"I'm healed", "I go down", "Applied");
-	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus", "apply", "remove");
-	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition");
+			"I'm healed", "I go down", "Applied", "I use it", "Check passed", "Check failed");
+	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus", "apply", "remove", "check");
+	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition", "Ask for a roll");
 
 	/** One rule; every field is plain text as typed. */
 	public record Rule(String when, String cond, String effect, String target, String value) {
@@ -43,9 +51,24 @@ public final class ConditionRules {
 
 		/** Whether this effect looks at the target field. */
 		public boolean usesTarget() {
-			return effect.equals("damage") || effect.equals("heal") || effect.equals("resource") || effect.equals("apply") || effect.equals("remove");
+			return effect.equals("damage") || effect.equals("heal") || effect.equals("resource") || effect.equals("apply") || effect.equals("remove") || effect.equals("check");
 		}
 	}
+
+	/** The rules text of an entry (a weapon, a feature ...): its first {@code rules} column, cut to what a request can carry. */
+	public static String rowRules(SheetFormat.Collection coll, CharacterData.Row row) {
+		for (SheetFormat.Col col : coll.columns) {
+			if (!col.isRules()) continue;
+			String t = row.texts.getOrDefault(col.id, "").trim();
+			if (t.length() <= MAX_SENT) return t;
+			int cut = t.lastIndexOf('\n', MAX_SENT);
+			return cut <= 0 ? "" : t.substring(0, cut);
+		}
+		return "";
+	}
+
+	/** What a roll request can carry of an entry's rules. */
+	public static final int MAX_SENT = 900;
 
 	public static Rule blank() {
 		return new Rule("turn_start", "", "damage", "", "1");
@@ -95,6 +118,7 @@ public final class ConditionRules {
 			case "disadvantage" -> "disadvantage";
 			case "bonus" -> "bonus " + r.value;
 			case "apply" -> "add " + r.target;
+			case "check" -> "ask for " + r.target + (r.value.isEmpty() ? "" : " vs DC " + r.value);
 			case "remove" -> "remove " + (r.target.isEmpty() ? "itself" : r.target);
 			default -> "\"" + r.value + "\"";
 		};

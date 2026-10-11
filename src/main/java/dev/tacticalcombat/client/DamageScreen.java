@@ -21,13 +21,13 @@ public final class DamageScreen extends Screen {
 	public static void tick(MinecraftClient client) {
 		if (client.player == null || client.world == null) return;
 		if (client.currentScreen instanceof DamageScreen) {
-			if (!DamagePrompt.pending() && !DownedCard.visible()) client.setScreen(null);
+			if (!DamagePrompt.pending() && !CheckPrompt.pending() && !DownedCard.visible()) client.setScreen(null);
 			return;
 		}
-		long id = DamagePrompt.firstId();
+		long id = DamagePrompt.firstId() * 31 + CheckPrompt.firstId();
 		long card = DownedCard.key();
 		if (card == 0) lastCard = 0; // the same card may come again (downed twice in a row)
-		if (client.currentScreen == null && ((DamagePrompt.visible() && id != lastOpenedFor)
+		if (client.currentScreen == null && (((DamagePrompt.visible() || CheckPrompt.visible()) && id != lastOpenedFor)
 				|| (DownedCard.visible() && card != lastCard))) {
 			lastOpenedFor = id;
 			lastCard = card;
@@ -57,7 +57,9 @@ public final class DamageScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		if (!DamagePrompt.mouseClicked(mouseX, mouseY, button, width)) DownedCard.mouseClicked(mouseX, mouseY, button, width);
+		if (!DamagePrompt.mouseClicked(mouseX, mouseY, button, width) && !CheckPrompt.mouseClicked(mouseX, mouseY, button, width)) {
+			DownedCard.mouseClicked(mouseX, mouseY, button, width);
+		}
 		return true;
 	}
 

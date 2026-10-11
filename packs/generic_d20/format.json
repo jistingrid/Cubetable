@@ -255,6 +255,20 @@
     "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
     "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
     "defense": { "value": "ac", "label": "AC", "hit": "gte" },
+    "checks": [
+      { "id": "str_save", "label": "Strength save", "roll": "d20 + save_str" },
+      { "id": "dex_save", "label": "Dexterity save", "roll": "d20 + save_dex" },
+      { "id": "con_save", "label": "Constitution save", "roll": "d20 + save_con" },
+      { "id": "int_save", "label": "Intelligence save", "roll": "d20 + save_int" },
+      { "id": "wis_save", "label": "Wisdom save", "roll": "d20 + save_wis" },
+      { "id": "cha_save", "label": "Charisma save", "roll": "d20 + save_cha" },
+      { "id": "str_check", "label": "Strength check", "roll": "d20 + str_mod" },
+      { "id": "dex_check", "label": "Dexterity check", "roll": "d20 + dex_mod" },
+      { "id": "con_check", "label": "Constitution check", "roll": "d20 + con_mod" },
+      { "id": "int_check", "label": "Intelligence check", "roll": "d20 + int_mod" },
+      { "id": "wis_check", "label": "Wisdom check", "roll": "d20 + wis_mod" },
+      { "id": "cha_check", "label": "Charisma check", "roll": "d20 + cha_mod" }
+    ],
     "conditions": { "collection": "conditions", "duration": "duration", "unit": "unit", "turns": "turns", "seconds": "seconds" },
     "downed": {
       "label": "Downed",
@@ -1245,6 +1259,11 @@
           "width": 2.2
         },
         {
+          "id": "rules",
+          "label": "Rules",
+          "type": "rules"
+        },
+        {
           "id": "hit",
           "label": "Hit",
           "type": "roll",
@@ -1376,6 +1395,11 @@
           "width": 2.4
         },
         {
+          "id": "rules",
+          "label": "Rules",
+          "type": "rules"
+        },
+        {
           "id": "roll",
           "label": "Roll",
           "type": "dice",
@@ -1403,6 +1427,11 @@
           "label": "Spell",
           "type": "text",
           "width": 2.0
+        },
+        {
+          "id": "rules",
+          "label": "Rules",
+          "type": "rules"
         },
         {
           "id": "level",

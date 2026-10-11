@@ -134,6 +134,17 @@ public final class CombatRules {
 	/** Pop-up lists the action bar offers (spells, features ...); a source with a {@code tray} puts its rows there instead of on the bar. */
 	public final List<Tray> trays = new ArrayList<>();
 
+	/** A check a creature can be asked to roll (a saving throw, an ability check ...): {@code roll} is a roll formula on its sheet. */
+	public record Check(String id, String label, String roll) {}
+
+	/** The checks of {@code combat.checks}; Roll requests ({@code check} rules, later other mechanics) name one by id. */
+	public final List<Check> checks = new ArrayList<>();
+
+	public Check check(String id) {
+		for (Check c : checks) if (c.id().equalsIgnoreCase(id)) return c;
+		return null;
+	}
+
 	/**
 	 * A tray: a button on the action bar that opens a list of entries, grouped under headings and scrollable.
 	 *
@@ -251,6 +262,15 @@ public final class CombatRules {
 						d.get("duration").getAsString().toLowerCase(Locale.ROOT), d.get("unit").getAsString().toLowerCase(Locale.ROOT),
 						d.has("turns") ? d.get("turns").getAsString() : "turns",
 						d.has("seconds") ? d.get("seconds").getAsString() : "seconds");
+			}
+		}
+		if (o.has("checks") && o.get("checks").isJsonArray()) {
+			for (JsonElement ce : o.getAsJsonArray("checks")) {
+				if (!ce.isJsonObject()) continue;
+				JsonObject co = ce.getAsJsonObject();
+				if (!co.has("id") || !co.has("roll")) continue;
+				String id = co.get("id").getAsString().toLowerCase(Locale.ROOT);
+				r.checks.add(new Check(id, co.has("label") ? co.get("label").getAsString() : capitalise(id), co.get("roll").getAsString()));
 			}
 		}
 		if (o.has("downed") && o.get("downed").isJsonObject()) {

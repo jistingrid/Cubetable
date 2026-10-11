@@ -47,6 +47,7 @@ public final class TacticalScreen extends Screen {
 		boolean onPanel = TrackerPanel.contains(mouseX, mouseY, width, height)
 				|| ActionBar.contains(mouseX, mouseY, width, height)
 				|| DamagePrompt.contains(mouseX, mouseY, width)
+				|| CheckPrompt.contains(mouseX, mouseY, width)
 				|| DownedCard.contains(mouseX, mouseY, width);
 		if (onPanel) { // the pointer is on the DM's tracker, not on the battlefield
 			ClientGrid.hover = -1;
@@ -89,6 +90,7 @@ public final class TacticalScreen extends Screen {
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (TrackerPanel.mouseClicked(mouseX, mouseY, button, width, height)) return true;
 		if (DamagePrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
+		if (CheckPrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (DownedCard.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (ActionBar.mouseClicked(mouseX, mouseY, button, width, height)) return true;
 		if (button != 0) return true;

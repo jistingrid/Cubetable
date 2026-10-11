@@ -50,6 +50,12 @@ public final class Strikes {
 
 	public static void roll(ServerPlayerEntity player, String label, DiceType type, int count, int modifier, int mode,
 							int kind, String cost, String critText, int force) {
+		roll(player, label, type, count, modifier, mode, kind, cost, critText, force, "");
+	}
+
+	/** {@code rules}: the rules of the entry being rolled ("on hit, ask for a Strength save ..."). */
+	public static void roll(ServerPlayerEntity player, String label, DiceType type, int count, int modifier, int mode,
+							int kind, String cost, String critText, int force, String rules) {
 		CritSpec spec = CritSpec.parse(critText);
 		Combat combat = CombatManager.get(player);
 		if (combat == null && Roles.isDm(player.getUuid())) combat = CombatManager.primary();
@@ -151,12 +157,26 @@ public final class Strikes {
 				boolean hit = outcome[0] == 1;
 				Conditions.fire(player.getServer(), self, hit ? "hit" : "miss", vars);
 				Conditions.fire(player.getServer(), target, hit ? "struck" : "dodged", vars);
+				Conditions.runEntry(player.getServer(), self, target, rules, entryName(label), hit ? "hit" : "miss", vars);
 			}
 			return;
 		}
 
 		int total = DiceService.rollNatural(player, roller, label, type, count, modifier, mode, damageMark);
 		Damage.offer(player, asCreature ? roller : null, target, label, Math.max(0, total));
+		if (kind == DAMAGE && player.getServer() != null) {
+			LivingEntity self = asCreature ? actor.entity : player;
+			Conditions.runEntry(player.getServer(), self, target, rules, entryName(label), "used", java.util.Map.of());
+		}
+	}
+
+	/** The roll label without its roll word: "Bite attack" and "Bite damage" are both the entry "Bite". */
+	private static String entryName(String label) {
+		String t = label == null ? "" : label.trim();
+		for (String w : new String[] {" (critical)", " attack", " damage"}) {
+			if (t.endsWith(w)) t = t.substring(0, t.length() - w.length()).trim();
+		}
+		return t;
 	}
 
 	/** "action:1,bonus:1" to a map; anything malformed is ignored. */

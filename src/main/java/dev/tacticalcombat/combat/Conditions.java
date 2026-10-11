@@ -128,6 +128,20 @@ public final class Conditions {
 		return text;
 	}
 
+	/** Where a list of rules comes from: the formulas' sheet, the entry's own row (conditions), its name. */
+	private record Src(CharacterStore.Entry entry, SheetFormat f, CharacterData fallback, SheetFormat.Collection coll,
+					   CharacterData.Row row, String name, List<ConditionRules.Rule> rules, Combatant turn, boolean selfCondition) {
+		SheetContext sc() {
+			CharacterData d = parsed(entry);
+			return new SheetContext(f, d == null ? fallback : d);
+		}
+
+		double num(String formula) {
+			SheetContext c = sc();
+			return coll == null || row == null ? c.number(formula) : c.number(coll, row, formula);
+		}
+	}
+
 	private static void runRules0(MinecraftServer server, LivingEntity who, String when, Combatant turn, CharacterData.Row only,
 								  java.util.Map<String, Integer> vars) {
 		CharacterStore.Entry entry = SheetHealth.entryOf(who);
@@ -144,82 +158,135 @@ public final class Conditions {
 		if (c == null) return;
 		List<CharacterData.Row> rows = only != null ? List.of(only) : new java.util.ArrayList<>(c.collections.getOrDefault(rule.collection(), List.of()));
 		SheetFormat.Col nameCol = coll.nameCol();
-		String who2 = Damage.nameOf(who);
 		for (CharacterData.Row row : rows) {
 			String name = nameCol == null ? "A condition" : row.texts.getOrDefault(nameCol.id, "A condition");
-			for (ConditionRules.Rule r : ConditionRules.parse(row.texts.getOrDefault(rulesCol.id, ""))) {
-				if (!r.when().equals(when)) continue;
-				CharacterData fresh = parsed(entry);
-				SheetContext sc = new SheetContext(f, fresh == null ? c : fresh);
-				if (!r.cond().isEmpty()) {
-					double on = sc.number(coll, row, sub(r.cond(), vars, false));
-					if (Double.isNaN(on) || on == 0) continue;
-				}
-				String prefix = who2 + ": " + name + " - ";
-				switch (r.effect()) {
-					case "damage", "heal" -> {
-						int amount = Math.max(0, rollValue(sc, coll, row, sub(r.value(), vars, false)));
-						String bar = r.target().isEmpty() ? SheetHealth.vitalId(who) : r.target();
-						boolean heal = r.effect().equals("heal");
-						if (bar == null || !SheetHealth.change(server, who, bar, heal ? amount : -amount)) break;
-						server.getPlayerManager().broadcast(Text.literal(prefix + (heal ? "heals " : "takes ") + amount
-								+ (heal ? " " : " damage ") + "(" + bar + ")"), false);
-					}
-					case "resource" -> {
-						if (turn == null || r.target().isEmpty()) break;
-						double v = sc.number(coll, row, r.value());
-						if (Double.isNaN(v)) break;
-						int n = Math.max(0, (int) Math.floor(v + 1.0E-6));
-						turn.left.put(r.target(), n);
-						turn.max.put(r.target(), n);
-					}
-					case "speed" -> {
-						if (turn == null) break;
-						double v = sc.number(coll, row, r.value());
-						if (Double.isNaN(v)) break;
-						double square = f.combat.square <= 0 ? 1 : f.combat.square;
-						turn.moveBudget = Math.max(0, Math.floor(v / square + 1.0E-6));
-					}
-					case "apply" -> addCondition(server, who, f, coll, r.target());
-					case "remove" -> removeCondition(server, who, f, coll, r.target().isEmpty() ? name : r.target());
-					case "advantage", "disadvantage", "bonus" -> {
-					}
-					default -> server.getPlayerManager().broadcast(Text.literal(prefix + sub(r.value(), vars, true)), false);
-				}
-			}
+			List<ConditionRules.Rule> rules = ConditionRules.parse(row.texts.getOrDefault(rulesCol.id, ""));
+			executeRules(server, who, new Src(entry, f, c, coll, row, name, rules, turn, true), when, vars);
 		}
 	}
 
-	/** Adds the pack's preset condition of that name to {@code who}'s sheet; its own "applied" rules then run. */
-	private static void addCondition(MinecraftServer server, LivingEntity who, SheetFormat f, SheetFormat.Collection coll, String name) {
-		SheetFormat.Col nameCol = coll.nameCol();
-		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+	/**
+	 * Runs the rules of an entry (a weapon, a feature ...) that fire on {@code when}: formulas use {@code attacker}'s
+	 * sheet, the effects happen to {@code subject} (the target of the entry's roll).
+	 */
+	public static void runEntry(MinecraftServer server, LivingEntity attacker, LivingEntity subject, String rulesText,
+								String entryName, String when, java.util.Map<String, Integer> vars) {
+		if (server == null || attacker == null || subject == null || rulesText == null || rulesText.isBlank() || depth >= 3) return;
+		List<ConditionRules.Rule> rules = ConditionRules.parse(rulesText);
+		boolean any = false;
+		for (ConditionRules.Rule r : rules) if (r.when().equals(when)) any = true;
+		if (!any) return;
+		CharacterStore.Entry entry = SheetHealth.entryOf(attacker);
+		SheetFormat f = entry == null ? null : SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
 		CharacterData c = entry == null ? null : parsed(entry);
+		if (f == null || c == null) return;
+		depth++;
+		try {
+			executeRules(server, subject, new Src(entry, f, c, null, null, entryName, rules, null, false), when, vars);
+		} finally {
+			depth--;
+		}
+	}
+
+	private static void executeRules(MinecraftServer server, LivingEntity subject, Src s, String when, java.util.Map<String, Integer> vars) {
+		for (ConditionRules.Rule r : s.rules()) {
+			if (!r.when().equals(when)) continue;
+			if (!r.cond().isEmpty()) {
+				double on = s.num(sub(r.cond(), vars, false));
+				if (Double.isNaN(on) || on == 0) continue;
+			}
+			effect(server, subject, s, r, vars);
+		}
+	}
+
+	private static void effect(MinecraftServer server, LivingEntity subject, Src s, ConditionRules.Rule r, java.util.Map<String, Integer> vars) {
+		String prefix = Damage.nameOf(subject) + ": " + s.name() + " - ";
+		switch (r.effect()) {
+			case "damage", "heal" -> {
+				int amount = Math.max(0, rollValue(s.sc(), s.coll(), s.row(), sub(r.value(), vars, false)));
+				String bar = r.target().isEmpty() ? SheetHealth.vitalId(subject) : r.target();
+				boolean heal = r.effect().equals("heal");
+				if (bar == null || !SheetHealth.change(server, subject, bar, heal ? amount : -amount)) return;
+				server.getPlayerManager().broadcast(Text.literal(prefix + (heal ? "heals " : "takes ") + amount
+						+ (heal ? " " : " damage ") + "(" + bar + ")"), false);
+			}
+			case "resource" -> {
+				if (s.turn() == null || r.target().isEmpty()) return;
+				double v = s.num(r.value());
+				if (Double.isNaN(v)) return;
+				int n = Math.max(0, (int) Math.floor(v + 1.0E-6));
+				s.turn().left.put(r.target(), n);
+				s.turn().max.put(r.target(), n);
+			}
+			case "speed" -> {
+				if (s.turn() == null) return;
+				double v = s.num(r.value());
+				if (Double.isNaN(v)) return;
+				double square = s.f().combat.square <= 0 ? 1 : s.f().combat.square;
+				s.turn().moveBudget = Math.max(0, Math.floor(v / square + 1.0E-6));
+			}
+			case "apply" -> addCondition(server, subject, r.target());
+			case "remove" -> removeCondition(server, subject, r.target().isEmpty() && s.selfCondition() ? s.name() : r.target());
+			case "check" -> {
+				if (r.target().isEmpty()) return;
+				double dc = r.value().isEmpty() ? Double.NaN : s.num(sub(r.value(), vars, false));
+				final boolean hasDc = !Double.isNaN(dc);
+				String asker = s.selfCondition() ? s.name() : Damage.nameOf(subject).equals(s.name()) ? "" : s.name();
+				Checks.request(server, subject, asker, r.target(), hasDc ? (int) Math.round(dc) : -1, true, res -> {
+					if (!hasDc) return;
+					java.util.Map<String, Integer> after = new java.util.HashMap<>(vars);
+					after.put("check", res.total());
+					executeRules(server, subject, s, res.passed() ? "check_passed" : "check_failed", after);
+				});
+			}
+			case "advantage", "disadvantage", "bonus" -> {
+			}
+			default -> server.getPlayerManager().broadcast(Text.literal(prefix + sub(r.value(), vars, true)), false);
+		}
+	}
+
+	/** The format and the conditions collection of a creature's sheet, or null when it has none. */
+	private record Conds(CharacterStore.Entry entry, SheetFormat f, SheetFormat.Collection coll) {}
+
+	private static Conds condsOf(LivingEntity who) {
+		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+		if (entry == null) return null;
+		SheetFormat f = SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
+		CombatRules.Conditions rule = f == null || f.combat == null ? null : f.combat.conditions;
+		SheetFormat.Collection coll = rule == null ? null : f.collections.get(rule.collection());
+		return coll == null ? null : new Conds(entry, f, coll);
+	}
+
+	/** Adds the pack's preset condition of that name to {@code who}'s sheet; its own "applied" rules then run. */
+	private static void addCondition(MinecraftServer server, LivingEntity who, String name) {
+		Conds k = condsOf(who);
+		SheetFormat.Col nameCol = k == null ? null : k.coll().nameCol();
+		CharacterData c = k == null ? null : parsed(k.entry());
 		if (nameCol == null || c == null || name.isEmpty()) return;
 		CharacterData.Row preset = null;
-		for (CharacterData.Row p : coll.presets) if (p.texts.getOrDefault(nameCol.id, "").equalsIgnoreCase(name)) preset = p;
+		for (CharacterData.Row p : k.coll().presets) if (p.texts.getOrDefault(nameCol.id, "").equalsIgnoreCase(name)) preset = p;
 		if (preset == null) return;
 		CharacterData.Row row = preset.copy();
-		c.rows(coll.id).add(row);
-		save(server, entry, c);
+		c.rows(k.coll().id).add(row);
+		save(server, k.entry(), c);
 		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(who) + ": " + row.texts.get(nameCol.id) + " applied."), false);
 		runRules(server, who, "applied", null, row, java.util.Map.of());
 	}
 
 	/** Removes the first condition of that name from {@code who}'s sheet; its "ends" rules run. */
-	private static void removeCondition(MinecraftServer server, LivingEntity who, SheetFormat f, SheetFormat.Collection coll, String name) {
-		SheetFormat.Col nameCol = coll.nameCol();
-		CharacterStore.Entry entry = SheetHealth.entryOf(who);
-		CharacterData c = entry == null ? null : parsed(entry);
-		if (nameCol == null || c == null) return;
-		List<CharacterData.Row> rows = c.rows(coll.id);
+	private static void removeCondition(MinecraftServer server, LivingEntity who, String name) {
+		Conds k = condsOf(who);
+		SheetFormat.Col nameCol = k == null ? null : k.coll().nameCol();
+		CharacterData c = k == null ? null : parsed(k.entry());
+		if (nameCol == null || c == null || name.isEmpty()) return;
+		List<CharacterData.Row> rows = c.rows(k.coll().id);
 		CharacterData.Row gone = null;
 		for (CharacterData.Row r : rows) {
 			if (gone == null && r.texts.getOrDefault(nameCol.id, "").equalsIgnoreCase(name)) gone = r;
 		}
 		if (gone == null) return;
 		rows.remove(gone);
-		save(server, entry, c);
+		save(server, k.entry(), c);
 		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(who) + ": " + name + " ended."), false);
 		runRules(server, who, "expired", null, gone, java.util.Map.of());
 	}
@@ -297,12 +364,12 @@ public final class Conditions {
 	/** A number or a dice formula ({@code 1d4 + 2}) of a rule, rolled here when it has dice; 0 when it does not work. */
 	private static int rollValue(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, String formula) {
 		try {
-			Expr.Roll roll = sc.plan(coll, row, formula);
+			Expr.Roll roll = coll == null || row == null ? sc.plan(formula) : sc.plan(coll, row, formula);
 			int total = roll.modifier();
 			for (int i = 0; i < roll.count(); i++) total += 1 + java.util.concurrent.ThreadLocalRandom.current().nextInt(Math.max(1, roll.type().sides));
 			return total;
 		} catch (RuntimeException noDice) {
-			double v = sc.number(coll, row, formula);
+			double v = coll == null || row == null ? sc.number(formula) : sc.number(coll, row, formula);
 			return Double.isNaN(v) ? 0 : (int) Math.round(v);
 		}
 	}
