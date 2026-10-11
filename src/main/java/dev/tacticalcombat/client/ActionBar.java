@@ -1177,8 +1177,13 @@ public final class ActionBar {
 	}
 
 	static ItemStack iconFor(CombatStatePayload.Entry e) {
-		return ICONS.computeIfAbsent(e.typeId(), id -> {
-			if (!e.hostile() || id.getNamespace().equals("tacticalcombat")) return new ItemStack(Items.PLAYER_HEAD);
+		// ICONS uses String keys, so convert the Identifier and prefix it to avoid
+		// colliding with ordinary action/tray icon IDs.
+		String key = "entity:" + e.typeId().toString();
+		return ICONS.computeIfAbsent(key, id -> {
+			if (!e.hostile() || e.typeId().getNamespace().equals("tacticalcombat")) {
+				return new ItemStack(Items.PLAYER_HEAD);
+			}
 			return new ItemStack(Items.PAPER);
 		});
 	}
