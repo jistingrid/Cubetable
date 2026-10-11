@@ -385,7 +385,8 @@ final class ActorsPanel {
 		int barW = Math.max(10, Math.min(70, listW - indent - 50));
 		g.fill(left + 6, ry + 15, left + 6 + barW, ry + 18, 0xFF05060A);
 		g.fill(left + 6, ry + 15, left + 6 + Math.round(barW * frac), ry + 18, sideColor);
-		g.drawText(ui.font(), Math.round(e.hp()) + "/" + Math.round(e.max()), left + 10 + barW, ry + 12, ui.muted, false);
+		String hpText = e.max() <= 0 ? "no HP" : Math.round(e.hp()) + "/" + Math.round(e.max());
+		g.drawText(ui.font(), hpText, left + 10 + barW, ry + 12, ui.muted, false);
 	}
 
 	// ------------------------------------------------------------------ drawing

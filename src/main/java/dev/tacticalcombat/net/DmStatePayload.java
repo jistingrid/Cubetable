@@ -9,8 +9,12 @@ import net.minecraft.util.Identifier;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Server -> Dungeon Masters: the DM tool settings and the players online (shown when no fight is running). */
-public record DmStatePayload(boolean autoMovement, List<Who> players, List<ActorInfo> actors, List<String> folders) implements CustomPayload {
+/**
+ * Server -> Dungeon Masters: the DM tool settings and the players online (shown when no fight is running).
+ * missingFormats: sheet formats that characters on the server use but the server has no game pack for.
+ */
+public record DmStatePayload(boolean autoMovement, List<Who> players, List<ActorInfo> actors, List<String> folders,
+							 List<String> missingFormats) implements CustomPayload {
 	public static final Id<DmStatePayload> ID = new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "dm_state"));
 
 	/** One player: entity id, name, health (the sheet's when they have one), and whether they are in a fight. */
@@ -40,7 +44,10 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			int f = buf.readVarInt();
 			List<String> folders = new ArrayList<>(f);
 			for (int i = 0; i < f; i++) folders.add(buf.readString(32));
-			return new DmStatePayload(auto, list, actors, folders);
+			int g = buf.readVarInt();
+			List<String> missing = new ArrayList<>(g);
+			for (int i = 0; i < g; i++) missing.add(buf.readString(64));
+			return new DmStatePayload(auto, list, actors, folders, missing);
 		}
 
 		@Override
@@ -73,6 +80,8 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			}
 			buf.writeVarInt(p.folders.size());
 			for (String f : p.folders) buf.writeString(f, 32);
+			buf.writeVarInt(p.missingFormats.size());
+			for (String f : p.missingFormats) buf.writeString(f, 64);
 		}
 	};
 

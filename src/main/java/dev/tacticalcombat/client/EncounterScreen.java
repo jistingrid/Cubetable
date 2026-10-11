@@ -422,6 +422,10 @@ public final class EncounterScreen extends Screen {
 					MinecraftClient.getInstance().setScreen(null);
 					ActorStageScreen.requestOpen();
 				});
+		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH,
+				DmState.missingFormats.isEmpty() ? "Game packs" : "Game packs (server lacks " + DmState.missingFormats.size() + ")",
+				"The server reads hit points and combat rules from its own copy of the game packs. Send replaces its copy with yours (done by itself when the server has none of a pack its characters use).",
+				"Send", FormatUploader::sendAll);
 		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Combat tracker",
 				"The compact list of the fight at the corner of the screen.",
 				TrackerPanel.visible(), TrackerPanel::toggleHidden);
@@ -451,10 +455,14 @@ public final class EncounterScreen extends Screen {
 
 	/** A tool row with an Open button instead of a switch. Returns the height used. */
 	private int opener(DrawContext g, int x, int y, int w, int clipTop, int clipBottom, String name, String help, Runnable open) {
+		return opener(g, x, y, w, clipTop, clipBottom, name, help, "Open", open);
+	}
+
+	private int opener(DrawContext g, int x, int y, int w, int clipTop, int clipBottom, String name, String help, String label, Runnable open) {
 		g.fill(x, y, x + w, y + TOOL_H, panel);
 		g.fill(x, y, x + 2, y + TOOL_H, gold);
 		toolHead(g, x, y, clipTop, clipBottom, name, help, gold);
-		if (y + TOOL_H > clipTop && y < clipBottom) button(g, x + w - tw("Open") - 14, y + 5, "Open", open, null, 0xFF6B4E12, gold);
+		if (y + TOOL_H > clipTop && y < clipBottom) button(g, x + w - tw(label) - 14, y + 5, label, open, null, 0xFF6B4E12, gold);
 		return TOOL_H + 3;
 	}
 

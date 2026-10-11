@@ -400,7 +400,11 @@ Clicking a square pays for a Stride by itself; clicking again after the walk pay
 
 ## Notes
 
-- The server needs the pack too (packs are read from `config/tacticalcombat/packs` on the server as well).
+- The server needs the pack too (packs are read from `config/tacticalcombat/packs` on the server as well). Without
+  it, sheets of that game show `0/0` hit points and the bars stay empty. A Dungeon Master does not have to copy
+  files: when the server has characters of a pack it lacks, the DM's client sends its own copy by itself (chat says
+  `[Packs] ... sent yours`), and the **Game packs** row of the DM tools tab has a *Send* button that replaces the
+  server's copy of every pack (use it after editing a pack). Packs over about 29 KB compressed must be copied by hand.
   Use `/tbc reload` after editing a pack on a running server.
 - Players use their **Active Actor**: the character chosen with the *Active Actor* button in the sheet's title bar
   (it has to be linked to the server). Without one, the first of their characters whose format has a

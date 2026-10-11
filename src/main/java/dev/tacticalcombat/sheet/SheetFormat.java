@@ -43,6 +43,8 @@ public final class SheetFormat {
 	public final Map<String, Layout> layouts = new LinkedHashMap<>();
 	/** Where it came from, for messages ("built in" or a file name). */
 	public String source = "";
+	/** The JSON this format was read from (a Dungeon Master can send it to a server that lacks the pack). */
+	public JsonObject json;
 
 	/** One input of the character editor. type is "text" (kept in the character's text) or "number". */
 	public record Field(String id, String label, String type, String group, String def) {
@@ -236,6 +238,7 @@ public final class SheetFormat {
 	public static SheetFormat parse(JsonObject o, String source) {
 		SheetFormat f = new SheetFormat();
 		f.source = source;
+		f.json = o;
 		f.id = str(o, "id", null);
 		if (f.id == null || f.id.isBlank()) throw new IllegalArgumentException("missing \"id\"");
 		f.name = str(o, "name", f.id);

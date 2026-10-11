@@ -87,7 +87,14 @@ public final class DmTools {
 					r.dmControl, body == null ? -1 : body.getId(), hp == null ? 0f : (float) hp.now(), hp == null ? 0f : (float) hp.max(),
 					body != null && CombatManager.isInCombat(body), r.folder, dev.tacticalcombat.actor.ActorRegistry.joinTags(r.tags)));
 		}
-		DmStatePayload payload = new DmStatePayload(autoMovement, who, actors, dev.tacticalcombat.actor.ActorRegistry.folders());
+		// formats that characters use and this server has no pack for: without them there are no hit points or combat rules
+		java.util.Set<String> missing = new java.util.LinkedHashSet<>();
+		for (dev.tacticalcombat.character.CharacterStore.Entry e : dev.tacticalcombat.character.CharacterStore.all()) {
+			String format = e.json.has("format") ? e.json.get("format").getAsString() : "";
+			if (!format.isEmpty() && !dev.tacticalcombat.sheet.SheetLibrary.FORMATS.containsKey(format) && format.length() <= 60) missing.add(format);
+		}
+		DmStatePayload payload = new DmStatePayload(autoMovement, who, actors, dev.tacticalcombat.actor.ActorRegistry.folders(),
+				new ArrayList<>(missing));
 		for (ServerPlayerEntity dm : dms) ServerPlayNetworking.send(dm, payload);
 	}
 }
