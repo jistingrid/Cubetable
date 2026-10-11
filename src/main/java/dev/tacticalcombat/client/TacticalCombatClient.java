@@ -178,6 +178,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			CharacterSheetScreen.tick(client);
 			EncounterScreen.tick(client);
 			ActorStageScreen.tick(client);
+			DamageScreen.tick(client); // frees the mouse for damage prompts and the downed card outside a fight screen
 			keepPossessedBodyApart(client);
 			manageScreen(client);
 			if (client.currentScreen instanceof TacticalScreen) {

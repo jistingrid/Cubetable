@@ -26,12 +26,18 @@ public final class DamageScreen extends Screen {
 		}
 		long id = DamagePrompt.firstId();
 		long card = DownedCard.key();
+		if (card == 0) lastCard = 0; // the same card may come again (downed twice in a row)
 		if (client.currentScreen == null && ((DamagePrompt.visible() && id != lastOpenedFor)
 				|| (DownedCard.visible() && card != lastCard))) {
 			lastOpenedFor = id;
 			lastCard = card;
 			client.setScreen(new DamageScreen());
 		}
+	}
+
+	@Override
+	public boolean shouldCloseOnEsc() {
+		return !DownedCard.visible(); // a downed player must not be left without the cursor while the card waits
 	}
 
 	@Override
