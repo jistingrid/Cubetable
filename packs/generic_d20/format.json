@@ -1550,6 +1550,11 @@
           "type": "note"
         },
         {
+          "id": "rules",
+          "label": "Rules",
+          "type": "rules"
+        },
+        {
           "id": "duration",
           "label": "Duration",
           "type": "number",
@@ -1626,13 +1631,15 @@
         },
         {
           "name": "Poisoned",
-          "effect": "Disadvantage on attack rolls and ability checks.",
+          "effect": "Takes 1d4 poison damage at the start of each turn.",
+          "rules": "turn_start||damage||1d4",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Prone",
-          "effect": "Crawls only. Disadvantage on attacks. Melee attacks against it have advantage, ranged have disadvantage. Standing costs half the speed.",
+          "effect": "Crawls only: half speed on its turn. Disadvantage on attacks. Melee attacks against it have advantage, ranged have disadvantage.",
+          "rules": "turn_start||speed||speed / 2",
           "duration": 0,
           "unit": "turns"
         },
@@ -1645,6 +1652,7 @@
         {
           "name": "Stunned",
           "effect": "Incapacitated, can't move, speaks only falteringly. Fails Str and Dex saves. Attacks against it have advantage.",
+          "rules": "turn_start||resource|action|0\nturn_start||resource|bonus|0\nturn_start||speed||0\nturn_start||message||Stunned: loses the turn.",
           "duration": 0,
           "unit": "turns"
         },
@@ -1677,6 +1685,11 @@
           "id": "effect",
           "label": "Effect",
           "type": "note"
+        },
+        {
+          "id": "rules",
+          "label": "Rules",
+          "type": "rules"
         },
         {
           "id": "duration",

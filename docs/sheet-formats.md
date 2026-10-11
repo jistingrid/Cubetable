@@ -178,3 +178,7 @@ Any text in a format that looks like a translation key (`mygame.skill.stealth`: 
 ## Sheet kinds
 
 When a format has more than one sheet kind, **New** lists each (e.g. "Generic d20 - NPC / monster"). A character remembers its kind in `"kind"`.
+
+## `rules` columns
+
+A collection column of type `rules` holds condition rules as text (see "Condition rules" in combat-rules.md). It is edited as a list in the entry's edit panel and summarised under the row in the table. Presets may set it.

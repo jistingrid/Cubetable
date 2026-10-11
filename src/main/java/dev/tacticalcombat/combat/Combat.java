@@ -352,6 +352,7 @@ public final class Combat {
 				return;
 			}
 		}
+		if (world.getServer() != null && !planning) Conditions.onTurnStart(world.getServer(), c.entity, c);
 		if (c.entity instanceof ServerPlayerEntity p) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.your_turn"), true);
 		}

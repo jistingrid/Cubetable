@@ -1252,7 +1252,7 @@ public final class CharacterSheetScreen extends Screen {
 		List<CharacterData.Row> rows = sc.character.collections.getOrDefault(coll.id, List.of());
 		// the table's own columns; "detail" and "note" columns go on a small second line instead
 		List<SheetFormat.Col> main = new ArrayList<>();
-		for (SheetFormat.Col c : coll.columns) if (!c.detail && !c.hidden && !c.type.equals("note")) main.add(c);
+		for (SheetFormat.Col c : coll.columns) if (!c.detail && !c.hidden && !c.type.equals("note") && !c.isRules()) main.add(c);
 		int n = main.size();
 		int btn = 14;
 		int editW = btn + (coll.share ? btn + 2 : 0) + (coll.quickRemove ? btn + 2 : 0);
@@ -1361,8 +1361,10 @@ public final class CharacterSheetScreen extends Screen {
 			}
 			StringBuilder note = new StringBuilder();
 			for (SheetFormat.Col c : coll.columns) {
-				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim() : c.detail && !c.hidden ? detailText(sc, coll, row, c) : "";
-				if (!t.isEmpty()) note.append(note.length() > 0 ? (c.type.equals("note") ? "  |  " : "  -  ") : "").append(t);
+				String t = c.type.equals("note") ? row.texts.getOrDefault(c.id, "").trim()
+						: c.isRules() ? dev.tacticalcombat.sheet.ConditionRules.describe(row.texts.getOrDefault(c.id, ""))
+						: c.detail && !c.hidden ? detailText(sc, coll, row, c) : "";
+				if (!t.isEmpty()) note.append(note.length() > 0 ? (c.type.equals("note") || c.isRules() ? "  |  " : "  -  ") : "").append(t);
 			}
 			List<OrderedText> noteLines = note.length() == 0 ? List.of()
 					: textRenderer.wrapLines(StringVisitable.plain(tr(note.toString())), (int) ((w - 22) / 0.75f));
@@ -1586,6 +1588,29 @@ public final class CharacterSheetScreen extends Screen {
 
 	private final List<RowBox> rowBoxes = new ArrayList<>();
 
+	/** The condition rules being edited (a "rules" column) with their text boxes: "if" formula, target, value. */
+	private record RuleBox(TextFieldWidget cond, TextFieldWidget target, TextFieldWidget value) {}
+
+	private final List<RuleBox> ruleBoxes = new ArrayList<>();
+	private List<dev.tacticalcombat.sheet.ConditionRules.Rule> ruleDraft = new ArrayList<>();
+	private int rowFormH;
+	private static final int RULE_H = 36;
+
+	private void setRule(SheetFormat.Col col, int i, java.util.function.UnaryOperator<dev.tacticalcombat.sheet.ConditionRules.Rule> change) {
+		if (i < 0 || i >= ruleDraft.size()) return;
+		ruleDraft.set(i, change.apply(ruleDraft.get(i)));
+		rowDraft.texts.put(col.id, dev.tacticalcombat.sheet.ConditionRules.write(ruleDraft));
+	}
+
+	private TextFieldWidget ruleBox(int w, int max, String text, java.util.function.Consumer<String> onChange) {
+		TextFieldWidget b = new TextFieldWidget(textRenderer, 0, 0, w, 12, Text.empty());
+		b.setMaxLength(max);
+		b.setText(text);
+		b.setChangedListener(onChange::accept);
+		addDrawableChild(b);
+		return b;
+	}
+
 	private void startRow(SheetContext sc, SheetFormat.Collection coll, int index) {
 		if (!canEdit(sc.character)) {
 			say("That character belongs to " + sc.character.ownerName + " - you can only look.");
@@ -1656,11 +1681,26 @@ public final class CharacterSheetScreen extends Screen {
 
 	private void buildRowForm() {
 		rowBoxes.clear();
+		ruleBoxes.clear();
 		if (rowColl == null || rowDraft == null) return;
 		int relY = 0;
 		for (SheetFormat.Col col : rowColl.columns) {
 			if (!col.isStored()) continue;
 			TextFieldWidget box = null;
+			if (col.isRules()) {
+				ruleDraft = new ArrayList<>(dev.tacticalcombat.sheet.ConditionRules.parse(rowDraft.texts.getOrDefault(col.id, "")));
+				for (int i = 0; i < ruleDraft.size(); i++) {
+					final int at = i;
+					var r = ruleDraft.get(i);
+					ruleBoxes.add(new RuleBox(
+							ruleBox(150, 60, r.cond(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), t, x.effect(), x.target(), x.value()))),
+							ruleBox(46, 20, r.target(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), x.effect(), t, x.value()))),
+							ruleBox(120, 80, r.value(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), x.effect(), x.target(), t)))));
+				}
+				rowBoxes.add(new RowBox(col, null, relY));
+				relY += ruleDraft.size() * RULE_H + 34;
+				continue;
+			}
 			if (col.isText() || col.type.equals("number")) {
 				boolean number = col.type.equals("number");
 				box = new TextFieldWidget(textRenderer, 0, 0, number ? 52 : 220, 12, Text.literal(col.label));
@@ -1684,6 +1724,7 @@ public final class CharacterSheetScreen extends Screen {
 			rowBoxes.add(new RowBox(col, box, relY));
 			relY += 17;
 		}
+		rowFormH = relY;
 	}
 
 	private void drawRowEditor(DrawContext g, int x, int y, int w, int h, float delta) {
@@ -1715,7 +1756,9 @@ public final class CharacterSheetScreen extends Screen {
 			int fy = baseY + rb.relY();
 			g.drawText(textRenderer, textRenderer.trimToWidth(tr(col.label), 90), baseX, fy + 2, 0xFFC9CCD2, false);
 			int fx = baseX + 96;
-			if (rb.widget() != null) {
+			if (col.isRules()) {
+				drawRuleEditor(g, col, fx, fy);
+			} else if (rb.widget() != null) {
 				rb.widget().setX(fx);
 				rb.widget().setY(fy);
 				rb.widget().render(g, mouseX, mouseY, delta);
@@ -1739,7 +1782,7 @@ public final class CharacterSheetScreen extends Screen {
 			}
 		}
 		// the formulas behind this entry's calculated and rolled columns, for reading only
-		int fy = baseY + rowBoxes.size() * 17 + 4;
+		int fy = baseY + rowFormH + 4;
 		boolean titled = false;
 		for (SheetFormat.Col col : rowColl.columns) {
 			String formula = switch (col.type) {
@@ -1771,6 +1814,91 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		boolean flashing = System.currentTimeMillis() < flashUntil;
 		if (flashing) g.drawText(textRenderer, flash, x + 8, y + h - 12, 0xFFFF6B6B, false);
+	}
+
+	/** The rules of a condition: per rule a "when" and an "if" line, then a "do" line with its target and value. */
+	private void drawRuleEditor(DrawContext g, SheetFormat.Col col, int fx, int fy) {
+		for (int i = 0; i < ruleDraft.size() && i < ruleBoxes.size(); i++) {
+			final int at = i;
+			var r = ruleDraft.get(i);
+			RuleBox rb = ruleBoxes.get(i);
+			int y0 = fy + i * RULE_H;
+			g.fill(fx - 3, y0 - 2, fx + 300, y0 - 1, EDGE);
+			// line 1: when ... if
+			int wi = Math.max(0, dev.tacticalcombat.sheet.ConditionRules.WHEN.indexOf(r.when()));
+			int nw = dev.tacticalcombat.sheet.ConditionRules.WHEN.size();
+			ruleChoice(g, fx, y0 + 1, 84, dev.tacticalcombat.sheet.ConditionRules.WHEN_LABEL.get(wi), "When this happens (click: next, right-click: previous)",
+					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(dev.tacticalcombat.sheet.ConditionRules.WHEN.get((wi + 1) % nw), x.cond(), x.effect(), x.target(), x.value())),
+					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(dev.tacticalcombat.sheet.ConditionRules.WHEN.get((wi + nw - 1) % nw), x.cond(), x.effect(), x.target(), x.value())));
+			g.drawText(textRenderer, "if", fx + 90, y0 + 3, MUTED, false);
+			rb.cond().setX(fx + 100);
+			rb.cond().setY(y0 + 1);
+			rb.cond().render(g, mouseX, mouseY, 0);
+			if (rb.cond().getText().isEmpty() && !rb.cond().isFocused()) g.drawText(textRenderer, "always (or a formula)", fx + 104, y0 + 3, DIM, false);
+			int rx = fx + 258;
+			hit(rx, y0 + 1, 14, 12, () -> removeRule(col, at), "Remove this rule");
+			g.fill(rx, y0 + 1, rx + 14, y0 + 13, 0xFF7A1C27);
+			g.drawCenteredTextWithShadow(textRenderer, "x", rx + 7, y0 + 3, 0xFFFFFFFF);
+			// line 2: do, target, value
+			int wd = Math.max(0, dev.tacticalcombat.sheet.ConditionRules.DO.indexOf(r.effect()));
+			int nd = dev.tacticalcombat.sheet.ConditionRules.DO.size();
+			int y1 = y0 + 16;
+			ruleChoice(g, fx, y1, 84, dev.tacticalcombat.sheet.ConditionRules.DO_LABEL.get(wd), "What happens (click: next, right-click: previous)",
+					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), dev.tacticalcombat.sheet.ConditionRules.DO.get((wd + 1) % nd), x.target(), x.value())),
+					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), dev.tacticalcombat.sheet.ConditionRules.DO.get((wd + nd - 1) % nd), x.target(), x.value())));
+			int vx = fx + 90;
+			boolean target = r.usesTarget();
+			rb.target().visible = target;
+			rb.target().active = target;
+			if (target) {
+				rb.target().setX(vx);
+				rb.target().setY(y1);
+				rb.target().render(g, mouseX, mouseY, 0);
+				String hint = r.effect().equals("resource") ? "resource" : "bar";
+				if (rb.target().getText().isEmpty() && !rb.target().isFocused()) g.drawText(textRenderer, hint, vx + 3, y1 + 2, DIM, false);
+				vx += 50;
+			}
+			rb.value().setX(vx);
+			rb.value().setY(y1);
+			rb.value().render(g, mouseX, mouseY, 0);
+			if (rb.value().getText().isEmpty() && !rb.value().isFocused()) {
+				String hint = switch (r.effect()) {
+					case "damage", "heal" -> "e.g. 1d4";
+					case "message" -> "text for chat";
+					default -> "a number or formula";
+				};
+				g.drawText(textRenderer, hint, vx + 4, y1 + 2, DIM, false);
+			}
+		}
+		int by = fy + ruleDraft.size() * RULE_H + 2;
+		smallButton(g, fx, by, "+ Rule", () -> addRule(col), "Add a rule: when something happens, do something", PANEL, 0xFF3B414C);
+		g.drawText(textRenderer, textRenderer.trimToWidth("Blank bar = main health. Dice work in values.", 240), fx + 52, by + 3, DIM, false);
+	}
+
+	private void ruleChoice(DrawContext g, int x, int y, int w, String text, String tip, Runnable next, Runnable previous) {
+		boolean over = hit(x, y, w, 12, next, previous, tip);
+		g.fill(x, y, x + w, y + 12, EDGE);
+		g.fill(x + 1, y + 1, x + w - 1, y + 11, over ? PANEL_HOVER : PANEL);
+		g.drawText(textRenderer, textRenderer.trimToWidth(text, w - 6), x + 4, y + 2, 0xFFFFFFFF, false);
+	}
+
+	/** Changes a rule's choice and rebuilds the boxes (a different effect needs different boxes). */
+	private void setRuleAndRefresh(SheetFormat.Col col, int i, java.util.function.UnaryOperator<dev.tacticalcombat.sheet.ConditionRules.Rule> change) {
+		setRule(col, i, change);
+		rebuildForm();
+	}
+
+	private void addRule(SheetFormat.Col col) {
+		ruleDraft.add(dev.tacticalcombat.sheet.ConditionRules.blank());
+		rowDraft.texts.put(col.id, dev.tacticalcombat.sheet.ConditionRules.write(ruleDraft));
+		rebuildForm();
+	}
+
+	private void removeRule(SheetFormat.Col col, int i) {
+		if (i < 0 || i >= ruleDraft.size()) return;
+		ruleDraft.remove(i);
+		rowDraft.texts.put(col.id, dev.tacticalcombat.sheet.ConditionRules.write(ruleDraft));
+		rebuildForm();
 	}
 
 	/** A button that sets stored values from formulas (long rest: spell slots back to their maximum). */

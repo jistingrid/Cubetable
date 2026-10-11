@@ -346,7 +346,31 @@ The format's `combat.conditions` names the collection that lists conditions and 
 options of that column that count each way. A condition measured in **turns** loses 1 when its owner's turn ends in a
 fight (so "1 turn" lasts until the end of that creature's next turn); one in **seconds** loses 1 every real second
 (it waits while time is paused). At 0 it is taken off the sheet and chat says "Name: Prone ended." This works for a
-player's Active Actor and for Actors alike; conditions have no other mechanical effect yet.
+player's Active Actor and for Actors alike.
+
+### Condition rules
+
+A condition can do things: give its collection a column of type `rules` and each row carries a list of rules
+**When X happens, if Y, do Z**. In the row's edit panel, "+ Rule" adds one; click the When / Do buttons to change
+them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"` (a line per rule,
+`when|if|effect|target|value`).
+
+| When | |
+|---|---|
+| `turn_start` | the owner's turn begins (after its resources and movement are set) |
+| `turn_end` | the owner's turn ends (before durations count down) |
+| `expired` | the condition's duration ran out |
+
+| Do | target | value |
+|---|---|---|
+| `damage` / `heal` | bar id (blank: the main health bar) | number or dice formula (`1d4 + 2`), rolled by the server |
+| `resource` | resource id (`action`) | what the owner has of it this turn (`0` = loses it) |
+| `speed` | - | the movement of this turn in the game's unit; may use sheet values (`speed / 2`) |
+| `message` | - | text for chat |
+
+`if` is a formula, true when not 0 (blank: always), e.g. `hp < hp_max / 2`. The generic d20 pack uses them for
+Poisoned (1d4 damage each turn), Stunned (no action, bonus action or movement) and Prone (half speed). Not yet: rules
+on rolls (advantage, bonuses), on being hit or moving, and "when applied".
 
 ## Initiative
 
