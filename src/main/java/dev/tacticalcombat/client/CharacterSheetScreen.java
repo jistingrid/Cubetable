@@ -1031,6 +1031,27 @@ public final class CharacterSheetScreen extends Screen {
 		say("Shown to everyone" + (cut ? " (text shortened to fit the card)" : ""));
 	}
 
+	private static String lastShownKey = "";
+	private static long lastShownAt;
+
+	/**
+	 * Rolling something from an entry that can be shown also shows its card, as the "show" button does. The same
+	 * entry is shown once however many of its rolls follow (attack, then damage ...): again only after another entry
+	 * was rolled or a minute passed.
+	 */
+	public static void autoShow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row) {
+		if (!coll.share || !ClientPlayNetworking.canSend(dev.tacticalcombat.net.ShareCardRequestPayload.ID)) return;
+		String key = sc.character.displayName() + "|" + coll.id + "|" + rowName(coll, row);
+		long now = System.currentTimeMillis();
+		if (key.equals(lastShownKey) && now - lastShownAt < 60_000) {
+			lastShownAt = now;
+			return;
+		}
+		lastShownKey = key;
+		lastShownAt = now;
+		ClientPlayNetworking.send(new dev.tacticalcombat.net.ShareCardRequestPayload(buildCard(sc, coll, row).cleaned()));
+	}
+
 	/** Casts a spell: spends one slot of the row's level (cantrips are free), then rolls its dice if it has any. */
 	private void castRow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, boolean higher) {
 		SheetFormat.Col levelCol = coll.column(col.spendLevel);
@@ -1052,6 +1073,7 @@ public final class CharacterSheetScreen extends Screen {
 		} else if (higher) {
 			return;
 		}
+		autoShow(sc, coll, row);
 		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row)) + (use > base ? " (level " + use + ")" : "");
 		SheetFormat.Col diceCol = col.diceCol == null ? null : coll.column(col.diceCol);
 		String formula = diceCol == null ? null : diceFormula(diceCol, row);
@@ -1068,6 +1090,7 @@ public final class CharacterSheetScreen extends Screen {
 	}
 
 	private void rollRowDice(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, String formula) {
+		autoShow(sc, coll, row);
 		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row));
 		// a targetable collection aims its attack rolls (roll columns) and, if it has damage, its dice columns
 		int kind = 0;

@@ -1148,6 +1148,7 @@ public final class ActionBar {
 			return;
 		}
 		FLASH.put(s.key(), System.currentTimeMillis());
+		CharacterSheetScreen.autoShow(s.sc(), s.coll(), s.row());
 
 		// a levelled spell uses up one of its slots (on your own sheet; a creature's sheet is not changed)
 		if (!damage && s.level() >= 1 && s.own() && !s.store().isEmpty()) {

@@ -79,6 +79,9 @@ no bars or no actions just gets a smaller bar.
 - **Slots:** number keys `1` to `9` (or a click) use a slot: its attack roll, or its dice when it has no attack;
   right click rolls its damage (free). A slot is dimmed when you cannot pay for it. Shift + click rolls critical
   damage on purpose (see Critical hits).
+- **Cards:** rolling an entry of a collection with `"share": true` (from the bar or the sheet) also shows its card to
+  everyone, like the Show button. One entry shows once however many rolls follow (attack, then damage); rolling
+  another entry, or the same one a minute later, shows it again.
 - **Trays:** a source with a `tray` does not take a slot; its entries live in a pop-up list opened by the tray's
   button (or `T`; pressing it again moves on to the next tray). Entries can be grouped under headings, show their
   icon, level, cost and spell-slot dots, and the star on an entry **pins** it to the bar (pins are remembered per
