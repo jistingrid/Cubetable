@@ -1663,12 +1663,14 @@
         {
           "name": "Unconscious",
           "effect": "Incapacitated, can't move or speak, unaware. Drops what it holds, falls prone. Fails Str and Dex saves. Hits from within 5 ft are critical.",
+          "rules": "applied||apply|Prone|\nturn_start||resource|action|0\nturn_start||resource|bonus|0\nturn_start||speed||0\nattacked||advantage||",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Concentrating",
           "effect": "Maintaining a spell. A hit forces a Constitution save or the spell ends.",
+          "rules": "damaged||message||Concentration check: Constitution save, DC 10 or half of {damage} (whichever is higher), or the spell ends.",
           "duration": 0,
           "unit": "turns"
         }

@@ -363,6 +363,13 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `roll` | the owner makes a roll (attack rolls and plain rolls such as checks; not damage) |
 | `attack` | the owner makes an attack roll |
 | `attacked` | an attack roll is aimed at the owner |
+| `round_start` | a new round begins |
+| `moved` | the owner finished a move (`moved` = squares walked) |
+| `hit` / `miss` | the owner's attack hits / misses its target (`distance`) |
+| `struck` / `dodged` | an attack on the owner hits / misses (`distance`) |
+| `damaged` / `healed` | a damage prompt was applied to the owner (`damage` = the amount) |
+| `downed` | the owner dropped to 0 and is down |
+| `applied` | this condition was just added (from the sheet or by another rule) |
 
 | Do | target | value |
 |---|---|---|
@@ -370,16 +377,22 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `resource` | resource id (`action`) | what the owner has of it this turn (`0` = loses it) |
 | `speed` | - | the movement of this turn in the game's unit; may use sheet values (`speed / 2`) |
 | `message` | - | text for chat |
+| `apply` | condition name | adds the pack's preset condition of that name to the owner |
+| `remove` | condition name (blank: this one) | removes that condition; its `expired` rules run |
 | `advantage` / `disadvantage` | - | on a single d20; the roll is made with two dice. One of each cancels out, as does any number of both. |
 | `bonus` | - | a number added to the roll (`-2`), or a formula |
 
 `if` is a formula, true when not 0 (blank: always), e.g. `hp < hp_max / 2`. On `attack` / `attacked` it can use
 `distance`, the squares between attacker and target (Prone: `attacked`, `distance <= 1`, advantage). Roll rules work
-on rolls made from the sheet or the action bar, and chat names the conditions that changed the roll. A turn effect
-(damage, resource, speed) on a roll trigger, or a roll effect on a turn trigger, does nothing. The generic d20 pack uses them for
+on rolls made from the sheet or the action bar, and chat names the conditions that changed the roll. On event triggers the names in the
+table (`damage`, `moved`, `distance`) can be used in `if` and values, and `{damage}` in a message. Effects only work
+where they make sense: `resource` and `speed` on turn triggers, `advantage` / `disadvantage` / `bonus` on `roll`,
+`attack` and `attacked`; the others anywhere else. A rule that does not fit its trigger does nothing; rules that add
+conditions that add conditions stop after three levels. The generic d20 pack uses them for
 Poisoned (disadvantage on rolls), Stunned (no action or movement, attacks against it have advantage), Prone,
 Restrained, Blinded, Invisible and Paralyzed. Add `turn_start||damage||1d4` to a condition for damage over time.
-Not yet: rules on being hit or moving, saving throws, and "when applied".
+Unconscious adds Prone when applied, and Concentrating reminds
+its owner of the save when they take damage. Not yet: saving throws and rules on spending resources.
 
 ## Initiative
 

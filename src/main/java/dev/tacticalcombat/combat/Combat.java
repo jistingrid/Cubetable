@@ -330,6 +330,9 @@ public final class Combat {
 		if (turn >= order.size()) {
 			turn = 0;
 			round++;
+			if (world.getServer() != null && !planning) {
+				for (Combatant each : new java.util.ArrayList<>(order)) Conditions.fire(world.getServer(), each.entity, "round_start", java.util.Map.of());
+			}
 		}
 		beginTurn();
 		sync();
@@ -715,6 +718,7 @@ public final class Combat {
 		}
 
 		if (c.pathIdx >= c.path.size()) {
+			if (world.getServer() != null && !planning) Conditions.fire(world.getServer(), c.entity, "moved", java.util.Map.of("moved", c.path.size()));
 			c.path = null;
 			c.pathIdx = 0;
 			c.anchor = pos;

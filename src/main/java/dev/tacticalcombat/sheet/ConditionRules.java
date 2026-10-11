@@ -14,15 +14,26 @@ import java.util.List;
  * {@code message} (value: text for chat). Roll triggers {@code roll} (the owner makes any roll but a damage roll),
  * {@code attack} (the owner attacks) and {@code attacked} (an attack is aimed at the owner) go with {@code advantage},
  * {@code disadvantage} (a single d20; one of each cancels out) and {@code bonus} (value: a number added to the roll);
- * their "if" may use {@code distance}, the squares between attacker and target. The "if" is a formula: the rule applies when it is not 0 (blank: always).
+ * their "if" may use {@code distance}, the squares between attacker and target.
+ *
+ * <p>Event triggers: {@code round_start}, {@code moved} (the owner finished a move; {@code moved} = squares),
+ * {@code hit} / {@code miss} (the owner's attack hits or misses), {@code struck} / {@code dodged} (an attack on the
+ * owner hits or misses), {@code damaged} / {@code healed} (a damage prompt was applied; {@code damage} = the amount),
+ * {@code downed} (the owner dropped to 0) and {@code applied} (the condition was just added). They take the effects
+ * {@code damage}, {@code heal}, {@code message}, {@code apply} (add the preset condition named by the target) and
+ * {@code remove} (remove the condition named by the target; blank: this one). In "if" and in messages
+ * ({@code {damage}}) the names above are replaced by their numbers. The "if" is a formula: the rule applies when it is not 0 (blank: always).
  */
 public final class ConditionRules {
 	private ConditionRules() {}
 
-	public static final List<String> WHEN = List.of("turn_start", "turn_end", "expired", "roll", "attack", "attacked");
-	public static final List<String> WHEN_LABEL = List.of("Turn starts", "Turn ends", "Ends", "I roll", "I attack", "I'm attacked");
-	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus");
-	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus");
+	public static final List<String> WHEN = List.of("turn_start", "turn_end", "expired", "roll", "attack", "attacked",
+			"round_start", "moved", "hit", "miss", "struck", "dodged", "damaged", "healed", "downed", "applied");
+	public static final List<String> WHEN_LABEL = List.of("Turn starts", "Turn ends", "Ends", "I roll", "I attack", "I'm attacked",
+			"Round starts", "I finish moving", "My attack hits", "My attack misses", "I'm hit", "An attack misses me", "I take damage",
+			"I'm healed", "I go down", "Applied");
+	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus", "apply", "remove");
+	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition");
 
 	/** One rule; every field is plain text as typed. */
 	public record Rule(String when, String cond, String effect, String target, String value) {
@@ -32,7 +43,7 @@ public final class ConditionRules {
 
 		/** Whether this effect looks at the target field. */
 		public boolean usesTarget() {
-			return effect.equals("damage") || effect.equals("heal") || effect.equals("resource");
+			return effect.equals("damage") || effect.equals("heal") || effect.equals("resource") || effect.equals("apply") || effect.equals("remove");
 		}
 	}
 
@@ -83,6 +94,8 @@ public final class ConditionRules {
 			case "advantage" -> "advantage";
 			case "disadvantage" -> "disadvantage";
 			case "bonus" -> "bonus " + r.value;
+			case "apply" -> "add " + r.target;
+			case "remove" -> "remove " + (r.target.isEmpty() ? "itself" : r.target);
 			default -> "\"" + r.value + "\"";
 		};
 		return when + (r.cond.isEmpty() ? "" : " if " + r.cond) + ": " + what;

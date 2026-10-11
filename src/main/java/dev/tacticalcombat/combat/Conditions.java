@@ -45,13 +45,60 @@ public final class Conditions {
 
 	/** The turn of {@code who} ended: their conditions' "turn ends" rules run, then the turn-based ones lose one. */
 	public static void onTurnEnd(MinecraftServer server, LivingEntity who) {
-		runRules(server, who, "turn_end", null, null);
+		runRules(server, who, "turn_end", null, null, java.util.Map.of());
 		advance(server, who, true);
 	}
 
 	/** The turn of {@code who} began (its resources and movement are set): their "turn starts" rules run. */
 	public static void onTurnStart(MinecraftServer server, LivingEntity who, Combatant turn) {
-		runRules(server, who, "turn_start", turn, null);
+		runRules(server, who, "turn_start", turn, null, java.util.Map.of());
+	}
+
+	/** An event happened to {@code who} (see {@link ConditionRules}): their conditions' rules for it run. */
+	public static void fire(MinecraftServer server, LivingEntity who, String when, java.util.Map<String, Integer> vars) {
+		if (server == null || who == null) return;
+		runRules(server, who, when, null, null, vars);
+	}
+
+	/** The server's copy of a character was replaced by the owner's edit: conditions that are new on it are "applied". */
+	public static void onSheetPushed(MinecraftServer server, CharacterStore.Entry entry, com.google.gson.JsonObject before) {
+		SheetFormat f = SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
+		CombatRules.Conditions rule = f == null || f.combat == null ? null : f.combat.conditions;
+		SheetFormat.Collection coll = rule == null ? null : f.collections.get(rule.collection());
+		SheetFormat.Col nameCol = coll == null ? null : coll.nameCol();
+		if (nameCol == null) return;
+		CharacterData now = parsed(entry);
+		CharacterData old;
+		try {
+			old = CharacterData.parse(before.deepCopy(), "");
+		} catch (RuntimeException ex) {
+			return;
+		}
+		if (now == null) return;
+		java.util.Map<String, Integer> had = new java.util.HashMap<>();
+		for (CharacterData.Row r : old.collections.getOrDefault(rule.collection(), List.of())) had.merge(r.texts.getOrDefault(nameCol.id, ""), 1, Integer::sum);
+		List<CharacterData.Row> added = new java.util.ArrayList<>();
+		for (CharacterData.Row r : now.collections.getOrDefault(rule.collection(), List.of())) {
+			String n = r.texts.getOrDefault(nameCol.id, "");
+			int left = had.getOrDefault(n, 0);
+			if (left > 0) had.put(n, left - 1);
+			else added.add(r);
+		}
+		if (added.isEmpty()) return;
+		LivingEntity who = null;
+		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+			CharacterStore.Entry e = dev.tacticalcombat.character.Actors.entryOf(p.getUuid());
+			if (e != null && e.id.equals(entry.id)) who = p;
+		}
+		if (who == null) {
+			for (ActorRecord r : ActorRegistry.all()) {
+				LivingEntity body = ActorRegistry.bodyOf(server, r);
+				CharacterStore.Entry e = body == null ? null : ActorRegistry.sheetEntryOf(body);
+				if (e != null && e.id.equals(entry.id)) who = body;
+			}
+		}
+		if (who == null) return;
+		for (CharacterData.Row r : added) runRules(server, who, "applied", null, r, java.util.Map.of());
 	}
 
 	/**
@@ -59,7 +106,30 @@ public final class Conditions {
 	 * limits it to one row (a condition that just ended). {@code turn} is the combatant whose turn it is, for the
 	 * effects that change this turn's resources and movement.
 	 */
-	private static void runRules(MinecraftServer server, LivingEntity who, String when, Combatant turn, CharacterData.Row only) {
+	private static int depth;
+
+	private static void runRules(MinecraftServer server, LivingEntity who, String when, Combatant turn, CharacterData.Row only,
+								 java.util.Map<String, Integer> vars) {
+		if (depth >= 3) return; // rules that add conditions that add conditions ... stop here
+		depth++;
+		try {
+			runRules0(server, who, when, turn, only, vars);
+		} finally {
+			depth--;
+		}
+	}
+
+	/** The names of {@code vars} in a formula are replaced by their numbers ("damage > 5"); in a message "{damage}" is. */
+	private static String sub(String text, java.util.Map<String, Integer> vars, boolean message) {
+		for (java.util.Map.Entry<String, Integer> e : vars.entrySet()) {
+			text = message ? text.replace("{" + e.getKey() + "}", e.getValue().toString())
+					: text.replaceAll("\\b" + java.util.regex.Pattern.quote(e.getKey()) + "\\b", e.getValue().toString());
+		}
+		return text;
+	}
+
+	private static void runRules0(MinecraftServer server, LivingEntity who, String when, Combatant turn, CharacterData.Row only,
+								  java.util.Map<String, Integer> vars) {
 		CharacterStore.Entry entry = SheetHealth.entryOf(who);
 		if (entry == null || !entry.json.has("collections")) return;
 		SheetFormat f = SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
@@ -82,13 +152,13 @@ public final class Conditions {
 				CharacterData fresh = parsed(entry);
 				SheetContext sc = new SheetContext(f, fresh == null ? c : fresh);
 				if (!r.cond().isEmpty()) {
-					double on = sc.number(coll, row, r.cond());
+					double on = sc.number(coll, row, sub(r.cond(), vars, false));
 					if (Double.isNaN(on) || on == 0) continue;
 				}
 				String prefix = who2 + ": " + name + " - ";
 				switch (r.effect()) {
 					case "damage", "heal" -> {
-						int amount = Math.max(0, rollValue(sc, coll, row, r.value()));
+						int amount = Math.max(0, rollValue(sc, coll, row, sub(r.value(), vars, false)));
 						String bar = r.target().isEmpty() ? SheetHealth.vitalId(who) : r.target();
 						boolean heal = r.effect().equals("heal");
 						if (bar == null || !SheetHealth.change(server, who, bar, heal ? amount : -amount)) break;
@@ -110,10 +180,55 @@ public final class Conditions {
 						double square = f.combat.square <= 0 ? 1 : f.combat.square;
 						turn.moveBudget = Math.max(0, Math.floor(v / square + 1.0E-6));
 					}
-					default -> server.getPlayerManager().broadcast(Text.literal(prefix + r.value()), false);
+					case "apply" -> addCondition(server, who, f, coll, r.target());
+					case "remove" -> removeCondition(server, who, f, coll, r.target().isEmpty() ? name : r.target());
+					case "advantage", "disadvantage", "bonus" -> {
+					}
+					default -> server.getPlayerManager().broadcast(Text.literal(prefix + sub(r.value(), vars, true)), false);
 				}
 			}
 		}
+	}
+
+	/** Adds the pack's preset condition of that name to {@code who}'s sheet; its own "applied" rules then run. */
+	private static void addCondition(MinecraftServer server, LivingEntity who, SheetFormat f, SheetFormat.Collection coll, String name) {
+		SheetFormat.Col nameCol = coll.nameCol();
+		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+		CharacterData c = entry == null ? null : parsed(entry);
+		if (nameCol == null || c == null || name.isEmpty()) return;
+		CharacterData.Row preset = null;
+		for (CharacterData.Row p : coll.presets) if (p.texts.getOrDefault(nameCol.id, "").equalsIgnoreCase(name)) preset = p;
+		if (preset == null) return;
+		CharacterData.Row row = preset.copy();
+		c.rows(coll.id).add(row);
+		save(server, entry, c);
+		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(who) + ": " + row.texts.get(nameCol.id) + " applied."), false);
+		runRules(server, who, "applied", null, row, java.util.Map.of());
+	}
+
+	/** Removes the first condition of that name from {@code who}'s sheet; its "ends" rules run. */
+	private static void removeCondition(MinecraftServer server, LivingEntity who, SheetFormat f, SheetFormat.Collection coll, String name) {
+		SheetFormat.Col nameCol = coll.nameCol();
+		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+		CharacterData c = entry == null ? null : parsed(entry);
+		if (nameCol == null || c == null) return;
+		List<CharacterData.Row> rows = c.rows(coll.id);
+		CharacterData.Row gone = null;
+		for (CharacterData.Row r : rows) {
+			if (gone == null && r.texts.getOrDefault(nameCol.id, "").equalsIgnoreCase(name)) gone = r;
+		}
+		if (gone == null) return;
+		rows.remove(gone);
+		save(server, entry, c);
+		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(who) + ": " + name + " ended."), false);
+		runRules(server, who, "expired", null, gone, java.util.Map.of());
+	}
+
+	private static void save(MinecraftServer server, CharacterStore.Entry entry, CharacterData c) {
+		JsonObject json = c.toJson();
+		json.addProperty("id", entry.id);
+		entry.json = json;
+		CharacterSync.changedByServer(server, entry);
 	}
 
 	/** What the roll rules of one creature's conditions add up to for one roll. */
@@ -247,6 +362,6 @@ public final class Conditions {
 		entry.json = json;
 		CharacterSync.changedByServer(server, entry);
 		// after the save, so a rule that changes the sheet (damage when poison wears off) is not overwritten
-		for (CharacterData.Row row : ended) runRules(server, who, "expired", null, row);
+		for (CharacterData.Row row : ended) runRules(server, who, "expired", null, row, java.util.Map.of());
 	}
 }

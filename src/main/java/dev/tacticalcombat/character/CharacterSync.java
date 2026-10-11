@@ -97,10 +97,12 @@ public final class CharacterSync {
 		if (existing != null) {
 			if (!canChange(player, existing)) return;
 			if (existing.json.equals(json)) return; // nothing new
+			com.google.gson.JsonObject before = existing.json;
 			existing.json = json;
 			existing.version++;
 			CharacterStore.save();
 			broadcast(server, existing, player.getUuid().toString());
+			dev.tacticalcombat.combat.Conditions.onSheetPushed(server, existing, before);
 		} else {
 			CharacterStore.Entry created = new CharacterStore.Entry(id, player.getUuid(), player.getGameProfile().getName(), 1, json);
 			CharacterStore.put(created);

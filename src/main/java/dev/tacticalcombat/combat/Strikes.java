@@ -126,8 +126,11 @@ public final class Strikes {
 			PENDING.remove(player.getUuid()); // a new attack replaces an older critical hit
 			final UUID who = player.getUuid();
 			final UUID aimed = target.getUuid();
+			final int[] outcome = {0}; // 1 hit, 2 miss, 0 not decided
 			DiceService.rollNatural(player, roller, label, type, count, modifier, mode, (total, natural) -> {
 				int crit = spec.check(natural);
+				if (crit == 1) outcome[0] = 1;
+				else if (crit == 2) outcome[0] = 2;
 				String against1 = against == null || rule == null ? "" : total + " vs " + rule.label() + " " + SheetContext.format(against, false) + ": ";
 				if (crit == 1) {
 					if (spec.attack()) PENDING.put(who, new Pending(aimed, now));
@@ -138,8 +141,17 @@ public final class Strikes {
 					return new DiceService.Verdict(0, "Target: " + name + " (no defense to check)");
 				}
 				boolean hit = rule.hits(total, against);
+				outcome[0] = hit ? 1 : 2;
 				return new DiceService.Verdict(hit ? 1 : 2, against1 + (hit ? "hits " : "misses ") + name);
 			});
+			if (outcome[0] != 0 && player.getServer() != null) {
+				LivingEntity self = asCreature ? actor.entity : player;
+				java.util.Map<String, Integer> vars = java.util.Map.of("distance",
+						Math.max(Math.abs(self.getBlockX() - target.getBlockX()), Math.abs(self.getBlockZ() - target.getBlockZ())));
+				boolean hit = outcome[0] == 1;
+				Conditions.fire(player.getServer(), self, hit ? "hit" : "miss", vars);
+				Conditions.fire(player.getServer(), target, hit ? "struck" : "dodged", vars);
+			}
 			return;
 		}
 

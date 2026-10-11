@@ -1694,7 +1694,7 @@ public final class CharacterSheetScreen extends Screen {
 					var r = ruleDraft.get(i);
 					ruleBoxes.add(new RuleBox(
 							ruleBox(150, 60, r.cond(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), t, x.effect(), x.target(), x.value()))),
-							ruleBox(46, 20, r.target(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), x.effect(), t, x.value()))),
+							ruleBox(70, 40, r.target(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), x.effect(), t, x.value()))),
 							ruleBox(120, 80, r.value(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), x.effect(), x.target(), t)))));
 				}
 				rowBoxes.add(new RowBox(col, null, relY));
@@ -1854,9 +1854,9 @@ public final class CharacterSheetScreen extends Screen {
 				rb.target().setX(vx);
 				rb.target().setY(y1);
 				rb.target().render(g, mouseX, mouseY, 0);
-				String hint = r.effect().equals("resource") ? "resource" : "bar";
+				String hint = r.effect().equals("resource") ? "resource" : r.effect().equals("apply") || r.effect().equals("remove") ? "condition" : "bar";
 				if (rb.target().getText().isEmpty() && !rb.target().isFocused()) g.drawText(textRenderer, hint, vx + 3, y1 + 2, DIM, false);
-				vx += 50;
+				vx += 74;
 			}
 			rb.value().setX(vx);
 			rb.value().setY(y1);
@@ -1865,7 +1865,7 @@ public final class CharacterSheetScreen extends Screen {
 				String hint = switch (r.effect()) {
 					case "damage", "heal" -> "e.g. 1d4";
 					case "message" -> "text for chat";
-					case "advantage", "disadvantage" -> "nothing needed";
+					case "advantage", "disadvantage", "apply", "remove" -> "nothing needed";
 					case "bonus" -> "e.g. -2";
 					default -> "a number or formula";
 				};
