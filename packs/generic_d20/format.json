@@ -1596,19 +1596,22 @@
         },
         {
           "name": "Frightened",
-          "effect": "Disadvantage on checks and attacks while the source of fear is in sight. Can't move closer to it.",
+          "effect": "Disadvantage on checks and attacks while the source of fear is in sight (applied to all its rolls). Can't move closer to it.",
+          "rules": "roll||disadvantage||",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Grappled",
           "effect": "Speed is 0. Ends if the grappler is incapacitated or it is moved out of reach.",
+          "rules": "turn_start||speed||0",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Incapacitated",
           "effect": "Can't take actions or reactions.",
+          "rules": "turn_start||resource|action|0\nturn_start||resource|bonus|0",
           "duration": 0,
           "unit": "turns"
         },
@@ -1629,6 +1632,7 @@
         {
           "name": "Petrified",
           "effect": "Turned to stone. Incapacitated, unaware, resistant to all damage.",
+          "rules": "turn_start||resource|action|0\nturn_start||resource|bonus|0\nturn_start||speed||0\nattacked||advantage||",
           "duration": 0,
           "unit": "turns"
         },
@@ -1670,8 +1674,50 @@
         {
           "name": "Concentrating",
           "effect": "Maintaining a spell. A hit forces a Constitution save or the spell ends.",
-          "rules": "damaged||message||Concentration check: Constitution save, DC 10 or half of {damage} (whichever is higher), or the spell ends.",
+          "rules": "damaged||message||Concentration check: Constitution save, DC 10 or half of {damage} (whichever is higher), or the spell ends.\ndowned||remove||",
           "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Burning",
+          "effect": "Takes 1d6 fire damage at the start of each turn.",
+          "rules": "turn_start||damage||1d6\nexpired||message||The flames die out.",
+          "duration": 3,
+          "unit": "turns"
+        },
+        {
+          "name": "Bleeding",
+          "effect": "Takes 1d4 damage at the end of each turn until it is treated.",
+          "rules": "turn_end||damage||1d4",
+          "duration": 0,
+          "unit": "turns"
+        },
+        {
+          "name": "Regenerating",
+          "effect": "Heals 5 hit points at the start of each turn.",
+          "rules": "turn_start||heal||5",
+          "duration": 5,
+          "unit": "turns"
+        },
+        {
+          "name": "Slowed",
+          "effect": "Half speed, no bonus action, -2 to attack rolls.",
+          "rules": "turn_start||speed||speed / 2\nturn_start||resource|bonus|0\nattack||bonus||-2",
+          "duration": 3,
+          "unit": "turns"
+        },
+        {
+          "name": "Hasted",
+          "effect": "Double speed and one extra action each turn.",
+          "rules": "turn_start||speed||speed * 2\nturn_start||resource|action|2",
+          "duration": 10,
+          "unit": "turns"
+        },
+        {
+          "name": "Dodging",
+          "effect": "Attack rolls against it have disadvantage until the start of its next turn.",
+          "rules": "attacked||disadvantage||",
+          "duration": 1,
           "unit": "turns"
         }
       ]

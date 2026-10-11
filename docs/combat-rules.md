@@ -392,7 +392,9 @@ conditions that add conditions stop after three levels. The generic d20 pack use
 Poisoned (disadvantage on rolls), Stunned (no action or movement, attacks against it have advantage), Prone,
 Restrained, Blinded, Invisible and Paralyzed. Add `turn_start||damage||1d4` to a condition for damage over time.
 Unconscious adds Prone when applied, and Concentrating reminds
-its owner of the save when they take damage. Not yet: saving throws and rules on spending resources.
+its owner of the save when they take damage and ends when they go down. Quick conditions that need no tracking: Frightened,
+Grappled, Incapacitated and Petrified. Ones that tick: Burning (1d6 a turn for 3 turns), Bleeding (1d4 at turn end),
+Regenerating (heal 5), Slowed, Hasted and Dodging (1 turn). Not yet: saving throws and rules on spending resources.
 
 ## Initiative
 
