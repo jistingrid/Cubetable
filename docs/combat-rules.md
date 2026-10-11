@@ -360,6 +360,9 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `turn_start` | the owner's turn begins (after its resources and movement are set) |
 | `turn_end` | the owner's turn ends (before durations count down) |
 | `expired` | the condition's duration ran out |
+| `roll` | the owner makes a roll (attack rolls and plain rolls such as checks; not damage) |
+| `attack` | the owner makes an attack roll |
+| `attacked` | an attack roll is aimed at the owner |
 
 | Do | target | value |
 |---|---|---|
@@ -367,10 +370,16 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `resource` | resource id (`action`) | what the owner has of it this turn (`0` = loses it) |
 | `speed` | - | the movement of this turn in the game's unit; may use sheet values (`speed / 2`) |
 | `message` | - | text for chat |
+| `advantage` / `disadvantage` | - | on a single d20; the roll is made with two dice. One of each cancels out, as does any number of both. |
+| `bonus` | - | a number added to the roll (`-2`), or a formula |
 
-`if` is a formula, true when not 0 (blank: always), e.g. `hp < hp_max / 2`. The generic d20 pack uses them for
-Poisoned (1d4 damage each turn), Stunned (no action, bonus action or movement) and Prone (half speed). Not yet: rules
-on rolls (advantage, bonuses), on being hit or moving, and "when applied".
+`if` is a formula, true when not 0 (blank: always), e.g. `hp < hp_max / 2`. On `attack` / `attacked` it can use
+`distance`, the squares between attacker and target (Prone: `attacked`, `distance <= 1`, advantage). Roll rules work
+on rolls made from the sheet or the action bar, and chat names the conditions that changed the roll. A turn effect
+(damage, resource, speed) on a roll trigger, or a roll effect on a turn trigger, does nothing. The generic d20 pack uses them for
+Poisoned (disadvantage on rolls), Stunned (no action or movement, attacks against it have advantage), Prone,
+Restrained, Blinded, Invisible and Paralyzed. Add `turn_start||damage||1d4` to a condition for damage over time.
+Not yet: rules on being hit or moving, saving throws, and "when applied".
 
 ## Initiative
 

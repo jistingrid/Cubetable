@@ -74,6 +74,27 @@ public final class Strikes {
 		LivingEntity target = combat == null || kind == PLAIN ? null : combat.targetOf(player);
 		int now = player.getServer() == null ? 0 : player.getServer().getTicks();
 
+		// roll rules of conditions: the roller's own ("I roll", "I attack") and the target's ("I'm attacked")
+		if (kind != DAMAGE && player.getServer() != null) {
+			LivingEntity self = asCreature ? actor.entity : player;
+			int distance = target == null ? -1 : Math.max(Math.abs(self.getBlockX() - target.getBlockX()), Math.abs(self.getBlockZ() - target.getBlockZ()));
+			Conditions.RollEffect own = Conditions.forRoll(self, kind == ATTACK ? java.util.List.of("roll", "attack") : java.util.List.of("roll"), distance);
+			Conditions.RollEffect theirs = kind == ATTACK && target != null ? Conditions.forRoll(target, java.util.List.of("attacked"), distance) : Conditions.RollEffect.NONE;
+			int adv = own.advantage() + theirs.advantage() + (mode == 1 ? 1 : 0);
+			int dis = own.disadvantage() + theirs.disadvantage() + (mode == 2 ? 1 : 0);
+			boolean single = type == DiceType.D20 && count == 1;
+			if (single && (own.advantage() + own.disadvantage() + theirs.advantage() + theirs.disadvantage()) > 0) {
+				mode = adv > 0 && dis == 0 ? 1 : dis > 0 && adv == 0 ? 2 : 0; // one of each cancels out
+			}
+			modifier += own.bonus() + theirs.bonus();
+			java.util.List<String> notes = new java.util.ArrayList<>(own.notes());
+			for (String n : theirs.notes()) notes.add("target " + n);
+			if (!notes.isEmpty()) {
+				String who = roller != null ? roller : player.getGameProfile().getName();
+				player.getServer().getPlayerManager().broadcast(Text.literal(who + " (" + label + "): " + String.join(", ", notes)), false);
+			}
+		}
+
 		// critical damage: only for dice that have a critical rule; asked for (force) or earned by the last attack
 		boolean critDamage = false;
 		if (kind != ATTACK && !spec.attack() && !spec.none()) {

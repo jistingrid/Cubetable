@@ -116,6 +116,61 @@ public final class Conditions {
 		}
 	}
 
+	/** What the roll rules of one creature's conditions add up to for one roll. */
+	public record RollEffect(int advantage, int disadvantage, int bonus, List<String> notes) {
+		public static final RollEffect NONE = new RollEffect(0, 0, 0, List.of());
+	}
+
+	/**
+	 * Adds up the roll rules ({@code advantage}, {@code disadvantage}, {@code bonus}) of {@code who}'s conditions that
+	 * fire on any of {@code whens}. {@code distance} (squares, -1 when there is no target) can be used in their "if".
+	 */
+	public static RollEffect forRoll(LivingEntity who, List<String> whens, int distance) {
+		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+		if (entry == null || !entry.json.has("collections")) return RollEffect.NONE;
+		SheetFormat f = SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
+		CombatRules.Conditions rule = f == null || f.combat == null ? null : f.combat.conditions;
+		SheetFormat.Collection coll = rule == null ? null : f.collections.get(rule.collection());
+		if (coll == null) return RollEffect.NONE;
+		SheetFormat.Col rulesCol = null;
+		for (SheetFormat.Col col : coll.columns) if (col.isRules()) rulesCol = col;
+		CharacterData c = parsed(entry);
+		if (rulesCol == null || c == null) return RollEffect.NONE;
+		SheetContext sc = new SheetContext(f, c);
+		SheetFormat.Col nameCol = coll.nameCol();
+		int adv = 0, dis = 0, bonus = 0;
+		List<String> notes = new java.util.ArrayList<>();
+		for (CharacterData.Row row : c.collections.getOrDefault(rule.collection(), List.of())) {
+			String name = nameCol == null ? "A condition" : row.texts.getOrDefault(nameCol.id, "A condition");
+			for (ConditionRules.Rule r : ConditionRules.parse(row.texts.getOrDefault(rulesCol.id, ""))) {
+				if (!whens.contains(r.when())) continue;
+				if (!r.cond().isEmpty()) {
+					double on = sc.number(coll, row, r.cond().replaceAll("\\bdistance\\b", Integer.toString(distance)));
+					if (Double.isNaN(on) || on == 0) continue;
+				}
+				switch (r.effect()) {
+					case "advantage" -> {
+						adv++;
+						notes.add(name + ": advantage");
+					}
+					case "disadvantage" -> {
+						dis++;
+						notes.add(name + ": disadvantage");
+					}
+					case "bonus" -> {
+						double v = sc.number(coll, row, r.value());
+						if (Double.isNaN(v) || Math.round(v) == 0) break;
+						bonus += (int) Math.round(v);
+						notes.add(name + ": " + SheetContext.format(v, true));
+					}
+					default -> {
+					}
+				}
+			}
+		}
+		return new RollEffect(adv, dis, bonus, notes);
+	}
+
 	private static CharacterData parsed(CharacterStore.Entry entry) {
 		try {
 			return CharacterData.parse(entry.json.deepCopy(), "");

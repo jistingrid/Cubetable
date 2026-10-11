@@ -1578,6 +1578,7 @@
         {
           "name": "Blinded",
           "effect": "Can't see. Fails checks that need sight. Attacks against it have advantage, its attacks have disadvantage.",
+          "rules": "attack||disadvantage||\nattacked||advantage||",
           "duration": 0,
           "unit": "turns"
         },
@@ -1614,12 +1615,14 @@
         {
           "name": "Invisible",
           "effect": "Can't be seen. Attacks against it have disadvantage, its attacks have advantage.",
+          "rules": "attack||advantage||\nattacked||disadvantage||",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Paralyzed",
           "effect": "Incapacitated, can't move or speak. Fails Str and Dex saves. Attacks against it have advantage; hits from within 5 ft are critical.",
+          "rules": "turn_start||resource|action|0\nturn_start||resource|bonus|0\nturn_start||speed||0\nattacked||advantage||",
           "duration": 0,
           "unit": "turns"
         },
@@ -1631,28 +1634,29 @@
         },
         {
           "name": "Poisoned",
-          "effect": "Takes 1d4 poison damage at the start of each turn.",
-          "rules": "turn_start||damage||1d4",
+          "effect": "Disadvantage on attack rolls and ability checks.",
+          "rules": "roll||disadvantage||",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Prone",
-          "effect": "Crawls only: half speed on its turn. Disadvantage on attacks. Melee attacks against it have advantage, ranged have disadvantage.",
-          "rules": "turn_start||speed||speed / 2",
+          "effect": "Crawls only: half speed on its turn. Disadvantage on its attacks. Melee attacks within 5 ft have advantage against it, ranged attacks have disadvantage.",
+          "rules": "turn_start||speed||speed / 2\nattack||disadvantage||\nattacked|distance <= 1|advantage||\nattacked|distance > 1|disadvantage||",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Restrained",
           "effect": "Speed is 0. Attacks against it have advantage, its attacks have disadvantage. Disadvantage on Dex saves.",
+          "rules": "turn_start||speed||0\nattack||disadvantage||\nattacked||advantage||",
           "duration": 0,
           "unit": "turns"
         },
         {
           "name": "Stunned",
-          "effect": "Incapacitated, can't move, speaks only falteringly. Fails Str and Dex saves. Attacks against it have advantage.",
-          "rules": "turn_start||resource|action|0\nturn_start||resource|bonus|0\nturn_start||speed||0\nturn_start||message||Stunned: loses the turn.",
+          "effect": "Incapacitated, can't move, speaks only falteringly. Fails Str and Dex saves. Attacks against it have advantage. Loses its action, bonus action and movement.",
+          "rules": "turn_start||resource|action|0\nturn_start||resource|bonus|0\nturn_start||speed||0\nturn_start||message||Stunned: loses the turn.\nattacked||advantage||",
           "duration": 0,
           "unit": "turns"
         },

@@ -11,15 +11,18 @@ import java.util.List;
  * <p>Triggers: {@code turn_start}, {@code turn_end}, {@code expired}. Effects: {@code damage} / {@code heal} (target:
  * bar id, blank = the main health bar; value: a number or dice formula), {@code resource} (target: resource id; value:
  * what the combatant has of it this turn), {@code speed} (value: the movement of this turn, in the game's unit),
- * {@code message} (value: text for chat). The "if" is a formula: the rule applies when it is not 0 (blank: always).
+ * {@code message} (value: text for chat). Roll triggers {@code roll} (the owner makes any roll but a damage roll),
+ * {@code attack} (the owner attacks) and {@code attacked} (an attack is aimed at the owner) go with {@code advantage},
+ * {@code disadvantage} (a single d20; one of each cancels out) and {@code bonus} (value: a number added to the roll);
+ * their "if" may use {@code distance}, the squares between attacker and target. The "if" is a formula: the rule applies when it is not 0 (blank: always).
  */
 public final class ConditionRules {
 	private ConditionRules() {}
 
-	public static final List<String> WHEN = List.of("turn_start", "turn_end", "expired");
-	public static final List<String> WHEN_LABEL = List.of("Turn starts", "Turn ends", "Ends");
-	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message");
-	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message");
+	public static final List<String> WHEN = List.of("turn_start", "turn_end", "expired", "roll", "attack", "attacked");
+	public static final List<String> WHEN_LABEL = List.of("Turn starts", "Turn ends", "Ends", "I roll", "I attack", "I'm attacked");
+	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus");
+	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus");
 
 	/** One rule; every field is plain text as typed. */
 	public record Rule(String when, String cond, String effect, String target, String value) {
@@ -43,7 +46,9 @@ public final class ConditionRules {
 		for (String line : text.split("\n")) {
 			if (line.isBlank()) continue;
 			String[] p = line.split("\\|", -1);
-			if (p.length < 5) continue;
+			if (p.length < 4) continue;
+			if (p.length < 5) p = java.util.Arrays.copyOf(p, 5); // a missing value is blank
+			for (int i = 0; i < 5; i++) if (p[i] == null) p[i] = "";
 			String when = p[0].trim();
 			String effect = p[2].trim();
 			if (!WHEN.contains(when) || !DO.contains(effect)) continue;
@@ -75,6 +80,9 @@ public final class ConditionRules {
 			case "heal" -> "heal " + r.value + (r.target.isEmpty() ? "" : " to " + r.target);
 			case "resource" -> r.target + " = " + r.value;
 			case "speed" -> "speed = " + r.value;
+			case "advantage" -> "advantage";
+			case "disadvantage" -> "disadvantage";
+			case "bonus" -> "bonus " + r.value;
 			default -> "\"" + r.value + "\"";
 		};
 		return when + (r.cond.isEmpty() ? "" : " if " + r.cond) + ": " + what;

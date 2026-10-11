@@ -1865,6 +1865,8 @@ public final class CharacterSheetScreen extends Screen {
 				String hint = switch (r.effect()) {
 					case "damage", "heal" -> "e.g. 1d4";
 					case "message" -> "text for chat";
+					case "advantage", "disadvantage" -> "nothing needed";
+					case "bonus" -> "e.g. -2";
 					default -> "a number or formula";
 				};
 				g.drawText(textRenderer, hint, vx + 4, y1 + 2, DIM, false);
