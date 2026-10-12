@@ -59,6 +59,7 @@ public final class DiceAnimation {
 	public static void clear() {
 		QUEUE.clear();
 		current = null;
+		RollGate.clear();
 	}
 
 	public static void tick(MinecraftClient client) {
@@ -80,6 +81,7 @@ public final class DiceAnimation {
 			printResult(client, current);
 		}
 		if (age >= TUMBLE_TICKS + HOLD_TICKS) {
+			RollGate.finished(current.label()); // the same roll may be started again
 			current = null;
 		}
 	}

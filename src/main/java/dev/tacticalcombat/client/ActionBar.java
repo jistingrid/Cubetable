@@ -1155,6 +1155,7 @@ public final class ActionBar {
 		String crit = isDamage ? dev.tacticalcombat.sheet.Crits.damage(col) : dev.tacticalcombat.sheet.Crits.attack(s.sc(), s.coll(), s.row(), col);
 		int force = isDamage ? (net.minecraft.client.gui.screen.Screen.hasShiftDown() ? 1 : net.minecraft.client.gui.screen.Screen.hasControlDown() ? 2 : 0) : 0;
 		String label = col.rollLabel.replace("{name}", s.name());
+		if (!RollGate.tryStart(label)) return; // the same roll is still tumbling
 		StringBuilder cost = new StringBuilder();
 		if (!damage) {
 			for (Map.Entry<String, Integer> e : s.cost().entrySet()) {
@@ -1168,6 +1169,7 @@ public final class ActionBar {
 					dev.tacticalcombat.sheet.ConditionRules.rowRules(s.coll(), s.row()),
 					dev.tacticalcombat.sheet.ConditionRules.ref(s.coll(), s.sc().character, s.row())));
 		} catch (RuntimeException e) {
+			RollGate.release(label);
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 			return;
 		}

@@ -1065,6 +1065,7 @@ public final class CharacterSheetScreen extends Screen {
 		SheetFormat.Col ac = null;
 		for (SheetFormat.Col col : coll.columns) if (col.type.equals("activate")) ac = col;
 		String name = rowName(coll, row);
+		if (!RollGate.tryStart("use:" + name, 1500)) return; // a double click must not use it twice
 		if (ac != null && ac.uses != null && editable) {
 			SheetFormat.Col uc = coll.column(ac.uses);
 			double left = row.values.getOrDefault(uc.id, uc.def);
@@ -1085,6 +1086,10 @@ public final class CharacterSheetScreen extends Screen {
 
 	/** Casts a spell: spends one slot of the row's level (cantrips are free), then rolls its dice if it has any. */
 	private void castRow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, boolean higher) {
+		// the same cast can not be started again while its dice tumble (nothing is spent for a roll that would be refused)
+		String baseLabel = tr(col.rollLabel).replace("{name}", rowName(coll, row));
+		SheetFormat.Col dice0 = col.diceCol == null ? null : coll.column(col.diceCol);
+		if (dice0 != null && diceFormula(dice0, row) != null ? RollGate.busyPrefix(baseLabel) : !RollGate.tryStart("cast:" + baseLabel, 1500)) return;
 		SheetFormat.Col levelCol = coll.column(col.spendLevel);
 		int base = (int) Math.round(row.values.getOrDefault(levelCol.id, levelCol.def));
 		int use = base;
@@ -2469,9 +2474,11 @@ public final class CharacterSheetScreen extends Screen {
 	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind, String crit, int force, String rules, String ref) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
+		if (!RollGate.tryStart(label)) return; // the same roll is still tumbling
 		try {
 			Expr.Roll roll = planner.get();
 			if (!ClientPlayNetworking.canSend(DiceRequestPayload.ID)) {
+				RollGate.release(label);
 				mc.player.sendMessage(Text.literal("[sheet] This server does not have Tactical Combat, so it can not roll dice.")
 						.formatted(Formatting.RED), false);
 				return;
@@ -2479,6 +2486,7 @@ public final class CharacterSheetScreen extends Screen {
 			int mode = roll.type() == DiceType.D20 && roll.count() == 1 && hasRollMode(sc) ? rollMode : 0;
 			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, "", crit, force, rules, ref));
 		} catch (RuntimeException e) {
+			RollGate.release(label);
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 		}
 	}

@@ -435,6 +435,13 @@ Wolf bite     hit  | | check | str_save | 11                   Strength save, DC
 Anything a rule could not do shows to the Dungeon Masters as a `[rules]` line in chat (a condition name the pack does
 not have, a formula that does not work, a game pack the server lacks) instead of silently doing nothing.
 
+### One roll at a time
+
+A roll that is already on its way can not be started again: from the sheet or the action bar, the same roll (an
+attack, its damage, a skill, a spell's dice) is ignored until its dice have finished tumbling. Different rolls are not
+affected, and a roll the server never answered (not your turn) frees itself after ten seconds. Using a feature and
+casting a spell without dice are held for a moment, so a double click does not use or spend twice.
+
 ### Roll requests
 
 A `check` effect asks the affected creature to roll: the owner (a player their own character, the Dungeon Master a
