@@ -44,9 +44,37 @@ public final class ConditionRules {
 	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition", "Ask for a roll");
 
 	/** One rule; every field is plain text as typed. */
-	public record Rule(String when, String cond, String effect, String target, String value) {
+	public record Rule(String when, String cond, String effect, String target, String value, String who) {
+		public Rule(String when, String cond, String effect, String target, String value) {
+			this(when, cond, effect, target, value, "");
+		}
+
 		public String toLine() {
-			return when + "|" + cond + "|" + effect + "|" + target + "|" + value;
+			return when + "|" + cond + "|" + effect + "|" + target + "|" + value + (who.isEmpty() ? "" : "|" + who);
+		}
+
+		public Rule withWhen(String v) {
+			return new Rule(v, cond, effect, target, value, who);
+		}
+
+		public Rule withCond(String v) {
+			return new Rule(when, v, effect, target, value, who);
+		}
+
+		public Rule withEffect(String v) {
+			return new Rule(when, cond, v, target, value, who);
+		}
+
+		public Rule withTarget(String v) {
+			return new Rule(when, cond, effect, v, value, who);
+		}
+
+		public Rule withValue(String v) {
+			return new Rule(when, cond, effect, target, v, who);
+		}
+
+		public Rule withWho(String v) {
+			return new Rule(when, cond, effect, target, value, v);
 		}
 
 		/** Whether this effect looks at the target field. */
@@ -67,8 +95,19 @@ public final class ConditionRules {
 		return "";
 	}
 
+	/** "collection:index" of a row on its character, so the server can find the same row; "" when it is not on it. */
+	public static String ref(SheetFormat.Collection coll, CharacterData c, CharacterData.Row row) {
+		List<CharacterData.Row> rows = c.collections.getOrDefault(coll.id, List.of());
+		for (int i = 0; i < rows.size(); i++) if (rows.get(i) == row) return coll.id + ":" + i;
+		return "";
+	}
+
 	/** What a roll request can carry of an entry's rules. */
 	public static final int MAX_SENT = 900;
+
+	/** Who an effect happens to: the default for where the rules are (blank), the entry's user, or its target. */
+	public static final List<String> WHO = List.of("", "self", "target");
+	public static final List<String> WHO_LABEL = List.of("Auto", "Self", "Target");
 
 	public static Rule blank() {
 		return new Rule("turn_start", "", "damage", "", "1");
@@ -81,12 +120,12 @@ public final class ConditionRules {
 			if (line.isBlank()) continue;
 			String[] p = line.split("\\|", -1);
 			if (p.length < 4) continue;
-			if (p.length < 5) p = java.util.Arrays.copyOf(p, 5); // a missing value is blank
-			for (int i = 0; i < 5; i++) if (p[i] == null) p[i] = "";
+			if (p.length < 6) p = java.util.Arrays.copyOf(p, 6); // a missing value is blank
+			for (int i = 0; i < 6; i++) if (p[i] == null) p[i] = "";
 			String when = p[0].trim();
 			String effect = p[2].trim();
 			if (!WHEN.contains(when) || !DO.contains(effect)) continue;
-			out.add(new Rule(when, p[1].trim(), effect, p[3].trim(), p[4].trim()));
+			out.add(new Rule(when, p[1].trim(), effect, p[3].trim(), p[4].trim(), WHO.contains(p[5].trim()) ? p[5].trim() : ""));
 		}
 		return out;
 	}
@@ -99,7 +138,7 @@ public final class ConditionRules {
 
 	/** Separators can not be part of a field. */
 	private static Rule clean(Rule r) {
-		return new Rule(r.when, c(r.cond), r.effect, c(r.target), c(r.value));
+		return new Rule(r.when, c(r.cond), r.effect, c(r.target), c(r.value), r.who);
 	}
 
 	private static String c(String s) {
@@ -122,7 +161,7 @@ public final class ConditionRules {
 			case "remove" -> "remove " + (r.target.isEmpty() ? "itself" : r.target);
 			default -> "\"" + r.value + "\"";
 		};
-		return when + (r.cond.isEmpty() ? "" : " if " + r.cond) + ": " + what;
+		return when + (r.cond.isEmpty() ? "" : " if " + r.cond) + ": " + what + (r.who.isEmpty() ? "" : " (" + r.who + ")");
 	}
 
 	public static String describe(String text) {

@@ -1052,6 +1052,37 @@ public final class CharacterSheetScreen extends Screen {
 		ClientPlayNetworking.send(new dev.tacticalcombat.net.ShareCardRequestPayload(buildCard(sc, coll, row).cleaned()));
 	}
 
+	/**
+	 * Uses a feature (an "activate" column, or an entry whose rules have an "I use it" rule): spends one of its uses
+	 * when it counts them, then asks the server to pay its cost and run its rules. {@code editable}: this sheet may be
+	 * changed here (its uses go down), else only the server is asked.
+	 */
+	public static void activate(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, boolean editable) {
+		if (!ClientPlayNetworking.canSend(dev.tacticalcombat.net.ActivatePayload.ID)) {
+			say("This server does not have Tactical Combat, so nothing can be used.");
+			return;
+		}
+		SheetFormat.Col ac = null;
+		for (SheetFormat.Col col : coll.columns) if (col.type.equals("activate")) ac = col;
+		String name = rowName(coll, row);
+		if (ac != null && ac.uses != null && editable) {
+			SheetFormat.Col uc = coll.column(ac.uses);
+			double left = row.values.getOrDefault(uc.id, uc.def);
+			if (left <= 0) {
+				say(name + ": no uses left");
+				return;
+			}
+			row.values.put(uc.id, left - 1);
+			store(sc.character);
+		}
+		List<CharacterData.Row> rows = sc.character.rows(coll.id);
+		int index = -1;
+		for (int i = 0; i < rows.size(); i++) if (rows.get(i) == row) index = i;
+		ClientPlayNetworking.send(new dev.tacticalcombat.net.ActivatePayload(name.length() > 60 ? name.substring(0, 60) : name,
+				dev.tacticalcombat.sheet.ActionCosts.of(sc.format, coll, sc, row),
+				dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row), index < 0 ? "" : coll.id + ":" + index));
+	}
+
 	/** Casts a spell: spends one slot of the row's level (cantrips are free), then rolls its dice if it has any. */
 	private void castRow(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, SheetFormat.Col col, boolean higher) {
 		SheetFormat.Col levelCol = coll.column(col.spendLevel);
@@ -1079,7 +1110,8 @@ public final class CharacterSheetScreen extends Screen {
 		String formula = diceCol == null ? null : diceFormula(diceCol, row);
 		if (formula != null) {
 			rollPlan(sc, label, () -> sc.plan(coll, row, formula), coll.targetable && coll.damage ? 2 : 0,
-					dev.tacticalcombat.sheet.Crits.damage(diceCol), critForce(), dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row));
+					dev.tacticalcombat.sheet.Crits.damage(diceCol), critForce(), dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row),
+					dev.tacticalcombat.sheet.ConditionRules.ref(coll, sc.character, row));
 		} else {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null) {
@@ -1099,7 +1131,7 @@ public final class CharacterSheetScreen extends Screen {
 		String crit = col.type.equals("roll") ? dev.tacticalcombat.sheet.Crits.attack(sc, coll, row, col)
 				: col.type.equals("dice") ? dev.tacticalcombat.sheet.Crits.damage(col) : "";
 		rollPlan(sc, label, () -> sc.plan(coll, row, formula), kind, crit, col.type.equals("dice") ? critForce() : 0,
-				dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row));
+				dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row), dev.tacticalcombat.sheet.ConditionRules.ref(coll, sc.character, row));
 	}
 
 	/** Shift while rolling damage forces a critical (when the dice have a critical rule), Ctrl rolls it normally. */
@@ -1539,6 +1571,22 @@ public final class CharacterSheetScreen extends Screen {
 				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
 				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
 			}
+			case "activate" -> {
+				String t = tr(col.label);
+				boolean counted = col.uses != null;
+				double left = counted ? row.values.getOrDefault(col.uses, coll.column(col.uses).def) : 1;
+				if (counted) {
+					String max = col.usesMax == null ? "" : "/" + SheetContext.format(row.values.getOrDefault(col.usesMax, coll.column(col.usesMax).def), false);
+					t += " " + SheetContext.format(left, false) + max;
+				}
+				boolean empty = counted && left <= 0;
+				int bw = Math.min(w, tw(t) + 8);
+				boolean over = hit(x, y + 1, bw, 11, () -> activate(sc, coll, row, canEdit(sc.character)),
+						"Use " + rowName(coll, row) + (counted ? (empty ? " (no uses left)" : " (spends a use)") : "") + ": pays its cost and does what its rules say");
+				g.fill(x, y + 1, x + bw, y + 12, empty ? EDGE : ROLL_EDGE);
+				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
+				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, empty ? DIM : white, false);
+			}
 			case "cast" -> {
 				SheetFormat.Col levelCol = coll.column(col.spendLevel);
 				int base = (int) Math.round(row.values.getOrDefault(levelCol.id, levelCol.def));
@@ -1694,9 +1742,9 @@ public final class CharacterSheetScreen extends Screen {
 					final int at = i;
 					var r = ruleDraft.get(i);
 					ruleBoxes.add(new RuleBox(
-							ruleBox(150, 60, r.cond(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), t, x.effect(), x.target(), x.value()))),
-							ruleBox(70, 40, r.target(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), x.effect(), t, x.value()))),
-							ruleBox(120, 80, r.value(), t -> setRule(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), x.effect(), x.target(), t)))));
+							ruleBox(110, 60, r.cond(), t -> setRule(col, at, x -> x.withCond(t))),
+							ruleBox(70, 40, r.target(), t -> setRule(col, at, x -> x.withTarget(t))),
+							ruleBox(130, 120, r.value(), t -> setRule(col, at, x -> x.withValue(t)))));
 				}
 				rowBoxes.add(new RowBox(col, null, relY));
 				relY += ruleDraft.size() * RULE_H + 34;
@@ -1824,19 +1872,25 @@ public final class CharacterSheetScreen extends Screen {
 			var r = ruleDraft.get(i);
 			RuleBox rb = ruleBoxes.get(i);
 			int y0 = fy + i * RULE_H;
-			g.fill(fx - 3, y0 - 2, fx + 300, y0 - 1, EDGE);
+			g.fill(fx - 3, y0 - 2, fx + 286, y0 - 1, EDGE);
 			// line 1: when ... if
 			int wi = Math.max(0, dev.tacticalcombat.sheet.ConditionRules.WHEN.indexOf(r.when()));
 			int nw = dev.tacticalcombat.sheet.ConditionRules.WHEN.size();
 			ruleChoice(g, fx, y0 + 1, 84, dev.tacticalcombat.sheet.ConditionRules.WHEN_LABEL.get(wi), "When this happens (click: next, right-click: previous)",
-					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(dev.tacticalcombat.sheet.ConditionRules.WHEN.get((wi + 1) % nw), x.cond(), x.effect(), x.target(), x.value())),
-					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(dev.tacticalcombat.sheet.ConditionRules.WHEN.get((wi + nw - 1) % nw), x.cond(), x.effect(), x.target(), x.value())));
+					() -> setRuleAndRefresh(col, at, x -> x.withWhen(dev.tacticalcombat.sheet.ConditionRules.WHEN.get((wi + 1) % nw))),
+					() -> setRuleAndRefresh(col, at, x -> x.withWhen(dev.tacticalcombat.sheet.ConditionRules.WHEN.get((wi + nw - 1) % nw))));
 			g.drawText(textRenderer, "if", fx + 90, y0 + 3, MUTED, false);
 			rb.cond().setX(fx + 100);
 			rb.cond().setY(y0 + 1);
 			rb.cond().render(g, mouseX, mouseY, 0);
 			if (rb.cond().getText().isEmpty() && !rb.cond().isFocused()) g.drawText(textRenderer, "always (or a formula)", fx + 104, y0 + 3, DIM, false);
-			int rx = fx + 258;
+			int wh = Math.max(0, dev.tacticalcombat.sheet.ConditionRules.WHO.indexOf(r.who()));
+			int nh = dev.tacticalcombat.sheet.ConditionRules.WHO.size();
+			ruleChoice(g, fx + 214, y0 + 1, 50, dev.tacticalcombat.sheet.ConditionRules.WHO_LABEL.get(wh),
+					"Who it happens to: Auto (the condition's owner; for a weapon or feature the target of its roll, or yourself when you just use it), Self or Target",
+					() -> setRuleAndRefresh(col, at, x -> x.withWho(dev.tacticalcombat.sheet.ConditionRules.WHO.get((wh + 1) % nh))),
+					() -> setRuleAndRefresh(col, at, x -> x.withWho(dev.tacticalcombat.sheet.ConditionRules.WHO.get((wh + nh - 1) % nh))));
+			int rx = fx + 268;
 			hit(rx, y0 + 1, 14, 12, () -> removeRule(col, at), "Remove this rule");
 			g.fill(rx, y0 + 1, rx + 14, y0 + 13, 0xFF7A1C27);
 			g.drawCenteredTextWithShadow(textRenderer, "x", rx + 7, y0 + 3, 0xFFFFFFFF);
@@ -1845,8 +1899,8 @@ public final class CharacterSheetScreen extends Screen {
 			int nd = dev.tacticalcombat.sheet.ConditionRules.DO.size();
 			int y1 = y0 + 16;
 			ruleChoice(g, fx, y1, 84, dev.tacticalcombat.sheet.ConditionRules.DO_LABEL.get(wd), "What happens (click: next, right-click: previous)",
-					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), dev.tacticalcombat.sheet.ConditionRules.DO.get((wd + 1) % nd), x.target(), x.value())),
-					() -> setRuleAndRefresh(col, at, x -> new dev.tacticalcombat.sheet.ConditionRules.Rule(x.when(), x.cond(), dev.tacticalcombat.sheet.ConditionRules.DO.get((wd + nd - 1) % nd), x.target(), x.value())));
+					() -> setRuleAndRefresh(col, at, x -> x.withEffect(dev.tacticalcombat.sheet.ConditionRules.DO.get((wd + 1) % nd))),
+					() -> setRuleAndRefresh(col, at, x -> x.withEffect(dev.tacticalcombat.sheet.ConditionRules.DO.get((wd + nd - 1) % nd))));
 			int vx = fx + 90;
 			boolean target = r.usesTarget();
 			rb.target().visible = target;
@@ -2409,6 +2463,10 @@ public final class CharacterSheetScreen extends Screen {
 
 	/** {@code rules}: the rules of the entry rolled ("on hit ..."), sent along with the roll. */
 	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind, String crit, int force, String rules) {
+		rollPlan(sc, label, planner, kind, crit, force, rules, "");
+	}
+
+	private void rollPlan(SheetContext sc, String label, java.util.function.Supplier<Expr.Roll> planner, int kind, String crit, int force, String rules, String ref) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
 		try {
@@ -2419,7 +2477,7 @@ public final class CharacterSheetScreen extends Screen {
 				return;
 			}
 			int mode = roll.type() == DiceType.D20 && roll.count() == 1 && hasRollMode(sc) ? rollMode : 0;
-			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, "", crit, force, rules));
+			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, "", crit, force, rules, ref));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 		}

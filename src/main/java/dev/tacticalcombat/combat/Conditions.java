@@ -8,6 +8,7 @@ import dev.tacticalcombat.actor.ActorRegistry;
 import dev.tacticalcombat.character.CharacterStore;
 import dev.tacticalcombat.character.CharacterSync;
 import dev.tacticalcombat.sheet.CharacterData;
+import dev.tacticalcombat.dice.DiceService;
 import dev.tacticalcombat.sheet.CombatRules;
 import dev.tacticalcombat.sheet.ConditionRules;
 import dev.tacticalcombat.sheet.Expr;
@@ -130,7 +131,8 @@ public final class Conditions {
 
 	/** Where a list of rules comes from: the formulas' sheet, the entry's own row (conditions), its name. */
 	private record Src(CharacterStore.Entry entry, SheetFormat f, CharacterData fallback, SheetFormat.Collection coll,
-					   CharacterData.Row row, String name, List<ConditionRules.Rule> rules, Combatant turn, boolean selfCondition) {
+					   CharacterData.Row row, String name, List<ConditionRules.Rule> rules, Combatant turn, boolean selfCondition,
+					   LivingEntity owner, LivingEntity target, ServerPlayerEntity roller) {
 		SheetContext sc() {
 			CharacterData d = parsed(entry);
 			return new SheetContext(f, d == null ? fallback : d);
@@ -161,30 +163,58 @@ public final class Conditions {
 		for (CharacterData.Row row : rows) {
 			String name = nameCol == null ? "A condition" : row.texts.getOrDefault(nameCol.id, "A condition");
 			List<ConditionRules.Rule> rules = ConditionRules.parse(row.texts.getOrDefault(rulesCol.id, ""));
-			executeRules(server, who, new Src(entry, f, c, coll, row, name, rules, turn, true), when, vars);
+			executeRules(server, who, new Src(entry, f, c, coll, row, name, rules, turn, true, who, null, null), when, vars);
 		}
 	}
 
 	/**
-	 * Runs the rules of an entry (a weapon, a feature ...) that fire on {@code when}: formulas use {@code attacker}'s
-	 * sheet, the effects happen to {@code subject} (the target of the entry's roll).
+	 * Runs the rules of an entry (a weapon, a feature ...) that fire on {@code when}: formulas use {@code owner}'s sheet
+	 * (and, with {@code ref} = "collection:index", the entry's own row: {@code row.uses}), the effects happen to
+	 * {@code subject} unless a rule says Self or Target. {@code roller} is the player whose dice are shown for rolls in
+	 * the effects (null: rolled quietly).
 	 */
-	public static void runEntry(MinecraftServer server, LivingEntity attacker, LivingEntity subject, String rulesText,
-								String entryName, String when, java.util.Map<String, Integer> vars) {
-		if (server == null || attacker == null || subject == null || rulesText == null || rulesText.isBlank() || depth >= 3) return;
+	public static void runEntry(MinecraftServer server, LivingEntity owner, LivingEntity subject, LivingEntity target,
+								ServerPlayerEntity roller, Combatant turn, String ref, String rulesText, String entryName,
+								String when, java.util.Map<String, Integer> vars) {
+		if (server == null || owner == null || subject == null || rulesText == null || rulesText.isBlank() || depth >= 3) return;
 		List<ConditionRules.Rule> rules = ConditionRules.parse(rulesText);
 		boolean any = false;
 		for (ConditionRules.Rule r : rules) if (r.when().equals(when)) any = true;
 		if (!any) return;
-		CharacterStore.Entry entry = SheetHealth.entryOf(attacker);
+		CharacterStore.Entry entry = SheetHealth.entryOf(owner);
 		SheetFormat f = entry == null ? null : SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
 		CharacterData c = entry == null ? null : parsed(entry);
-		if (f == null || c == null) return;
+		if (f == null || c == null) {
+			warn(server, entryName + ": its rules were skipped, the server has no sheet or game pack for " + Damage.nameOf(owner)
+					+ " (a Dungeon Master's client sends missing packs by itself; the Game packs tool does it by hand).");
+			return;
+		}
+		SheetFormat.Collection coll = null;
+		CharacterData.Row row = null;
+		if (ref != null && ref.contains(":")) {
+			String id = ref.substring(0, ref.indexOf(':'));
+			try {
+				int at = Integer.parseInt(ref.substring(ref.indexOf(':') + 1));
+				coll = f.collections.get(id);
+				List<CharacterData.Row> rows = coll == null ? List.of() : c.rows(id);
+				if (at >= 0 && at < rows.size()) row = rows.get(at);
+			} catch (NumberFormatException ignored) {
+				// no row: formulas see the character only
+			}
+			if (row == null) coll = null;
+		}
 		depth++;
 		try {
-			executeRules(server, subject, new Src(entry, f, c, null, null, entryName, rules, null, false), when, vars);
+			executeRules(server, subject, new Src(entry, f, c, coll, row, entryName, rules, turn, false, owner, target, roller), when, vars);
 		} finally {
 			depth--;
+		}
+	}
+
+	/** A message for the Dungeon Masters only: a rule could not do what it says (so it does not just look like nothing happened). */
+	public static void warn(MinecraftServer server, String text) {
+		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+			if (dev.tacticalcombat.character.Roles.isDm(p.getUuid())) p.sendMessage(Text.literal("[rules] " + text), false);
 		}
 	}
 
@@ -193,17 +223,23 @@ public final class Conditions {
 			if (!r.when().equals(when)) continue;
 			if (!r.cond().isEmpty()) {
 				double on = s.num(sub(r.cond(), vars, false));
+				if (Double.isNaN(on)) warn(server, s.name() + ": the formula '" + r.cond() + "' does not work.");
 				if (Double.isNaN(on) || on == 0) continue;
 			}
 			effect(server, subject, s, r, vars);
 		}
 	}
 
-	private static void effect(MinecraftServer server, LivingEntity subject, Src s, ConditionRules.Rule r, java.util.Map<String, Integer> vars) {
+	private static void effect(MinecraftServer server, LivingEntity defaultSubject, Src s, ConditionRules.Rule r, java.util.Map<String, Integer> vars) {
+		LivingEntity subject = switch (r.who()) {
+			case "self" -> s.owner() != null ? s.owner() : defaultSubject;
+			case "target" -> s.target() != null ? s.target() : defaultSubject;
+			default -> defaultSubject;
+		};
 		String prefix = Damage.nameOf(subject) + ": " + s.name() + " - ";
 		switch (r.effect()) {
 			case "damage", "heal" -> {
-				int amount = Math.max(0, rollValue(s.sc(), s.coll(), s.row(), sub(r.value(), vars, false)));
+				int amount = Math.max(0, rollAmount(s, subject, sub(r.value(), vars, false)));
 				String bar = r.target().isEmpty() ? SheetHealth.vitalId(subject) : r.target();
 				boolean heal = r.effect().equals("heal");
 				if (bar == null || !SheetHealth.change(server, subject, bar, heal ? amount : -amount)) return;
@@ -212,7 +248,7 @@ public final class Conditions {
 			}
 			case "resource" -> {
 				if (s.turn() == null || r.target().isEmpty()) return;
-				double v = s.num(r.value());
+				double v = s.num(sub(r.value(), vars, false));
 				if (Double.isNaN(v)) return;
 				int n = Math.max(0, (int) Math.floor(v + 1.0E-6));
 				s.turn().left.put(r.target(), n);
@@ -220,12 +256,12 @@ public final class Conditions {
 			}
 			case "speed" -> {
 				if (s.turn() == null) return;
-				double v = s.num(r.value());
+				double v = s.num(sub(r.value(), vars, false));
 				if (Double.isNaN(v)) return;
 				double square = s.f().combat.square <= 0 ? 1 : s.f().combat.square;
 				s.turn().moveBudget = Math.max(0, Math.floor(v / square + 1.0E-6));
 			}
-			case "apply" -> addCondition(server, subject, r.target());
+			case "apply" -> addCondition(server, subject, r.target(), s.name());
 			case "remove" -> removeCondition(server, subject, r.target().isEmpty() && s.selfCondition() ? s.name() : r.target());
 			case "check" -> {
 				if (r.target().isEmpty()) return;
@@ -258,14 +294,20 @@ public final class Conditions {
 	}
 
 	/** Adds the pack's preset condition of that name to {@code who}'s sheet; its own "applied" rules then run. */
-	private static void addCondition(MinecraftServer server, LivingEntity who, String name) {
+	private static void addCondition(MinecraftServer server, LivingEntity who, String name, String source) {
 		Conds k = condsOf(who);
 		SheetFormat.Col nameCol = k == null ? null : k.coll().nameCol();
 		CharacterData c = k == null ? null : parsed(k.entry());
-		if (nameCol == null || c == null || name.isEmpty()) return;
+		if (nameCol == null || c == null || name.isEmpty()) {
+			warn(server, source + ": could not add '" + name + "' to " + Damage.nameOf(who) + " - it has no sheet with a conditions list on the server.");
+			return;
+		}
 		CharacterData.Row preset = null;
 		for (CharacterData.Row p : k.coll().presets) if (p.texts.getOrDefault(nameCol.id, "").equalsIgnoreCase(name)) preset = p;
-		if (preset == null) return;
+		if (preset == null) {
+			warn(server, source + ": there is no quick condition named '" + name + "' in " + Damage.nameOf(who) + "'s game pack on the server.");
+			return;
+		}
 		CharacterData.Row row = preset.copy();
 		c.rows(k.coll().id).add(row);
 		save(server, k.entry(), c);
@@ -359,6 +401,21 @@ public final class Conditions {
 		} catch (RuntimeException ex) {
 			return null;
 		}
+	}
+
+	/** Like {@link #rollValue}, with the dice shown to everyone when the rule has a player to roll them for. */
+	private static int rollAmount(Src s, LivingEntity subject, String formula) {
+		SheetContext sc = s.sc();
+		try {
+			Expr.Roll plan = s.coll() == null || s.row() == null ? sc.plan(formula) : sc.plan(s.coll(), s.row(), formula);
+			if (s.roller() != null) {
+				String by = Damage.nameOf(s.owner() != null ? s.owner() : subject);
+				return DiceService.rollNatural(s.roller(), by, s.name(), plan.type(), plan.count(), plan.modifier(), 0, null);
+			}
+		} catch (RuntimeException noDice) {
+			// a plain number: handled below
+		}
+		return rollValue(sc, s.coll(), s.row(), formula);
 	}
 
 	/** A number or a dice formula ({@code 1d4 + 2}) of a rule, rolled here when it has dice; 0 when it does not work. */

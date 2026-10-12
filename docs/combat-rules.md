@@ -370,7 +370,7 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `damaged` / `healed` | a damage prompt was applied to the owner (`damage` = the amount) |
 | `downed` | the owner dropped to 0 and is down |
 | `applied` | this condition was just added (from the sheet or by another rule) |
-| `used` | (on an entry) its damage roll was made |
+| `used` | (on an entry) it was used: its Use button or slot, a plain roll of it, or its damage roll |
 | `check_passed` / `check_failed` | a `check` effect of the same rule list was rolled and met / missed its DC |
 
 | Do | target | value |
@@ -412,6 +412,28 @@ check_failed | | apply | Prone |      Check failed: add Prone
 
 A DC from the sheet works the same: `8 + prof + str_mod`. The rules ride along with the roll request, so the bar and
 the sheet both trigger them.
+
+### Features and special attacks
+
+A format describes an ability that does more than roll dice with columns on its collection:
+
+| Column | |
+|---|---|
+| `rules` (type `rules`) | what it does: When / If / Do rules, edited as a list in the entry |
+| `use` (type `activate`, optional `uses`, `max`) | a **Use** button on the sheet row; `uses` / `max` name the number columns that count its uses ("Use 1/1"); each use takes one, and the button greys at 0 |
+| cost | the source in `combat.actions` gives `cost` formulas on the row (`"bonus": "row.bonus_cost"`), paid when it is used |
+
+Clicking its action-bar slot (or tray entry) does the same as the Use button for an entry that has an activate column or an "I use it" rule and nothing to attack with. Using it pays the cost, says so in chat and runs the rules whose When is **I use it**. Their effects happen to the user (Auto = Self when you use it; for an attack's rules Auto = the target); each rule can be switched to **Self** or **Target** with the button on its first line. Formulas are the sheet's formulas: dice (`1d10`), sheet values (`level`, `str_mod`), the entry's own columns (`row.uses`, `row.bonus`) and, in `if` and values, the resources left this turn (`action`, `bonus`).
+
+```
+Second Wind   used | | heal | | 1d10 + level | self           heals the user; the dice are shown
+Action Surge  used | | resource | action | action + 1 | self   one more action this turn
+Wolf bite     hit  | | check | str_save | 11                   Strength save, DC 11 ...
+              check_failed | | apply | Prone |                  ... or fall prone
+```
+
+Anything a rule could not do shows to the Dungeon Masters as a `[rules]` line in chat (a condition name the pack does
+not have, a formula that does not work, a game pack the server lacks) instead of silently doing nothing.
 
 ### Roll requests
 

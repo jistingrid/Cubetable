@@ -54,7 +54,7 @@ public class TacticalCombatMod implements ModInitializer {
 				context.server().execute(() -> dev.tacticalcombat.character.FormatUpload.receive(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> dev.tacticalcombat.combat.Strikes.roll(context.player(), payload.label(),
-						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind(), payload.cost(), payload.crit(), payload.force(), payload.rules())));
+						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind(), payload.cost(), payload.crit(), payload.force(), payload.rules(), payload.ref())));
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.DmStatePayload.ID, dev.tacticalcombat.net.DmStatePayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.DmActionPayload.ID, dev.tacticalcombat.net.DmActionPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DmActionPayload.ID, (payload, context) ->
@@ -74,6 +74,10 @@ public class TacticalCombatMod implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.TimePause::tick);
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.actor.Possession::tick);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.TargetPayload.ID, dev.tacticalcombat.net.TargetPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.ActivatePayload.ID, dev.tacticalcombat.net.ActivatePayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.ActivatePayload.ID, (payload, context) ->
+				context.server().execute(() -> dev.tacticalcombat.combat.Strikes.activate(context.player(), payload.label(),
+						payload.cost(), payload.rules(), payload.ref())));
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.RollRequestPayload.ID, dev.tacticalcombat.net.RollRequestPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.RollRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> dev.tacticalcombat.combat.Checks.dmRequest(context.player(), payload)));

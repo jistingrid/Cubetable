@@ -58,6 +58,9 @@ public final class Checks {
 							   boolean showDc, Consumer<Result> done) {
 		String name = Damage.nameOf(target);
 		CombatRules.Check def = definition(target, checkId);
+		if (!checkId.isEmpty() && def == null) {
+			Conditions.warn(server, "No check '" + checkId + "' in " + name + "'s game pack on the server: it rolls a plain d20 (is the pack up to date there?).");
+		}
 		String label = def != null ? def.label() : checkId.isEmpty() ? "Roll" : checkId;
 		List<ServerPlayerEntity> owners = new ArrayList<>();
 		if (target instanceof ServerPlayerEntity tp) {

@@ -97,6 +97,12 @@ public final class SheetFormat {
 		public String spendLevel;
 		/** cast column: optional dice column rolled when casting. */
 		public String diceCol;
+		/**
+		 * activate column (a button that uses a feature): the number columns holding its uses left and its maximum
+		 * (both optional; without {@code uses} it can be used any number of times).
+		 */
+		public String uses;
+		public String usesMax;
 
 		public boolean isText() {
 			return type.equals("text") || type.equals("note") || type.equals("dice");
@@ -316,7 +322,7 @@ public final class SheetFormat {
 			if (!col.id.matches("[a-z_][a-z0-9_]*")) throw new IllegalArgumentException("collection '" + c.id + "': bad column id '" + col.id + "'");
 			col.label = str(co, "label", col.id);
 			col.type = str(co, "type", "text").toLowerCase(Locale.ROOT);
-			if (!Set.of("text", "note", "number", "toggle", "choice", "computed", "roll", "dice", "cast", "rules").contains(col.type)) {
+			if (!Set.of("text", "note", "number", "toggle", "choice", "computed", "roll", "dice", "cast", "rules", "activate").contains(col.type)) {
 				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "' has unknown type '" + col.type + "'");
 			}
 			col.width = (float) (co.has("width") ? co.get("width").getAsDouble() : (col.type.equals("text") ? 2.5 : 1.0));
@@ -351,6 +357,11 @@ public final class SheetFormat {
 			col.spend = str(co, "spend", null);
 			col.spendLevel = str(co, "level", null);
 			col.diceCol = str(co, "dice", null);
+			col.uses = str(co, "uses", null);
+			col.usesMax = str(co, "max", null);
+			if ((col.uses != null || col.usesMax != null) && !col.type.equals("activate")) {
+				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "': uses and max belong on an activate column");
+			}
 			if (col.type.equals("cast") && (col.spend == null || col.spendLevel == null)) {
 				throw new IllegalArgumentException("collection '" + c.id + "': cast column '" + col.id + "' needs \"spend\" and \"level\"");
 			}
@@ -370,6 +381,14 @@ public final class SheetFormat {
 			throw new IllegalArgumentException("collection '" + c.id + "': groupBy names an unknown column '" + c.groupBy + "'");
 		}
 		for (SheetFormat.Col col : c.columns) {
+			if (col.type.equals("activate")) {
+				for (String ref : new String[] {col.uses, col.usesMax}) {
+					SheetFormat.Col n = ref == null ? null : c.column(ref);
+					if (ref != null && (n == null || !n.type.equals("number"))) {
+						throw new IllegalArgumentException("collection '" + c.id + "': activate column '" + col.id + "' names '" + ref + "', which is not a number column");
+					}
+				}
+			}
 			if (col.type.equals("cast") && (c.column(col.spendLevel) == null || col.diceCol != null && c.column(col.diceCol) == null)) {
 				throw new IllegalArgumentException("collection '" + c.id + "': cast column '" + col.id + "' names an unknown level or dice column");
 			}

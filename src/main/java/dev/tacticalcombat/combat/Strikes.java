@@ -7,6 +7,7 @@ import dev.tacticalcombat.dice.DiceType;
 import dev.tacticalcombat.sheet.CombatRules;
 import dev.tacticalcombat.sheet.SheetContext;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
@@ -56,6 +57,12 @@ public final class Strikes {
 	/** {@code rules}: the rules of the entry being rolled ("on hit, ask for a Strength save ..."). */
 	public static void roll(ServerPlayerEntity player, String label, DiceType type, int count, int modifier, int mode,
 							int kind, String cost, String critText, int force, String rules) {
+		roll(player, label, type, count, modifier, mode, kind, cost, critText, force, rules, "");
+	}
+
+	/** {@code ref}: "collection:index" of the entry on the roller's sheet, so its rules' formulas can use {@code row.x}. */
+	public static void roll(ServerPlayerEntity player, String label, DiceType type, int count, int modifier, int mode,
+							int kind, String cost, String critText, int force, String rules, String ref) {
 		CritSpec spec = CritSpec.parse(critText);
 		Combat combat = CombatManager.get(player);
 		if (combat == null && Roles.isDm(player.getUuid())) combat = CombatManager.primary();
@@ -122,6 +129,11 @@ public final class Strikes {
 			DiceService.RollVerdict v = damageMark;
 			if (spec.attack()) v = (t, n) -> new DiceService.Verdict(0, "", spec.check(n)); // a critical shows even with no target
 			DiceService.rollNatural(player, roller, label, type, count, modifier, mode, v);
+			// a plain roll of a feature, or a damage roll with nobody targeted: its "I use it" rules still run, on its user
+			if (kind != ATTACK && player.getServer() != null) {
+				LivingEntity self = asCreature ? actor.entity : player;
+				Conditions.runEntry(player.getServer(), self, self, target, player, null, ref, rules, entryName(label), "used", java.util.Map.of());
+			}
 			return;
 		}
 		String name = Damage.nameOf(target);
@@ -157,7 +169,7 @@ public final class Strikes {
 				boolean hit = outcome[0] == 1;
 				Conditions.fire(player.getServer(), self, hit ? "hit" : "miss", vars);
 				Conditions.fire(player.getServer(), target, hit ? "struck" : "dodged", vars);
-				Conditions.runEntry(player.getServer(), self, target, rules, entryName(label), hit ? "hit" : "miss", vars);
+				Conditions.runEntry(player.getServer(), self, target, target, player, null, ref, rules, entryName(label), hit ? "hit" : "miss", vars);
 			}
 			return;
 		}
@@ -166,8 +178,43 @@ public final class Strikes {
 		Damage.offer(player, asCreature ? roller : null, target, label, Math.max(0, total));
 		if (kind == DAMAGE && player.getServer() != null) {
 			LivingEntity self = asCreature ? actor.entity : player;
-			Conditions.runEntry(player.getServer(), self, target, rules, entryName(label), "used", java.util.Map.of());
+			Conditions.runEntry(player.getServer(), self, target, target, player, null, ref, rules, entryName(label), "used", java.util.Map.of());
 		}
+	}
+
+	/**
+	 * Activates an entry that is not a roll (a feature such as Second Wind): pays its cost like a roll does, says so in
+	 * chat, then runs its "I use it" rules. Effects happen to the user unless a rule says Target (the player's target).
+	 */
+	public static void activate(ServerPlayerEntity player, String label, String cost, String rules, String ref) {
+		MinecraftServer server = player.getServer();
+		if (server == null) return;
+		Combat combat = CombatManager.get(player);
+		if (combat == null && Roles.isDm(player.getUuid())) combat = CombatManager.primary();
+		Combatant actor = combat == null ? null : combat.actorFor(player);
+		boolean asCreature = actor != null && actor.entity != player;
+		Map<String, Integer> costs = parseCost(cost);
+		if (!costs.isEmpty() && combat != null) {
+			if (actor == null || combat.current() != actor) {
+				player.sendMessage(Text.translatable("tacticalcombat.msg.not_your_turn"), true);
+				return;
+			}
+			if (!actor.canPay(costs)) {
+				player.sendMessage(Text.translatable("tacticalcombat.msg.no_action"), true);
+				return;
+			}
+			actor.pay(costs);
+			combat.sync();
+		}
+		LivingEntity self = asCreature ? actor.entity : player;
+		LivingEntity target = combat == null ? null : combat.targetOf(player);
+		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(self) + " uses " + entryName(label) + "."), false);
+		// what is left of this turn's resources can be used in formulas ("action + 1"), and resource effects change them
+		boolean mine = combat != null && actor != null && combat.current() == actor;
+		java.util.Map<String, Integer> vars = new java.util.HashMap<>();
+		if (mine) vars.putAll(actor.left);
+		Conditions.runEntry(server, self, self, target, player, mine ? actor : null, ref, rules, entryName(label), "used", vars);
+		if (mine) combat.sync();
 	}
 
 	/** The roll label without its roll word: "Bite attack" and "Bite damage" are both the entry "Bite". */

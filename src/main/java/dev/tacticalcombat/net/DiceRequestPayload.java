@@ -17,16 +17,22 @@ import net.minecraft.util.Identifier;
  * rules: the rules text of the entry being rolled (a weapon's "on hit ..."), see {@link dev.tacticalcombat.sheet.ConditionRules}.
  */
 public record DiceRequestPayload(String label, DiceType type, int count, int modifier, int mode, int kind, String cost,
-								 String crit, int force, String rules) implements CustomPayload {
+								 String crit, int force, String rules, String ref) implements CustomPayload {
+	/** A roll whose entry has rules but no row reference. */
+	public DiceRequestPayload(String label, DiceType type, int count, int modifier, int mode, int kind, String cost,
+							  String crit, int force, String rules) {
+		this(label, type, count, modifier, mode, kind, cost, crit, force, rules, "");
+	}
+
 	/** A roll with no critical rule. */
 	public DiceRequestPayload(String label, DiceType type, int count, int modifier, int mode, int kind, String cost) {
-		this(label, type, count, modifier, mode, kind, cost, "", 0, "");
+		this(label, type, count, modifier, mode, kind, cost, "", 0, "", "");
 	}
 
 	/** A roll with no rules on its entry. */
 	public DiceRequestPayload(String label, DiceType type, int count, int modifier, int mode, int kind, String cost,
 							  String crit, int force) {
-		this(label, type, count, modifier, mode, kind, cost, crit, force, "");
+		this(label, type, count, modifier, mode, kind, cost, crit, force, "", "");
 	}
 
 	public static final Id<DiceRequestPayload> ID =
@@ -39,7 +45,7 @@ public record DiceRequestPayload(String label, DiceType type, int count, int mod
 			int typeIndex = buf.readVarInt();
 			DiceType type = DiceType.values()[Math.floorMod(typeIndex, DiceType.values().length)];
 			return new DiceRequestPayload(label, type, buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readString(96),
-					buf.readString(64), buf.readVarInt(), buf.readString(1000));
+					buf.readString(64), buf.readVarInt(), buf.readString(1000), buf.readString(40));
 		}
 
 		@Override
@@ -54,6 +60,7 @@ public record DiceRequestPayload(String label, DiceType type, int count, int mod
 			buf.writeString(p.crit, 64);
 			buf.writeVarInt(p.force);
 			buf.writeString(p.rules, 1000);
+			buf.writeString(p.ref, 40);
 		}
 	};
 

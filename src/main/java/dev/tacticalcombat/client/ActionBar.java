@@ -83,6 +83,15 @@ public final class ActionBar {
 					   SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, boolean own, String store,
 					   String key, String character, String tray, String group, int groupOrder, String info, boolean pinned) {}
 
+	/** An entry is used (not rolled) when it has an activate column, or "I use it" rules and nothing to attack with. */
+	private static boolean activates(SheetFormat.Collection coll, CharacterData.Row row) {
+		for (SheetFormat.Col col : coll.columns) if (col.type.equals("activate")) return true;
+		for (dev.tacticalcombat.sheet.ConditionRules.Rule r : dev.tacticalcombat.sheet.ConditionRules.parse(dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row))) {
+			if (r.when().equals("used")) return !coll.targetable;
+		}
+		return false;
+	}
+
 	private record Built(List<Slot> all, List<CombatRules.Tray> trays) {}
 
 	/** A place on the screen that does something when clicked (virtual, scaled coordinates). */
@@ -171,6 +180,9 @@ public final class ActionBar {
 					}
 				}
 				boolean usable = myTurn && (left < 0 || left > 0);
+				for (SheetFormat.Col ac : coll.columns) {
+					if (ac.type.equals("activate") && ac.uses != null && row.values.getOrDefault(ac.uses, coll.column(ac.uses).def) <= 0) usable = false;
+				}
 				if (usable) {
 					for (Map.Entry<String, Integer> e : cost.entrySet()) {
 						if (resourceLeft(e.getKey()) < e.getValue()) usable = false;
@@ -1103,6 +1115,16 @@ public final class ActionBar {
 		if (mc.player == null) return;
 		if (!ClientPlayNetworking.canSend(DiceRequestPayload.ID)) return;
 
+		// a feature that is used rather than rolled (Second Wind): its cost, one of its uses, and its rules
+		if (!damage && activates(s.coll(), s.row())) {
+			boolean hasAttack = false;
+			for (SheetFormat.Col col : s.coll().columns) if (col.type.equals("roll") && col.roll != null) hasAttack = true;
+			if (!hasAttack) {
+				CharacterSheetScreen.activate(s.sc(), s.coll(), s.row(), s.own());
+				FLASH.put(s.key(), System.currentTimeMillis());
+				return;
+			}
+		}
 		SheetFormat.Col attack = null;
 		SheetFormat.Col dice = null;
 		String diceFormula = null;
@@ -1143,7 +1165,8 @@ public final class ActionBar {
 		try {
 			Expr.Roll roll = s.sc().plan(s.coll(), s.row(), formula);
 			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), 0, kind, cost.toString(), crit, force,
-					dev.tacticalcombat.sheet.ConditionRules.rowRules(s.coll(), s.row())));
+					dev.tacticalcombat.sheet.ConditionRules.rowRules(s.coll(), s.row()),
+					dev.tacticalcombat.sheet.ConditionRules.ref(s.coll(), s.sc().character, s.row())));
 		} catch (RuntimeException e) {
 			mc.player.sendMessage(Text.literal("[sheet] " + label + ": " + e.getMessage()).formatted(Formatting.RED), false);
 			return;
