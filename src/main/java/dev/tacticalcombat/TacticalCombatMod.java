@@ -166,6 +166,18 @@ public class TacticalCombatMod implements ModInitializer {
 							ctx.getSource().sendFeedback(() -> Text.translatable("tacticalcombat.cmd.started"), false);
 							return 1;
 						}))
+				.then(CommandManager.literal("floattest")
+						.requires(src -> src.hasPermissionLevel(2))
+						.executes(ctx -> {
+							ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+							boolean can = ServerPlayNetworking.canSend(player, dev.tacticalcombat.net.FloatTextPayload.ID);
+							dev.tacticalcombat.combat.Floaters.damage(player, 3, 20);
+							dev.tacticalcombat.combat.Floaters.damage(player, 12, 20);
+							dev.tacticalcombat.combat.Floaters.heal(player, 5);
+							dev.tacticalcombat.combat.Floaters.status(player, "Prone", true);
+							ctx.getSource().sendFeedback(() -> Text.literal("Sent four floating numbers over you (client can receive them: " + can + ")."), false);
+							return 1;
+						}))
 				.then(CommandManager.literal("reload")
 						.requires(src -> src.hasPermissionLevel(2))
 						.executes(ctx -> {

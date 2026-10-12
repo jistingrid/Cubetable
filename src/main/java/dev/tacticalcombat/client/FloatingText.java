@@ -36,6 +36,7 @@ public final class FloatingText {
 	}
 
 	public static void receive(FloatTextPayload p) {
+		dev.tacticalcombat.TacticalCombatMod.LOGGER.info("Floating text received: {} (entity {})", p.text(), p.entityId());
 		Item it = new Item();
 		it.entityId = p.entityId();
 		it.text = p.text();
