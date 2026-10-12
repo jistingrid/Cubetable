@@ -312,7 +312,40 @@ public final class Conditions {
 		c.rows(k.coll().id).add(row);
 		save(server, k.entry(), c);
 		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(who) + ": " + row.texts.get(nameCol.id) + " applied."), false);
+		showCard(server, who, k.coll(), row);
 		runRules(server, who, "applied", null, row, java.util.Map.of());
+	}
+
+	/** Shows the new condition as a card, as the sheet's Show button would (plain: text, numbers and notes of the row). */
+	private static void showCard(MinecraftServer server, LivingEntity who, SheetFormat.Collection coll, CharacterData.Row row) {
+		try {
+			java.util.List<String> stats = new java.util.ArrayList<>();
+			StringBuilder body = new StringBuilder();
+			SheetFormat.Col nameCol = coll.nameCol();
+			for (SheetFormat.Col col : coll.columns) {
+				if (col == nameCol || col.isRules() || col.hidden) continue;
+				String t = row.texts.getOrDefault(col.id, "").trim();
+				switch (col.type) {
+					case "note" -> {
+						if (!t.isEmpty()) body.append(body.length() > 0 ? "\n" : "").append(t);
+					}
+					case "text" -> {
+						if (!t.isEmpty()) stats.add(col.label + ": " + t);
+					}
+					case "number" -> {
+						double v = row.values.getOrDefault(col.id, col.def);
+						if (v != 0) stats.add(col.label + ": " + (v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v)));
+					}
+					default -> {
+					}
+				}
+			}
+			int[] colors = {0xFF181B20, 0xFF20242B, 0xFF2C313A, 0xFFE0B84C, 0xFF9AA0A8, 0xFF6F7680, 0xFF5C0F1B, 0xFF8F1D2C};
+			dev.tacticalcombat.card.CardService.broadcast(server, "Rules", new dev.tacticalcombat.card.ShareCard(
+					Damage.nameOf(who), coll.addLabel == null ? "Condition" : coll.addLabel, row.texts.getOrDefault(nameCol.id, ""),
+					stats, body.toString(), colors));
+		} catch (RuntimeException ignored) {
+		}
 	}
 
 	/** Removes the first condition of that name from {@code who}'s sheet; its "ends" rules run. */

@@ -29,6 +29,14 @@ public final class CardService {
 		}
 	}
 
+	/** A card the server itself shows (a rule applied a condition): no player is behind it, so no rate limit and {@code from} is the label. */
+	public static void broadcast(net.minecraft.server.MinecraftServer server, String from, ShareCard card) {
+		ShareCardPayload payload = new ShareCardPayload(NEXT_ID.incrementAndGet(), from, card.cleaned());
+		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+			if (ServerPlayNetworking.canSend(p, ShareCardPayload.ID)) ServerPlayNetworking.send(p, payload);
+		}
+	}
+
 	public static void forget(UUID player) {
 		LAST.remove(player);
 	}

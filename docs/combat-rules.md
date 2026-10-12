@@ -548,3 +548,9 @@ Clicking a square pays for a Stride by itself; clicking again after the walk pay
   `combat` block is used. Characters without a `combat` block, and mobs, use 8 / 6 squares with one
   action and one bonus action.
 - Not here yet: initiative, attacks and damage, conditions, diagonal and difficult-terrain costs.
+
+## Cards for new conditions
+
+Adding a condition shows its card to everyone, as if Show was pressed: from the quick-condition buttons, from a new
+entry saved in the conditions list, and when a rule applies one (the server builds a plain card from the entry's
+text, number and note columns, sent under the name "Rules"). Changing an existing condition does not show it again.

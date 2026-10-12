@@ -1031,6 +1031,14 @@ public final class CharacterSheetScreen extends Screen {
 		say("Shown to everyone" + (cut ? " (text shortened to fit the card)" : ""));
 	}
 
+	/** A condition was just added on the sheet: show its card at once, as if Show was pressed. */
+	private static void showAdded(SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row) {
+		if (sc.format.combat == null || sc.format.combat.conditions == null
+				|| !coll.id.equals(sc.format.combat.conditions.collection())
+				|| !ClientPlayNetworking.canSend(dev.tacticalcombat.net.ShareCardRequestPayload.ID)) return;
+		ClientPlayNetworking.send(new dev.tacticalcombat.net.ShareCardRequestPayload(buildCard(sc, coll, row).cleaned()));
+	}
+
 	private static String lastShownKey = "";
 	private static long lastShownAt;
 
@@ -1282,6 +1290,7 @@ public final class CharacterSheetScreen extends Screen {
 		if (at >= 0) rows.set(at, copy);
 		else rows.add(copy);
 		store(sc.character);
+		showAdded(sc, target, copy);
 	}
 
 	private int drawTable(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
@@ -1702,9 +1711,14 @@ public final class CharacterSheetScreen extends Screen {
 		SheetFormat.Col nc = rowColl.nameCol();
 		if (nc != null && rowDraft.texts.getOrDefault(nc.id, "").isBlank()) rowDraft.texts.put(nc.id, "New entry");
 		List<CharacterData.Row> rows = rowOwner.rows(rowColl.id);
-		if (rowIndex >= 0 && rowIndex < rows.size()) rows.set(rowIndex, rowDraft);
-		else rows.add(rowDraft);
+		boolean added = !(rowIndex >= 0 && rowIndex < rows.size());
+		if (added) rows.add(rowDraft);
+		else rows.set(rowIndex, rowDraft);
 		store(rowOwner);
+		if (added) {
+			SheetFormat fmt = SheetLibrary.FORMATS.get(rowOwner.format);
+			if (fmt != null) showAdded(new SheetContext(fmt, rowOwner), rowColl, rowDraft);
+		}
 		cancelRow();
 	}
 
