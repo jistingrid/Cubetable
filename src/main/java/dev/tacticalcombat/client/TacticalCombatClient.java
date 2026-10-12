@@ -152,6 +152,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		HudRenderCallback.EVENT.register(CombatHud::render);
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
+		HudRenderCallback.EVENT.register(FloatingText::render);
 		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null && DmState.paused && !mc.options.hudHidden) {
@@ -175,7 +176,6 @@ public class TacticalCombatClient implements ClientModInitializer {
 				net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterRender(screen).register(
 						(s, ctx, mouseX, mouseY, delta) -> ShareCardHud.drawOverScreen(ctx, delta, mouseX, mouseY)));
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
-		WorldRenderEvents.AFTER_TRANSLUCENT.register(FloatingText::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientCombatState.tick(client);

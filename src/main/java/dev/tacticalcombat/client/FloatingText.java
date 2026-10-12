@@ -1,11 +1,9 @@
 package dev.tacticalcombat.client;
 
 import dev.tacticalcombat.net.FloatTextPayload;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
 
@@ -70,15 +68,14 @@ public final class FloatingText {
 		return 0xFF000000 | (r << 16) | (g << 8) | b;
 	}
 
-	public static void render(WorldRenderContext ctx) {
+	/** Drawn over the picture: each number's place in the world is projected onto the screen. */
+	public static void render(DrawContext g, net.minecraft.client.render.RenderTickCounter tick) {
 		if (ITEMS.isEmpty()) return;
 		MinecraftClient mc = MinecraftClient.getInstance();
-		MatrixStack ms = ctx.matrixStack();
-		if (mc.world == null || ms == null) return;
+		if (mc.world == null || mc.player == null || mc.options.hudHidden) return;
 		long now = System.currentTimeMillis();
-		Vec3d cam = ctx.camera().getPos();
+		Vec3d cam = mc.gameRenderer.getCamera().getPos();
 		TextRenderer font = mc.textRenderer;
-		VertexConsumerProvider.Immediate buffers = mc.getBufferBuilders().getEntityVertexConsumers();
 
 		ITEMS.removeIf(i -> now - i.born > LIFE_MS);
 		for (Item it : ITEMS) {
@@ -86,26 +83,24 @@ public final class FloatingText {
 			Entity e = mc.world.getEntityById(it.entityId);
 			if (e != null) it.last = new Vec3d(e.getX(), e.getY() + e.getHeight() + 0.3, e.getZ());
 			if (it.last == null) continue;
-			// the sideways spread is across the camera's view, so it always reads left-right
 			Vec3d toCam = cam.subtract(it.last);
 			Vec3d right = new Vec3d(-toCam.z, 0, toCam.x).normalize();
 			double rise = 0.9 * (1 - Math.pow(1 - t, 2)) + it.lift;
 			Vec3d at = it.last.add(right.multiply(it.side)).add(0, rise, 0);
+			double[] sp = MousePicker.project(mc, at);
+			if (sp == null) continue;
 
-			float pop = t < 0.12f ? 0.6f + 0.4f * (t / 0.12f) * 1.3f : 1f; // a small pop at the start
-			float scale = 0.03f * it.size * pop;
+			float pop = t < 0.12f ? 0.6f + 0.4f * (t / 0.12f) * 1.3f : 1f;
+			float dist = (float) Math.max(1.0, toCam.length());
+			float scale = Math.max(0.8f, Math.min(2.6f, 7f / dist)) * it.size * pop;
 			int alpha = t > 0.7f ? Math.max(8, Math.round(255 * (1 - (t - 0.7f) / 0.3f))) : 255;
 			int color = (alpha << 24) | (it.color & 0xFFFFFF);
 
-			ms.push();
-			ms.translate(at.x - cam.x, at.y - cam.y, at.z - cam.z);
-			ms.multiply(ctx.camera().getRotation());
-			ms.scale(-scale, -scale, scale);
-			float x = -font.getWidth(it.text) / 2f;
-			font.draw(it.text, x, 0, color, true, ms.peek().getPositionMatrix(), buffers,
-					TextRenderer.TextLayerType.SEE_THROUGH, 0, 0xF000F0);
-			ms.pop();
+			g.getMatrices().push();
+			g.getMatrices().translate((float) sp[0], (float) sp[1], 400f);
+			g.getMatrices().scale(scale, scale, 1f);
+			g.drawText(font, it.text, -font.getWidth(it.text) / 2, -4, color, true);
+			g.getMatrices().pop();
 		}
-		buffers.draw();
 	}
 }
