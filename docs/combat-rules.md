@@ -427,6 +427,13 @@ that creature's sheet, shows the dice to everyone with "DC 11: success / failure
 The creature's own conditions can change the roll (Poisoned's `roll` disadvantage applies to its saves). Other
 mechanics can use the same request later (`Checks.request` on the server), in a fight or out of one.
 
+**Roll request tool (Dungeon Master).** In the DM tools (the Encounter window, "Roll request" > Open) tick who to ask
+(players online and Actors placed in the world; buttons for All players / Everyone / None), click the roll to cycle
+through every check the game packs offer (or a plain d20), type a DC (blank: none) and choose whether the players see
+it, then Request. Each creature's owner gets the same Roll / Advantage / Disadvantage prompt; a player rolls their own
+character, the DM rolls for creatures. The dice show to everyone with success or failure when there is a DC. Your
+choices are kept while the game is open, so asking the same table again takes one click.
+
 ## Initiative
 
 ```json

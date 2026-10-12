@@ -58,7 +58,7 @@ public final class Checks {
 							   boolean showDc, Consumer<Result> done) {
 		String name = Damage.nameOf(target);
 		CombatRules.Check def = definition(target, checkId);
-		String label = def != null ? def.label() : checkId.isEmpty() ? "check" : checkId;
+		String label = def != null ? def.label() : checkId.isEmpty() ? "Roll" : checkId;
 		List<ServerPlayerEntity> owners = new ArrayList<>();
 		if (target instanceof ServerPlayerEntity tp) {
 			owners.add(tp);
@@ -77,6 +77,21 @@ public final class Checks {
 		PENDING.put(id, new Pending(id, target.getUuid(), name, requester, checkId, label, dc, showDc, uuids, done));
 		CheckPromptPayload payload = new CheckPromptPayload(id, false, name, requester, label, showDc ? dc : -1);
 		for (ServerPlayerEntity p : owners) ServerPlayNetworking.send(p, payload);
+	}
+
+	/** A Dungeon Master asks creatures for a roll (the Roll request tool): each one's owner gets the prompt. */
+	public static void dmRequest(ServerPlayerEntity dm, dev.tacticalcombat.net.RollRequestPayload p) {
+		MinecraftServer server = dm.getServer();
+		if (server == null || !Roles.isDm(dm.getUuid())) return;
+		int asked = 0;
+		String who = dm.getName().getString();
+		for (int id : p.targets()) {
+			Entity e = dm.getServerWorld().getEntityById(id);
+			if (!(e instanceof LivingEntity target) || !target.isAlive()) continue;
+			request(server, target, who, p.check(), p.dc(), p.showDc(), null);
+			asked++;
+		}
+		dm.sendMessage(Text.literal(asked == 0 ? "Roll request: nobody to ask." : "Roll request sent to " + asked + (asked == 1 ? " creature." : " creatures.")), false);
 	}
 
 	/** An owner pressed a button. mode: 0 roll, 1 advantage, 2 disadvantage. */

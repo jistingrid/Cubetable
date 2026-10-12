@@ -74,6 +74,9 @@ public class TacticalCombatMod implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.TimePause::tick);
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.actor.Possession::tick);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.TargetPayload.ID, dev.tacticalcombat.net.TargetPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.RollRequestPayload.ID, dev.tacticalcombat.net.RollRequestPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.RollRequestPayload.ID, (payload, context) ->
+				context.server().execute(() -> dev.tacticalcombat.combat.Checks.dmRequest(context.player(), payload)));
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.CheckPromptPayload.ID, dev.tacticalcombat.net.CheckPromptPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.CheckChoicePayload.ID, dev.tacticalcombat.net.CheckChoicePayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CheckChoicePayload.ID, (payload, context) ->

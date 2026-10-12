@@ -422,6 +422,9 @@ public final class EncounterScreen extends Screen {
 					MinecraftClient.getInstance().setScreen(null);
 					ActorStageScreen.requestOpen();
 				});
+		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Roll request",
+				"Ask players or creatures for a roll: pick who, the kind of roll (a saving throw, an ability check ...) and the DC. Each one's owner gets a prompt to roll it.",
+				() -> MinecraftClient.getInstance().setScreen(new RollRequestScreen()));
 		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH,
 				DmState.missingFormats.isEmpty() ? "Game packs" : "Game packs (server lacks " + DmState.missingFormats.size() + ")",
 				"The server reads hit points and combat rules from its own copy of the game packs. Send replaces its copy with yours (done by itself when the server has none of a pack its characters use).",
