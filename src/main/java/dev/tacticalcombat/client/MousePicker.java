@@ -91,7 +91,9 @@ public final class MousePicker {
 		for (int i = 0; i < 64; i++) {
 			BlockHitResult hit = mc.world.raycast(new RaycastContext(start, end,
 					RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, mc.player));
-			if (hit.getType() != HitResult.Type.BLOCK || !BlockFade.isFaded(hit.getBlockPos().asLong())) {
+			// faded blocks and blocks nobody collides with (grass, flowers, ferns ...) are looked through
+			if (hit.getType() != HitResult.Type.BLOCK || !(BlockFade.isFaded(hit.getBlockPos().asLong())
+					|| mc.world.getBlockState(hit.getBlockPos()).getCollisionShape(mc.world, hit.getBlockPos()).isEmpty())) {
 				return hit;
 			}
 

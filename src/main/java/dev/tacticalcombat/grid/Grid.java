@@ -119,7 +119,10 @@ public final class Grid {
 
 		// otherwise the floor is the full block below (carpet / snow layer inside the square is fine)
 		VoxelShape belowShape = below.getCollisionShape(world, p.down());
-		return !belowShape.isEmpty() && Math.abs(belowShape.getMax(Direction.Axis.Y) - 1.0) < 0.01;
+		// a full block, or one a little lower (dirt path, farmland: 15/16)
+		if (belowShape.isEmpty()) return false;
+		double top = belowShape.getMax(Direction.Axis.Y);
+		return top > 0.9 && top < 1.01;
 	}
 
 	public static boolean isPassable(World world, BlockPos p) {
