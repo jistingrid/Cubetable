@@ -62,6 +62,7 @@ public class TacticalCombatMod implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.DmTools::tick);
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.PossessPayload.ID, dev.tacticalcombat.net.PossessPayload.CODEC);
 		dev.tacticalcombat.actor.Possession.register();
+		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.FloatTextPayload.ID, dev.tacticalcombat.net.FloatTextPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.PausePayload.ID, dev.tacticalcombat.net.PausePayload.CODEC);
 		dev.tacticalcombat.combat.TimePause.register();
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.DownedPayload.ID, dev.tacticalcombat.net.DownedPayload.CODEC);

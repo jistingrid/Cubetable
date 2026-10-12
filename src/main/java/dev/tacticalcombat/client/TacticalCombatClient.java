@@ -86,6 +86,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(() -> CheckPrompt.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DownedPayload.ID,
 				(payload, context) -> context.client().execute(() -> DownedCard.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.FloatTextPayload.ID,
+				(payload, context) -> context.client().execute(() -> FloatingText.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PausePayload.ID,
 				(payload, context) -> context.client().execute(() -> DmState.paused = payload.paused()));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PossessPayload.ID,
@@ -108,6 +110,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
 				dev.tacticalcombat.actor.ModEntities.ACTOR, ActorEntityRenderer::new);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			FloatingText.clear();
 			ClientCombatState.reset();
 			BlockFade.clear();
 			DiceAnimation.clear();
@@ -172,6 +175,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 				net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterRender(screen).register(
 						(s, ctx, mouseX, mouseY, delta) -> ShareCardHud.drawOverScreen(ctx, delta, mouseX, mouseY)));
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
+		WorldRenderEvents.AFTER_TRANSLUCENT.register(FloatingText::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientCombatState.tick(client);

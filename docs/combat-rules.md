@@ -554,3 +554,16 @@ Clicking a square pays for a Stride by itself; clicking again after the walk pay
 Adding a condition shows its card to everyone, as if Show was pressed: from the quick-condition buttons, from a new
 entry saved in the conditions list, and when a rule applies one (the server builds a plain card from the entry's
 text, number and note columns, sent under the name "Rules"). Changing an existing condition does not show it again.
+
+## Floating numbers
+
+Whenever a creature loses or gains something, a number floats up over it for everyone within 96 blocks who has the mod:
+
+- **Damage** is red, minus sign. The shade follows how much of the creature's maximum health the hit was: a light
+  red for a scratch, a deep dark red at half its health or more in one blow (bigger hits also print larger).
+- **Healing** is green, plus sign.
+- **Other bars** (mana, sanity ...) show `+3 Mana` / `-2 Sanity` in the bar's own colour.
+- **Statuses** show the condition's name in gold when it is added and `-Name` in grey when it ends.
+
+It follows the health bar of the sheet, so it also covers rule damage, downed-save healing and Actors; creatures with
+plain Minecraft health get it from damage dealt through a damage prompt.

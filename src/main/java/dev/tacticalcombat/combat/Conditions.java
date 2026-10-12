@@ -99,7 +99,10 @@ public final class Conditions {
 			}
 		}
 		if (who == null) return;
-		for (CharacterData.Row r : added) runRules(server, who, "applied", null, r, java.util.Map.of());
+		for (CharacterData.Row r : added) {
+			Floaters.status(who, r.texts.getOrDefault(nameCol.id, ""), true);
+			runRules(server, who, "applied", null, r, java.util.Map.of());
+		}
 	}
 
 	/**
@@ -313,6 +316,7 @@ public final class Conditions {
 		save(server, k.entry(), c);
 		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(who) + ": " + row.texts.get(nameCol.id) + " applied."), false);
 		showCard(server, who, k.coll(), row);
+		Floaters.status(who, row.texts.get(nameCol.id), true);
 		runRules(server, who, "applied", null, row, java.util.Map.of());
 	}
 
@@ -363,6 +367,7 @@ public final class Conditions {
 		rows.remove(gone);
 		save(server, k.entry(), c);
 		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(who) + ": " + name + " ended."), false);
+		Floaters.status(who, name, false);
 		runRules(server, who, "expired", null, gone, java.util.Map.of());
 	}
 
@@ -509,6 +514,7 @@ public final class Conditions {
 				ended.add(row);
 				String name = nameCol == null ? "A condition" : row.texts.getOrDefault(nameCol.id, "A condition");
 				server.getPlayerManager().broadcast(Text.literal(who2 + ": " + name + " ended."), false);
+				Floaters.status(who, name, false);
 			} else {
 				row.values.put(durCol.id, left);
 			}

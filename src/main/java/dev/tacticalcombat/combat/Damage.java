@@ -110,6 +110,7 @@ public final class Damage {
 				if (target instanceof ServerPlayerEntity tp) SheetHealth.syncBar(tp);
 			} else if (n > 0) {
 				target.damage(target.getWorld().getDamageSources().generic(), n);
+				Floaters.damage(target, n, target.getMaxHealth());
 			}
 			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_received", name, n), false);
 		} else {
@@ -118,6 +119,7 @@ public final class Damage {
 				if (target instanceof ServerPlayerEntity tp) SheetHealth.syncBar(tp);
 			} else {
 				target.heal(n);
+				Floaters.heal(target, n);
 			}
 			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_healed", name, n), false);
 		}

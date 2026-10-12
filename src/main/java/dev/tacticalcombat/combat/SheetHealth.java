@@ -148,6 +148,7 @@ public final class SheetHealth {
 			return false;
 		}
 		double now = stored(f, c, bar.now());
+		double maxHp = bar.max().isBlank() ? 0 : new SheetContext(f, c).number(bar.max());
 		if (amount < 0) {
 			double loss = -amount;
 			if (!bar.temp().isBlank()) {
@@ -161,10 +162,18 @@ public final class SheetHealth {
 			double max = bar.max().isBlank() ? Double.MAX_VALUE : new SheetContext(f, c).number(bar.max());
 			c.values.put(bar.now(), Math.min(Math.max(max, now), now + amount));
 		}
+		double after = c.values.getOrDefault(bar.now(), now);
 		com.google.gson.JsonObject json = c.toJson();
 		json.addProperty("id", e.id);
 		e.json = json;
 		CharacterSync.changedByServer(server, e);
+		// the number floating over the creature
+		if (bar.vital()) {
+			if (amount < 0) Floaters.damage(player, -amount, maxHp);
+			else Floaters.heal(player, after - now);
+		} else {
+			Floaters.resource(player, bar.label(), amount < 0 ? amount : after - now, color(bar.color()));
+		}
 		return true;
 	}
 
