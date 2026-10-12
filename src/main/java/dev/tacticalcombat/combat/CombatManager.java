@@ -55,6 +55,7 @@ public final class CombatManager {
 			if (combat.tick()) {
 				combat.end();
 				it.remove();
+				if (COMBATS.isEmpty()) DmTools.clearChecks();
 			}
 		}
 
@@ -118,14 +119,39 @@ public final class CombatManager {
 		return null;
 	}
 
+	/**
+	 * A Dungeon Master starts an encounter with whoever is checked in the encounter window (see
+	 * {@link DmTools#isChecked}). Returns null on success, else what is missing.
+	 */
+	public static String startSelected(ServerPlayerEntity dm) {
+		if (primary() != null) return "tacticalcombat.msg.already_fighting";
+		if (!(dm.getWorld() instanceof ServerWorld world)) return "tacticalcombat.msg.no_enemies";
+		List<ServerPlayerEntity> party = new ArrayList<>();
+		for (ServerPlayerEntity p : world.getPlayers(CombatManager::canFight)) if (DmTools.isChecked(p)) party.add(p);
+		List<LivingEntity> others = new ArrayList<>();
+		for (dev.tacticalcombat.actor.ActorRecord r : dev.tacticalcombat.actor.ActorRegistry.all()) {
+			LivingEntity body = dev.tacticalcombat.actor.ActorRegistry.bodyOf(world.getServer(), r);
+			if (body != null && body.isAlive() && body.getWorld() == world && !isInCombat(body) && DmTools.isChecked(body)) others.add(body);
+		}
+		if (party.isEmpty() || others.isEmpty()) return "tacticalcombat.msg.no_enemies";
+		List<MobEntity> mobs = new ArrayList<>();
+		for (LivingEntity e : others) if (e instanceof MobEntity m) mobs.add(m);
+		Combat combat = Combat.start(world, party, mobs);
+		COMBATS.add(combat);
+		for (LivingEntity e : others) if (!(e instanceof MobEntity)) combat.add(e);
+		return null;
+	}
+
 	public static void endCombat(Combat combat) {
 		combat.end();
 		COMBATS.remove(combat);
+		if (COMBATS.isEmpty()) DmTools.clearChecks();
 	}
 
 	public static void clear() {
 		for (Combat c : COMBATS) c.end();
 		COMBATS.clear();
+		DmTools.clearChecks();
 	}
 
 	// ---------------------------------------------------------------- rule hooks

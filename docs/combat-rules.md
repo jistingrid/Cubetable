@@ -303,9 +303,15 @@ player's character (a new sheet, a revival) is up to the table.
 A Dungeon Master can open the encounter window at any time with `J` (or `/encounter`; `J` again closes it). It has
 two tabs.
 
-- **Encounter**: with no fight running it lists the players online, and **Start encounter** gathers the party around
-  the DM (or the nearest player) with every hostile creature nearby. During a fight it is the initiative window
-  (see below) with an **End encounter** button (click twice) next to Start combat.
+- **Encounter**: with no fight running it lists everyone who can take part - every player online (spectators
+  excluded) and every Actor placed in the world - **Party** on the left, **Enemies** (hostile Actors) on the right,
+  each with a checkbox. Ticked ones are in the fight; click a row to tick or untick it, or use **All** / **None**.
+  By default every player and every hostile Actor near a player is ticked. **Start encounter** begins the fight with
+  the ticked ones (it needs at least one player and one other). During a fight the window is the initiative window
+  (see below); its **Participants** button shows the same checklist, where ticking someone adds them to the running
+  fight (they roll initiative and wait at the end of the order) and unticking takes them out, also from the middle of
+  a fight (if it was their turn, the next one begins). An unticked player is not pulled back in by walking close
+  to the fight. The ticks reset when the fight ends. **End encounter** (click twice) sits next to Start combat.
 - **DM tools**: switches for the DM. *Auto movement* is off by default: while a Dungeon Master is connected they walk the creatures. On, creatures take their own turns (they always do when no DM is connected). Off, the DM walks
   each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
   tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.

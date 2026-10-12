@@ -14,11 +14,14 @@ import java.util.List;
  * missingFormats: sheet formats that characters on the server use but the server has no game pack for.
  */
 public record DmStatePayload(boolean autoMovement, List<Who> players, List<ActorInfo> actors, List<String> folders,
-							 List<String> missingFormats) implements CustomPayload {
+							 List<String> missingFormats, List<Member> roster) implements CustomPayload {
 	public static final Id<DmStatePayload> ID = new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "dm_state"));
 
 	/** One player: entity id, name, health (the sheet's when they have one), and whether they are in a fight. */
 	public record Who(int entityId, String name, float hp, float max, boolean inCombat) {}
+
+	/** One possible participant of a fight (a player or a placed Actor); checked = in the fight, or going to be. */
+	public record Member(int entityId, String name, float hp, float max, boolean hostile, boolean player, boolean checked) {}
 
 	/** One Actor for the Actors window; entityId is -1 while it is not placed in the world. */
 	public record ActorInfo(String id, String name, String sheetId, boolean ownsSheet, String kind, String value,
@@ -47,7 +50,13 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			int g = buf.readVarInt();
 			List<String> missing = new ArrayList<>(g);
 			for (int i = 0; i < g; i++) missing.add(buf.readString(64));
-			return new DmStatePayload(auto, list, actors, folders, missing);
+			int r = buf.readVarInt();
+			List<Member> roster = new ArrayList<>(r);
+			for (int i = 0; i < r; i++) {
+				roster.add(new Member(buf.readVarInt(), buf.readString(64), buf.readFloat(), buf.readFloat(), buf.readBoolean(),
+						buf.readBoolean(), buf.readBoolean()));
+			}
+			return new DmStatePayload(auto, list, actors, folders, missing, roster);
 		}
 
 		@Override
@@ -82,6 +91,16 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			for (String f : p.folders) buf.writeString(f, 32);
 			buf.writeVarInt(p.missingFormats.size());
 			for (String f : p.missingFormats) buf.writeString(f, 64);
+			buf.writeVarInt(p.roster.size());
+			for (Member m : p.roster) {
+				buf.writeVarInt(m.entityId);
+				buf.writeString(m.name, 64);
+				buf.writeFloat(m.hp);
+				buf.writeFloat(m.max);
+				buf.writeBoolean(m.hostile);
+				buf.writeBoolean(m.player);
+				buf.writeBoolean(m.checked);
+			}
 		}
 	};
 

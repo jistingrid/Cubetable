@@ -56,6 +56,8 @@ public final class EncounterScreen extends Screen {
 	private static int pendingTab = -1;
 	private boolean endArmed;
 	private long endArmedAt;
+	/** A Dungeon Master in a fight chose to see who is in it (the checklist) instead of the initiative lists. */
+	private boolean rosterView;
 
 	final int bg, panel, panelHover, edge, gold, muted, dim, bannerA, bannerB;
 
@@ -232,6 +234,7 @@ public final class EncounterScreen extends Screen {
 		g.fill(x, y, x + w, y + h, bg);
 
 		boolean inFight = ClientCombatState.active;
+		if (!inFight) rosterView = false;
 		boolean planning = ClientCombatState.planning;
 		List<CombatStatePayload.Entry> entries = ClientCombatState.entries;
 
@@ -289,23 +292,8 @@ public final class EncounterScreen extends Screen {
 		int listH = h - (top - y) - 6 - 16 - stripH - FOOT_H - 4;
 		int footY = y + h - FOOT_H;
 
-		if (!inFight) { // a Dungeon Master looking at the table between fights
-			drawHeader(g, leftX, headY, colW, "Party (" + DmState.players.size() + ")");
-			drawHeader(g, rightX, headY, colW, "Enemies");
-			g.enableScissor(x, listY, x + w, listY + listH);
-			drawIdleParty(g, leftX, listY, colW, listH / ROW_H + 1);
-			int ty = listY + 4;
-			for (net.minecraft.text.OrderedText line : textRenderer.wrapLines(
-					Text.literal("Hostile creatures near the party join when the encounter starts."), colW - 10)) {
-				g.drawText(textRenderer, line, rightX + 5, ty, dim, false);
-				ty += 10;
-			}
-			g.disableScissor();
-			g.fill(x + 1, footY, x + w - 1, footY + 1, edge);
-			String start = "Start encounter";
-			button(g, x + w - tw(start) - 22, footY + 6, start, () -> ClientPlayNetworking.send(new DmActionPayload(0, 0)),
-					"Gather the party and every hostile creature nearby", 0xFF6B4E12, gold);
-			g.drawText(textRenderer, "No fight is running.", x + pad, footY + 8, dim, false);
+		if (!inFight || (dm && rosterView)) { // who is in the fight (a Dungeon Master, between fights or on request)
+			drawRoster(g, x, y, w, h, top, inFight);
 			drawGrip(g, x, y, w, h);
 			drawTooltip(g, mx, my);
 			return;
@@ -362,6 +350,13 @@ public final class EncounterScreen extends Screen {
 		} else {
 			g.drawText(textRenderer, "The fight is under way.", x + pad, footY + 8, dim, false);
 		}
+		if (dm) {
+			String pb = "Participants";
+			button(g, fx - tw(pb) - 8, footY + 6, pb, () -> {
+				rosterView = true;
+				scroll = 0;
+			}, "Add creatures to the fight or take them out", panel, 0xFF3B414C);
+		}
 
 		drawGrip(g, x, y, w, h);
 		drawTooltip(g, mx, my);
@@ -377,27 +372,87 @@ public final class EncounterScreen extends Screen {
 		send(7, 0, 0);
 	}
 
-	/** The players online, for the Dungeon Master between fights. */
-	private void drawIdleParty(DrawContext g, int x, int y, int w, int rows) {
-		List<DmStatePayload.Who> list = DmState.players;
-		if (list.isEmpty()) {
-			g.drawText(textRenderer, "Nobody", x + 5, y + 6, dim, false);
-			return;
+	/**
+	 * Everyone who can be in a fight, each with a checkbox: ticked ones are in it (or start in it). Between fights this
+	 * is the whole window and Start encounter begins the fight with the ticked ones; in a fight it is how the Dungeon
+	 * Master adds or removes participants.
+	 */
+	private void drawRoster(DrawContext g, int x, int y, int w, int h, int top, boolean inFight) {
+		int pad = 8;
+		int colW = (w - pad * 3) / 2;
+		int leftX = x + pad;
+		int rightX = x + pad * 2 + colW;
+		int headY = top + 6;
+		int listY = headY + 16;
+		int footY = y + h - FOOT_H;
+		int listH = footY - listY - 4;
+
+		List<DmStatePayload.Member> party = new ArrayList<>();
+		List<DmStatePayload.Member> foes = new ArrayList<>();
+		for (DmStatePayload.Member m : DmState.roster) (m.hostile() ? foes : party).add(m);
+		int in = 0;
+		for (DmStatePayload.Member m : DmState.roster) if (m.checked()) in++;
+		drawHeader(g, leftX, headY, colW, "Party (" + party.size() + ")");
+		drawHeader(g, rightX, headY, colW, "Enemies (" + foes.size() + ")");
+
+		int rows = Math.max(1, listH / ROW_H);
+		int maxScroll = Math.max(0, Math.max(party.size(), foes.size()) - rows);
+		scroll = MathHelper.clamp(scroll, 0, maxScroll);
+		g.enableScissor(x, listY, x + w, listY + listH);
+		drawMembers(g, party, leftX, listY, colW, rows, 0xFF3CB84A);
+		drawMembers(g, foes, rightX, listY, colW, rows, 0xFFB8323F);
+		if (party.isEmpty()) g.drawText(textRenderer, "Nobody online", leftX + 5, listY + 6, dim, false);
+		if (foes.isEmpty()) {
+			int ty = listY + 4;
+			for (net.minecraft.text.OrderedText line : textRenderer.wrapLines(
+					Text.literal("No hostile Actors are placed in the world. Make one in the Actors tab."), colW - 10)) {
+				g.drawText(textRenderer, line, rightX + 5, ty, dim, false);
+				ty += 10;
+			}
 		}
-		scroll = MathHelper.clamp(scroll, 0, Math.max(0, list.size() - rows));
+		g.disableScissor();
+		if (maxScroll > 0) {
+			g.drawText(textRenderer, "scroll for more", x + w / 2 - tw("scroll for more") / 2, listY + listH - 8, dim, false);
+		}
+
+		g.fill(x + 1, footY, x + w - 1, footY + 1, edge);
+		int fx = x + w - 8;
+		if (inFight) {
+			String back = "Back to the fight";
+			fx -= button(g, fx - tw(back) - 8, footY + 6, back, () -> rosterView = false, "Show the initiative lists again", panel, 0xFF3B414C);
+			g.drawText(textRenderer, "Tick to add to the fight, untick to remove.", x + pad, footY + 8, dim, false);
+		} else {
+			String start = "Start encounter";
+			fx -= button(g, fx - tw(start) - 8, footY + 6, start, () -> ClientPlayNetworking.send(new DmActionPayload(0, 0)),
+					"Begin the fight with everyone ticked (at least one player and one other)", 0xFF6B4E12, gold);
+			fx -= 6;
+			int bx = x + pad;
+			bx += button(g, bx, footY + 6, "All", () -> ClientPlayNetworking.send(new DmActionPayload(4, 1)), "Tick everyone", panel, 0xFF3B414C) + 4;
+			bx += button(g, bx, footY + 6, "None", () -> ClientPlayNetworking.send(new DmActionPayload(4, 0)), "Untick everyone", panel, 0xFF3B414C) + 6;
+			g.drawText(textRenderer, in + " in the fight", bx, footY + 8, dim, false);
+		}
+	}
+
+	private void drawMembers(DrawContext g, List<DmStatePayload.Member> list, int x, int y, int w, int rows, int stripe) {
 		for (int i = 0; i < rows && i + scroll < list.size(); i++) {
-			DmStatePayload.Who p = list.get(i + scroll);
+			DmStatePayload.Member m = list.get(i + scroll);
 			int ry = y + i * ROW_H;
-			g.fill(x, ry, x + w, ry + ROW_H - 2, panel);
-			g.fill(x, ry, x + 2, ry + ROW_H - 2, 0xFF3CB84A);
-			g.drawItem(new ItemStack(Items.PLAYER_HEAD), x + 5, ry + 3);
-			g.drawText(textRenderer, textRenderer.trimToWidth(p.name(), w - 30), x + 24, ry + 3, 0xFFE6E8EB, false);
-			float frac = p.max() <= 0 ? 0 : Math.max(0f, Math.min(1f, p.hp() / p.max()));
-			int barW = Math.min(70, w - 30);
-			g.fill(x + 24, ry + 14, x + 24 + barW, ry + 17, 0xFF05060A);
-			g.fill(x + 24, ry + 14, x + 24 + Math.round(barW * frac), ry + 17, 0xFF50D060);
-			String hp = Math.round(p.hp()) + "/" + Math.round(p.max());
-			g.drawText(textRenderer, hp, x + 24 + barW + 4, ry + 12, muted, false);
+			boolean over = hit(x, ry, w, ROW_H - 2, () -> ClientPlayNetworking.send(new DmActionPayload(3, m.entityId())),
+					m.checked() ? "Click to take out of the fight" : "Click to put in the fight");
+			g.fill(x, ry, x + w, ry + ROW_H - 2, over ? panelHover : panel);
+			g.fill(x, ry, x + 2, ry + ROW_H - 2, stripe);
+			// the checkbox
+			int cx = x + 6, cy = ry + 6;
+			g.fill(cx, cy, cx + 11, cy + 11, m.checked() ? gold : 0xFF5A616C);
+			g.fill(cx + 1, cy + 1, cx + 10, cy + 10, 0xFF0F1114);
+			if (m.checked()) g.fill(cx + 3, cy + 3, cx + 8, cy + 8, gold);
+			g.drawItem(new ItemStack(m.player() ? Items.PLAYER_HEAD : Items.ZOMBIE_HEAD), x + 21, ry + 3);
+			g.drawText(textRenderer, textRenderer.trimToWidth(m.name(), w - 62), x + 40, ry + 3, m.checked() ? 0xFFE6E8EB : muted, false);
+			float frac = m.max() <= 0 ? 0 : Math.max(0f, Math.min(1f, m.hp() / m.max()));
+			int barW = Math.min(60, w - 50);
+			g.fill(x + 40, ry + 14, x + 40 + barW, ry + 17, 0xFF05060A);
+			g.fill(x + 40, ry + 14, x + 40 + Math.round(barW * frac), ry + 17, 0xFF50D060);
+			g.drawText(textRenderer, Math.round(m.hp()) + "/" + Math.round(m.max()), x + 40 + barW + 4, ry + 12, muted, false);
 		}
 	}
 

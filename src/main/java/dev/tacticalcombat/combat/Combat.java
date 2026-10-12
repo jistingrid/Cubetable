@@ -595,6 +595,7 @@ public final class Combat {
 			joiners.addAll(world.getPlayers(o ->
 					!o.isSpectator() && o.isAlive()
 							&& !CombatManager.isInCombat(o)
+							&& !DmTools.isExcluded(o)
 							&& CombatManager.isNear(o, p, CombatConfig.JOIN_RANGE, CombatConfig.JOIN_VERTICAL)));
 		}
 		for (LivingEntity e : joiners) {
@@ -614,6 +615,32 @@ public final class Combat {
 			}
 		}
 		return TurnSetup.basic(CombatConfig.MOB_MOVEMENT);
+	}
+
+	/** The Dungeon Master takes a creature out of the running fight. */
+	public void remove(LivingEntity entity) {
+		Combatant c = get(entity);
+		if (c == null) return;
+		int idx = order.indexOf(c);
+		boolean wasCurrent = !planning && idx == turn;
+		order.remove(idx);
+		if (idx < turn) turn--;
+		gridDirty = true;
+		if (entity instanceof ServerPlayerEntity p) {
+			sendInactive(p);
+			notified.remove(p);
+		}
+		if (order.isEmpty()) {
+			turn = 0;
+			sync();
+			return;
+		}
+		if (turn >= order.size()) {
+			turn = 0;
+			if (!planning) round++;
+		}
+		if (wasCurrent) beginTurn();
+		sync();
 	}
 
 	/** The Dungeon Master brings an Actor (or anything else) into the running fight. */

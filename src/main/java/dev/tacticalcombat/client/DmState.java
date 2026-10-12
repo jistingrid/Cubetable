@@ -19,6 +19,8 @@ public final class DmState {
 	public static List<DmStatePayload.Who> players = List.of();
 	public static List<DmStatePayload.ActorInfo> actors = List.of();
 	public static List<String> folders = List.of();
+	/** Everyone who can be in a fight, ticked or not. */
+	public static List<DmStatePayload.Member> roster = List.of();
 	/** Formats the server has characters for but no game pack. */
 	public static List<String> missingFormats = List.of();
 
@@ -29,6 +31,7 @@ public final class DmState {
 		players = p.players();
 		actors = p.actors();
 		folders = p.folders();
+		roster = p.roster();
 		missingFormats = p.missingFormats();
 		FormatUploader.offer(p.missingFormats());
 	}
@@ -46,6 +49,7 @@ public final class DmState {
 		players = List.of();
 		actors = List.of();
 		folders = List.of();
+		roster = List.of();
 		missingFormats = List.of();
 		FormatUploader.reset();
 	}
