@@ -504,8 +504,9 @@ whose `initiative` block gives no `mob` roll.
 | `mob` | Formula for creatures that have no sheet (default `"d20"`). |
 | `order` | `"high"` (default): highest result goes first. `"low"`: lowest first. |
 | `tiebreak` | Formula; on equal results the higher value goes first. Players go before enemies after that. |
+| `grouping` | Who takes turns together. Left out: everyone has their own place in the order. `"side"`: the players act one after another, then the enemies (or the other way round), whichever side has the best result first (Fire Emblem phases). `"players_first"` / `"enemies_first"`: the same with a fixed first side. Inside a side the order is the initiative order. Works without a `roll` too: `"initiative": { "grouping": "players_first" }` is a game with no initiative roll whose sides simply take phases. |
 
-**No `initiative` block = this game has no initiative roll.** The encounter window shows no roll buttons
+**No `initiative` block (or one with no `roll`) = this game has no initiative roll.** The encounter window shows no roll buttons
 and the Dungeon Master puts everyone in order by hand (see the `percentile` pack).
 
 ### The encounter window

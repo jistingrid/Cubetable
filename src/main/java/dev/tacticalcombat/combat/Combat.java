@@ -96,6 +96,7 @@ public final class Combat {
 			combat.order.add(c);
 		}
 		combat.turn = 0;
+		if (!combat.rule.grouping().isEmpty()) combat.resort();
 		for (ServerPlayerEntity p : players) {
 			p.sendMessage(Text.translatable("tacticalcombat.msg.combat_start"), true);
 		}
@@ -121,7 +122,23 @@ public final class Combat {
 			if (v != 0) return v;
 			return Boolean.compare(!a.isPlayer(), !b.isPlayer());
 		});
+		if (!rule.grouping().isEmpty()) groupBySide();
 		if (cur != null) turn = Math.max(0, order.indexOf(cur));
+	}
+
+	/**
+	 * Initiative grouping: the combatants of a side act one after the other, then the next side (Fire Emblem phases).
+	 * "side": the side whose first combatant is first in the order goes first; "players_first" / "enemies_first": fixed.
+	 * The order inside a side is kept (the sort is stable).
+	 */
+	private void groupBySide() {
+		int first = switch (rule.grouping()) {
+			case "players_first" -> 0;
+			case "enemies_first" -> 1;
+			default -> order.isEmpty() || order.get(0).isPlayer() ? 0 : 1;
+		};
+		order.sort((a, b) -> Integer.compare(a.isPlayer() ? (first == 0 ? 0 : 1) : (first == 0 ? 1 : 0),
+				b.isPlayer() ? (first == 0 ? 0 : 1) : (first == 0 ? 1 : 0)));
 	}
 
 	// ---------------------------------------------------------------- initiative / encounter
@@ -690,6 +707,7 @@ public final class Combat {
 		Combatant joiner = new Combatant(entity, 0);
 		joiner.rule = entity instanceof ServerPlayerEntity p ? ruleOf(p) : rule;
 		order.add(joiner); // waits at the end of the order until it has rolled
+		if (!rule.grouping().isEmpty()) resort();
 		if (!planning && joiner.rule.hasRoll()) {
 			ServerPlayerEntity roller = null;
 			if (entity instanceof ServerPlayerEntity p) roller = p;

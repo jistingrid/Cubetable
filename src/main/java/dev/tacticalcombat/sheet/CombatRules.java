@@ -214,8 +214,10 @@ public final class CombatRules {
 	 * @param mob      formula for creatures without a sheet (default "d20")
 	 * @param low      true: the lowest result goes first
 	 * @param tiebreak formula; on equal results the higher value goes first (may be empty)
+	 * @param grouping "" (everyone in their own place), "side" (each side acts together, the side with the best result
+	 *                 first), "players_first" or "enemies_first" (fixed phases)
 	 */
-	public record Initiative(String roll, String mob, boolean low, String tiebreak) {}
+	public record Initiative(String roll, String mob, boolean low, String tiebreak, String grouping) {}
 
 	/**
 	 * A way to spend resources on more movement.
@@ -274,10 +276,12 @@ public final class CombatRules {
 		if (o.has("initiative") && o.get("initiative").isJsonObject()) {
 			JsonObject i = o.getAsJsonObject("initiative");
 			String roll = i.has("roll") ? i.get("roll").getAsString() : "";
-			if (!roll.isBlank()) {
+			String grouping = i.has("grouping") ? i.get("grouping").getAsString().toLowerCase(Locale.ROOT).trim() : "";
+			if (!grouping.equals("side") && !grouping.equals("players_first") && !grouping.equals("enemies_first")) grouping = "";
+			if (!roll.isBlank() || !grouping.isEmpty()) { // grouping alone: no roll, the sides take turns in a fixed order
 				r.initiative = new Initiative(roll, i.has("mob") ? i.get("mob").getAsString() : r.defaultDie,
 						i.has("order") && i.get("order").getAsString().equalsIgnoreCase("low"),
-						i.has("tiebreak") ? i.get("tiebreak").getAsString() : "");
+						i.has("tiebreak") ? i.get("tiebreak").getAsString() : "", grouping);
 			}
 		}
 		if (o.has("hp") && o.get("hp").isJsonObject()) { // shorthand for the one health bar
