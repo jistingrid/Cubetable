@@ -427,6 +427,7 @@ A format describes an ability that does more than roll dice with columns on its 
 |---|---|
 | `rules` (type `rules`) | what it does: When / If / Do rules, edited as a list in the entry |
 | `use` (type `activate`, optional `uses`, `max`) | a **Use** button on the sheet row; `uses` / `max` name the number columns that count its uses ("Use 1/1"); each use takes one, and the button greys at 0 |
+| `recharge` (a choice column: Never / Short rest / Long rest) | which rest gives the feature its uses back: the pack's **Short rest** button (a `button` widget with `refill`, see sheet-formats) refills the features set to Short rest, **Long rest** those set to Short or Long rest. The Uses left counter on the sheet row follows |
 | cost | the source in `combat.actions` gives `cost` formulas on the row (`"bonus": "row.bonus_cost"`), paid when it is used |
 
 Clicking its action-bar slot (or tray entry) does the same as the Use button for an entry that has an activate column or an "I use it" rule and nothing to attack with. Using it pays the cost, says so in chat and runs the rules whose When is **I use it**. Their effects happen to the user (Auto = Self when you use it; for an attack's rules Auto = the target); each rule can be switched to **Self** or **Target** with the button on its first line. Formulas are the sheet's formulas: dice (`1d10`), sheet values (`level`, `str_mod`), the entry's own columns (`row.uses`, `row.bonus`) and, in `if` and values, the resources left this turn (`action`, `bonus`).

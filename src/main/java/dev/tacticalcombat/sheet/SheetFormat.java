@@ -195,6 +195,13 @@ public final class SheetFormat {
 		public final List<Item> items = new ArrayList<>();
 	}
 
+	/**
+	 * A rest button's refill of a collection: in every row whose choice column {@code matchColumn} reads one of
+	 * {@code values} (or in every row when {@code matchColumn} is empty), column {@code column} is set to the formula
+	 * {@code to}, calculated on that row.
+	 */
+	public record Refill(String collection, String column, String to, String matchColumn, List<String> values) {}
+
 	/** One row: optional mark, label, small text, a calculated value, roll buttons, or a widget. */
 	public static final class Item {
 		public String label = "";
@@ -216,6 +223,8 @@ public final class SheetFormat {
 		public String buttonsFrom;
 		/** Widget "button": stored values to set when pressed, name -> formula (a rest: slots back to their maximum). */
 		public final Map<String, String> set = new LinkedHashMap<>();
+		/** Widget "button": entries of a collection whose counter goes back to its maximum (uses per rest). */
+		public final List<Refill> refill = new ArrayList<>();
 		/** "" (plain row), "pips", "counter", "cycle", "rollmode" or "table". */
 		public String widget = "";
 		/** Stored value a widget edits (pips, counter, cycle). */
@@ -489,6 +498,21 @@ public final class SheetFormat {
 		if (o.has("set") && o.get("set").isJsonObject()) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("set").entrySet()) {
 				i.set.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
+			}
+		}
+		if (o.has("refill") && o.get("refill").isJsonArray()) {
+			for (JsonElement re : o.getAsJsonArray("refill")) {
+				if (!re.isJsonObject()) continue;
+				JsonObject ro = re.getAsJsonObject();
+				String coll = str(ro, "collection", "").toLowerCase(Locale.ROOT);
+				String column = str(ro, "column", "").toLowerCase(Locale.ROOT);
+				String to = str(ro, "to", "");
+				if (coll.isEmpty() || column.isEmpty() || to.isEmpty()) continue;
+				List<String> values = new ArrayList<>();
+				if (ro.has("values") && ro.get("values").isJsonArray()) {
+					for (JsonElement v : ro.getAsJsonArray("values")) values.add(v.getAsString().trim().toLowerCase(Locale.ROOT));
+				}
+				i.refill.add(new Refill(coll, column, to, str(ro, "match", "").toLowerCase(Locale.ROOT), values));
 			}
 		}
 		if (i.collection != null) i.collection = i.collection.toLowerCase(Locale.ROOT);

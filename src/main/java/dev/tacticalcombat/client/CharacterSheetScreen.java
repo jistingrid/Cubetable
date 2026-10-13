@@ -1999,6 +1999,23 @@ public final class CharacterSheetScreen extends Screen {
 			if (sc.character.values.getOrDefault(e.getKey(), Double.NaN) != v) changed++;
 			sc.character.values.put(e.getKey(), v);
 		}
+		for (SheetFormat.Refill rf : it.refill) {
+			SheetFormat.Collection coll = sc.format.collections.get(rf.collection());
+			if (coll == null) continue;
+			SheetFormat.Col match = rf.matchColumn().isEmpty() ? null : coll.column(rf.matchColumn());
+			for (CharacterData.Row row : sc.character.rows(coll.id)) {
+				if (match != null) {
+					int k = (int) Math.round(row.values.getOrDefault(match.id, match.def));
+					if (match.options.isEmpty() || k < 0 || k >= match.options.size()) continue;
+					if (!rf.values().contains(match.options.get(k).trim().toLowerCase(java.util.Locale.ROOT))) continue;
+				}
+				double v = sc.number(coll, row, rf.to());
+				if (Double.isNaN(v)) continue;
+				v = Math.max(0, v);
+				if (row.values.getOrDefault(rf.column(), 0.0) != v) changed++;
+				row.values.put(rf.column(), v);
+			}
+		}
 		store(sc.character);
 		say(tr(it.label) + (changed == 0 ? ": nothing to restore" : ": done"));
 	}

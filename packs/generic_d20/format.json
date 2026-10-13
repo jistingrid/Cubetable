@@ -795,11 +795,14 @@
                     {
                       "widget": "button",
                       "label": "Short rest",
-                      "sub": "Second Wind and Action Surge back",
+                      "sub": "Second Wind and Action Surge back; features that come back on a short rest get their uses back",
                       "set": {
                         "second_wind": "1",
                         "action_surge": "1"
-                      }
+                      },
+                      "refill": [
+                        { "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest"] }
+                      ]
                     },
                     {
                       "widget": "button",
@@ -820,7 +823,10 @@
                         "slots_7": "slots_7_max",
                         "slots_8": "slots_8_max",
                         "slots_9": "slots_9_max"
-                      }
+                      },
+                      "refill": [
+                        { "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest", "Long rest"] }
+                      ]
                     }
                   ]
                 }
@@ -1441,6 +1447,19 @@
           "type": "number",
           "width": 0.6,
           "default": 0,
+          "detail": true
+        },
+        {
+          "id": "recharge",
+          "label": "Uses come back on",
+          "type": "choice",
+          "width": 0.8,
+          "default": 0,
+          "options": [
+            "Never",
+            "Short rest",
+            "Long rest"
+          ],
           "detail": true
         },
         {

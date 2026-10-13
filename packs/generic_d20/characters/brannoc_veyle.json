@@ -95,6 +95,7 @@
         "rules": "used||heal||1d10 + level|self",
         "uses": 1,
         "uses_max": 1,
+        "recharge": 1,
         "bonus_cost": 1,
         "notes": "Once per short rest, as a bonus action, regain 1d10 + level hit points."
       },
@@ -103,6 +104,7 @@
         "rules": "used||resource|action|action + 1|self",
         "uses": 1,
         "uses_max": 1,
+        "recharge": 1,
         "notes": "Once per short rest, take one additional action on your turn."
       },
       {

@@ -55,7 +55,7 @@ An **item** is one row: `label`, `sub` (small text), `text` (a wrapped paragraph
 | `counter` | a stored number with -/+ (exhaustion, hit dice...); Shift = 5, Ctrl = 10 | `store`, `max` |
 | `rollmode` | a Normal / Advantage / Disadvantage row for single d20 rolls. Only formats that place it get advantage; others always roll normally | none |
 | `cycle` | a normal row with a clickable proficiency marker that steps through values | `store`, `cycle` (e.g. `[0, 0.5, 1, 2]`) |
-| `button` | a button that sets stored values from formulas when pressed: a rest, a reset. `label`, optional `sub` (tooltip), `set`: `{ "slots_1": "slots_1_max", "hp": "hp_max" }` | `set` |
+| `button` | a button that sets stored values from formulas when pressed: a rest, a reset. `label`, optional `sub` (tooltip), `set`: `{ "slots_1": "slots_1_max", "hp": "hp_max" }`. Optional `refill`: a list of `{ "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest"] }` - in every row of that collection whose choice column `match` reads one of `values` (all rows when `match` is left out), `column` is set to the formula `to` worked out on that row (a feature's uses back to its maximum) | `set` or `refill` |
 | `table` | a table of rows the character owns (weapons, gear, skills...), see Collections | `collection` (id) |
 | `quickadd` | a wrapped row of buttons that each add a ready-made row to a collection (the common conditions). Pressing one whose name is already in the list renews that row. See "Quick-add buttons" | `collection` (the one rows are added to), optional `buttonsFrom` (a character-owned collection whose rows become buttons too) |
 
