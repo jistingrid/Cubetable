@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * Dungeon Master -> server: ask these creatures (entity ids) for a roll. {@code check} is an id of the game pack's
- * {@code combat.checks} (empty: a plain d20), {@code dc} the number to beat (-1: none), {@code showDc} whether the
+ * {@code combat.checks} (empty: a plain roll of the game's default die), {@code dc} the number to beat (-1: none), {@code showDc} whether the
  * players are told it.
  */
 public record RollRequestPayload(String check, int dc, boolean showDc, List<Integer> targets) implements CustomPayload {

@@ -3,6 +3,7 @@
   "name": "Percentile Skills",
   "description": "Roll d% and try to get under the skill. Shows how a different game plugs into the same window.",
   "combat": {
+    "defaultDie": "d%",
     "grid": { "square": 1, "unit": "m" },
     "resources": { "action": "1" },
     "hp": { "now": "hp", "max": "hp_max" },

@@ -140,6 +140,16 @@ public final class CombatRules {
 	/** The checks of {@code combat.checks}; Roll requests ({@code check} rules, later other mechanics) name one by id. */
 	public final List<Check> checks = new ArrayList<>();
 
+	/** The die this game rolls when nothing says which ("d20", "d%", "d6"): a check without a formula, a creature's initiative. */
+	public String defaultDie = "d20";
+
+	/** {@link #defaultDie} as a die type (a d20 when the pack names none that exists). */
+	public dev.tacticalcombat.dice.DiceType defaultType() {
+		String t = defaultDie.toLowerCase(Locale.ROOT).trim();
+		dev.tacticalcombat.dice.DiceType type = t.startsWith("d") ? dev.tacticalcombat.dice.DiceType.fromSides(t.substring(1)) : null;
+		return type == null ? dev.tacticalcombat.dice.DiceType.D20 : type;
+	}
+
 	public Check check(String id) {
 		for (Check c : checks) if (c.id().equalsIgnoreCase(id)) return c;
 		return null;
@@ -219,11 +229,12 @@ public final class CombatRules {
 				r.resources.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
 			}
 		}
+		if (o.has("defaultDie") && o.get("defaultDie").isJsonPrimitive()) r.defaultDie = o.get("defaultDie").getAsString();
 		if (o.has("initiative") && o.get("initiative").isJsonObject()) {
 			JsonObject i = o.getAsJsonObject("initiative");
 			String roll = i.has("roll") ? i.get("roll").getAsString() : "";
 			if (!roll.isBlank()) {
-				r.initiative = new Initiative(roll, i.has("mob") ? i.get("mob").getAsString() : "d20",
+				r.initiative = new Initiative(roll, i.has("mob") ? i.get("mob").getAsString() : r.defaultDie,
 						i.has("order") && i.get("order").getAsString().equalsIgnoreCase("low"),
 						i.has("tiebreak") ? i.get("tiebreak").getAsString() : "");
 			}

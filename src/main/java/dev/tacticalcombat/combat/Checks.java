@@ -52,14 +52,14 @@ public final class Checks {
 
 	/**
 	 * Asks {@code target} for the check {@code checkId} (an id of the target's {@code combat.checks}; an unknown one is a
-	 * plain d20). {@code dc} below 0 means no number to beat. {@code done} runs when it has been rolled.
+	 * plain roll of the game's default die). {@code dc} below 0 means no number to beat. {@code done} runs when it has been rolled.
 	 */
 	public static void request(MinecraftServer server, LivingEntity target, String requester, String checkId, int dc,
 							   boolean showDc, Consumer<Result> done) {
 		String name = Damage.nameOf(target);
 		CombatRules.Check def = definition(target, checkId);
 		if (!checkId.isEmpty() && def == null) {
-			Conditions.warn(server, "No check '" + checkId + "' in " + name + "'s game pack on the server: it rolls a plain d20 (is the pack up to date there?).");
+			Conditions.warn(server, "No check '" + checkId + "' in " + name + "'s game pack on the server: it rolls a plain roll (is the pack up to date there?).");
 		}
 		String label = def != null ? def.label() : checkId.isEmpty() ? "Roll" : checkId;
 		List<ServerPlayerEntity> owners = new ArrayList<>();
@@ -130,10 +130,11 @@ public final class Checks {
 
 	private static void roll(ServerPlayerEntity responder, LivingEntity target, String name, String requester, String checkId,
 							 String label, int dc, boolean showDc, int mode, Consumer<Result> done) {
-		DiceType type = DiceType.D20;
+		CharacterStore.Entry entry = SheetHealth.entryOf(target);
+		SheetFormat format0 = entry == null ? null : SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
+		DiceType type = format0 == null || format0.combat == null ? DiceType.D20 : format0.combat.defaultType();
 		int count = 1;
 		int modifier = 0;
-		CharacterStore.Entry entry = SheetHealth.entryOf(target);
 		CombatRules.Check def = definition(target, checkId);
 		if (entry != null && def != null) {
 			SheetFormat f = SheetLibrary.FORMATS.get(entry.json.get("format").getAsString());
@@ -144,7 +145,7 @@ public final class Checks {
 				count = plan.count();
 				modifier = plan.modifier();
 			} catch (RuntimeException ex) {
-				// a formula that does not work: a plain d20
+				// a formula that does not work: a plain roll
 			}
 		}
 		// the target's own conditions ("I roll" rules) may add advantage, disadvantage or a bonus

@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * The Dungeon Master's Roll request tool: pick who (players and placed Actors), what kind of roll (the checks of the
- * game packs, or a plain d20) and the DC, and each one's owner gets the roll prompt. Session choices are kept for the
+ * game packs, or a plain roll) and the DC, and each one's owner gets the roll prompt. Session choices are kept for the
  * next time the window opens.
  */
 public final class RollRequestScreen extends Screen {
@@ -65,7 +65,7 @@ public final class RollRequestScreen extends Screen {
 
 		// every check any game pack offers, once each
 		Map<String, String> all = new LinkedHashMap<>();
-		all.put("", "Plain d20");
+		all.put("", "Plain roll (the game's own die)");
 		for (SheetFormat f : SheetLibrary.FORMATS.values()) {
 			if (f.combat == null) continue;
 			for (CombatRules.Check c : f.combat.checks) all.putIfAbsent(c.id(), c.label());
