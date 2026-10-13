@@ -249,8 +249,11 @@ guesses where it stands can still click it.
 
 The DM tools tab has an **Invisible** switch: it makes the Dungeon Master invisible to the players (and hides their
 name tag). It uses the same ghost team as hidden Actors, so other DMs still see a pale ghost. It lasts until the
-server stops or the switch is turned off, and is put back if a milk bucket or a respawn removes it. Your armor and
-held items still show.
+server stops or the switch is turned off, and is put back if a milk bucket or a respawn removes it. Your name tag
+is not shown to players (Minecraft hides the name of an invisible player), and the ghost team also has collision
+switched off, so a Dungeon Master flying through creatures and players is neither pushed nor pushes. (That holds for
+any Dungeon Master while a hidden Actor or an invisible DM exists, and for hidden Actors.) Your armor and held items
+still show.
 
 ### The Stage
 

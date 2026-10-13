@@ -55,15 +55,20 @@ public final class Ghosts {
 		syncDms(server);
 	}
 
+	/**
+	 * The ghost team, made when missing and brought to the settings it must have every time (a team saved by an earlier
+	 * version of the mod may differ): invisible members show to each other, nobody pushes them (a flying Dungeon Master
+	 * passes through creatures and players), and name tags follow visibility - a hidden member's name is not shown to
+	 * players, as the name of any invisible creature is not.
+	 */
 	private static Team team(MinecraftServer server) {
 		Scoreboard sb = server.getScoreboard();
 		Team t = sb.getTeam(TEAM);
-		if (t == null) {
-			t = sb.addTeam(TEAM);
-			t.setShowFriendlyInvisibles(true);
-			t.setFriendlyFireAllowed(true);
-			t.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.HIDE_FOR_OTHER_TEAMS); // players do not see a hidden DM's name
-		}
+		if (t == null) t = sb.addTeam(TEAM);
+		if (!t.shouldShowFriendlyInvisibles()) t.setShowFriendlyInvisibles(true);
+		if (!t.isFriendlyFireAllowed()) t.setFriendlyFireAllowed(true);
+		if (t.getCollisionRule() != AbstractTeam.CollisionRule.NEVER) t.setCollisionRule(AbstractTeam.CollisionRule.NEVER);
+		if (t.getNameTagVisibilityRule() != AbstractTeam.VisibilityRule.ALWAYS) t.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.ALWAYS);
 		return t;
 	}
 
