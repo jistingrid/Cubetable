@@ -66,6 +66,8 @@ public final class Combat {
 	private boolean planning = true;
 	/** The encounter's initiative rule (from the party's game): how enemies roll and which way the order runs. */
 	private InitiativeRule rule = InitiativeRule.DEFAULT;
+	/** The game's choice: the fight does not end by itself when a side runs out, only when the Dungeon Master ends it. */
+	private boolean manualEnd;
 	/** The DM moved someone by hand: later rolls no longer re-sort the order (until "sort by initiative"). */
 	private boolean manualOrder;
 
@@ -87,6 +89,7 @@ public final class Combat {
 			ActorSheet s = ActorSheet.of((ServerPlayerEntity) c.entity);
 			if (s != null) {
 				combat.rule = InitiativeRule.of(s.format());
+				combat.manualEnd = s.format().combat != null && s.format().combat.manualEnd;
 				break;
 			}
 		}
@@ -633,6 +636,7 @@ public final class Combat {
 		for (Combatant c : order) {
 			(c.isPlayer() ? players : enemies).add(c);
 		}
+		if (manualEnd) return order.isEmpty();
 		// enemies that are out of range are already removed by prune(), so "no enemies left" covers that case
 		return players.isEmpty() || enemies.isEmpty();
 	}

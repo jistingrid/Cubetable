@@ -264,6 +264,13 @@ where it stands and hands the creature to the DM, who walks it by hand from then
 
 Not there yet: saving throws and advantage on bar rolls.
 
+### When a fight ends
+
+A fight ends by itself when one side has nobody left: the players, or everyone else. A game can say
+`"endsWhen": "manual"` in the `combat` block: then it only ends when the Dungeon Master presses End encounter (or
+everybody has left it), which suits fights that are not players against enemies, or a social scene. Separate factions
+(three-way fights, player against player) are not there yet: the engine only knows players and everyone else.
+
 ### Which bar damage lowers
 
 By default damage lowers the health bar and healing raises it. A game can point damage at another bar and name it:

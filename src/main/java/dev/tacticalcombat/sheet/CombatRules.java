@@ -87,6 +87,12 @@ public final class CombatRules {
 
 	/** The id of the bar that damage lowers ("damage": { "bar": ... } in the pack); "" = the health bar. */
 	public String damageBar = "";
+	/**
+	 * When a fight ends by itself: "sides" (default) when one side - the players or everyone else - has nobody left;
+	 * "manual" only when the Dungeon Master ends it (a game where fights are not always players against enemies).
+	 */
+	public boolean manualEnd;
+
 	/** What the game calls it when a creature loses that bar ("damage", "harm", "stress"). */
 	public String damageNoun = "damage";
 
@@ -283,6 +289,7 @@ public final class CombatRules {
 			boolean high = !m.has("better") || !m.get("better").getAsString().equalsIgnoreCase("low");
 			r.rollMode = type == null ? dev.tacticalcombat.dice.RollMode.NONE : new dev.tacticalcombat.dice.RollMode(type, high);
 		}
+		if (o.has("endsWhen") && o.get("endsWhen").isJsonPrimitive()) r.manualEnd = o.get("endsWhen").getAsString().equalsIgnoreCase("manual");
 		if (o.has("damage") && o.get("damage").isJsonObject()) {
 			JsonObject d = o.getAsJsonObject("damage");
 			if (d.has("bar")) r.damageBar = d.get("bar").getAsString().toLowerCase(Locale.ROOT).trim();
