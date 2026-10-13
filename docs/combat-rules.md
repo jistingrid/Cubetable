@@ -134,6 +134,10 @@ In a fight, clicking a creature or a player character targets it (click it again
 floats over every targeted model: a blue one for your own target, gray ones for other players' targets; several
 arrows on the same model sit side by side. Targets are only for the creatures in the fight.
 
+The model whose turn it is turns to face its target: when you pick a new target on your turn, and again when it
+finishes walking. This covers a player, and a creature the Dungeon Master walks (the DM's target is used). Other
+players see the model turn; your own view is not rotated.
+
 What a roll does with the target comes from the format. A collection can be marked in its JSON:
 
 ```json

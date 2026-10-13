@@ -279,8 +279,43 @@ public final class Combat {
 		Entity e = world.getEntityById(entityId);
 		if (!(e instanceof LivingEntity target) || !target.isAlive() || get(target) == null) return;
 		if (Integer.valueOf(entityId).equals(targets.get(player.getId()))) targets.remove(player.getId());
-		else targets.put(player.getId(), entityId);
+		else {
+			targets.put(player.getId(), entityId);
+			// the creature acting (the player's own, or the one the DM walks) turns to the new target
+			Combatant actor = actorFor(player);
+			if (actor != null && isTurnOf(actor.entity) && actor.path == null) faceTarget(actor);
+		}
 		sync();
+	}
+
+	/** Who this combatant is aiming at: its own player's target, or the target of the Dungeon Master walking it. */
+	private LivingEntity aimOf(Combatant c) {
+		if (c.entity instanceof ServerPlayerEntity p) return targetOf(p);
+		if (world.getServer() == null) return null;
+		for (ServerPlayerEntity dm : world.getServer().getPlayerManager().getPlayerList()) {
+			if (!dev.tacticalcombat.character.Roles.isDm(dm.getUuid()) || actorFor(dm) != c) continue;
+			LivingEntity t = targetOf(dm);
+			if (t != null) return t;
+		}
+		return null;
+	}
+
+	/** Turns the combatant to face its target (when it has one that is not itself). */
+	private void faceTarget(Combatant c) {
+		LivingEntity target = aimOf(c);
+		if (target == null || target == c.entity) return;
+		LivingEntity e = c.entity;
+		double dx = target.getX() - e.getX();
+		double dz = target.getZ() - e.getZ();
+		if (dx * dx + dz * dz < 1.0E-4) return;
+		float yaw = (float) (MathHelper.atan2(dz, dx) * 57.29577951308232) - 90.0f;
+		if (e instanceof ServerPlayerEntity) {
+			e.setYaw(yaw);
+		} else {
+			e.refreshPositionAndAngles(e.getX(), e.getY(), e.getZ(), yaw, e.getPitch());
+		}
+		e.setHeadYaw(yaw);
+		e.setBodyYaw(yaw);
 	}
 
 	/**
@@ -749,6 +784,7 @@ public final class Combat {
 			c.path = null;
 			c.pathIdx = 0;
 			c.anchor = pos;
+			faceTarget(c); // arrived: look at the target
 			gridDirty = true; // recompute the squares from the new position with the leftover movement
 			sync();
 		}
