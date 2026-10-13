@@ -1103,14 +1103,14 @@ public final class CharacterSheetScreen extends Screen {
 		int use = base;
 		if (base > 0) {
 			use = -1;
-			for (int l = higher ? base + 1 : base; l <= 9; l++) {
+			for (int l = higher ? base + 1 : base; l <= col.maxLevel; l++) {
 				if (stored(sc, col.spend + l) > 0) {
 					use = l;
 					break;
 				}
 			}
 			if (use < 0) {
-				say(higher ? "No higher spell slots left" : "No level " + base + " slots left");
+				say(higher ? "No higher " + col.spendNoun + "s left" : "No " + col.levelWord + " " + base + " " + col.spendNoun + "s left");
 				return;
 			}
 			setStored(sc, col.spend + use, stored(sc, col.spend + use) - 1);
@@ -1118,7 +1118,7 @@ public final class CharacterSheetScreen extends Screen {
 			return;
 		}
 		autoShow(sc, coll, row);
-		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row)) + (use > base ? " (level " + use + ")" : "");
+		String label = tr(col.rollLabel).replace("{name}", rowName(coll, row)) + (use > base ? " (" + col.levelWord + " " + use + ")" : "");
 		SheetFormat.Col diceCol = col.diceCol == null ? null : coll.column(col.diceCol);
 		String formula = diceCol == null ? null : diceFormula(diceCol, row);
 		if (formula != null) {
@@ -1128,8 +1128,8 @@ public final class CharacterSheetScreen extends Screen {
 		} else {
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null) {
-				mc.player.sendMessage(Text.literal("[sheet] " + sc.character.displayName() + " casts " + label
-						+ (use > 0 ? " (level " + use + " slot)" : "")).formatted(Formatting.AQUA), false);
+				mc.player.sendMessage(Text.literal("[sheet] " + sc.character.displayName() + " " + col.verb + "s " + label
+						+ (use > 0 ? " (" + col.levelWord + " " + use + " " + col.spendNoun + ")" : "")).formatted(Formatting.AQUA), false);
 			}
 		}
 	}
@@ -1606,11 +1606,12 @@ public final class CharacterSheetScreen extends Screen {
 				int base = (int) Math.round(row.values.getOrDefault(levelCol.id, levelCol.def));
 				SheetFormat.Col diceCol = col.diceCol == null ? null : coll.column(col.diceCol);
 				String dice = diceCol == null ? "" : row.texts.getOrDefault(diceCol.id, "").trim();
-				String t = dice.isEmpty() ? "Cast" : dice;
+				String t = dice.isEmpty() ? Character.toUpperCase(col.verb.charAt(0)) + col.verb.substring(1) : dice;
 				boolean empty = base > 0 && stored(sc, col.spend + base) <= 0;
 				int bw = Math.min(w, tw(t) + 8);
-				String tip = "Cast " + rowName(coll, row) + (base > 0 ? ": spends a level " + base + " slot"
-						+ (empty ? " (none left)" : "") + ". Right-click: use a higher slot" : " (free)");
+				String tip = Character.toUpperCase(col.verb.charAt(0)) + col.verb.substring(1) + " " + rowName(coll, row)
+						+ (base > 0 ? ": spends a " + col.levelWord + " " + base + " " + col.spendNoun
+						+ (empty ? " (none left)" : "") + ". Right-click: use a higher " + col.spendNoun : " (free)");
 				boolean over = hit(x, y + 1, bw, 11, () -> castRow(sc, coll, row, col, false), () -> castRow(sc, coll, row, col, true), tip);
 				g.fill(x, y + 1, x + bw, y + 12, empty ? EDGE : ROLL_EDGE);
 				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);

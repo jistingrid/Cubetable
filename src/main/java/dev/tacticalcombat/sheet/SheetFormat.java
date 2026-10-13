@@ -95,6 +95,10 @@ public final class SheetFormat {
 		public String spend;
 		/** cast column: the column holding the row's level (0 = free, like a cantrip). */
 		public String spendLevel;
+		/** cast column: what is spent ("slot", "point"), the action ("cast", "invoke") and "level" as the game calls it ("rank"). */
+		public String spendNoun = "slot", verb = "cast", levelWord = "level";
+		/** cast column: the highest level whose stored value (prefix + level) is looked at when a higher one is used. */
+		public int maxLevel = 9;
 		/** cast column: optional dice column rolled when casting. */
 		public String diceCol;
 		/**
@@ -365,6 +369,10 @@ public final class SheetFormat {
 			for (JsonElement oe : arr(co, "groupLabels")) col.groupLabels.add(oe.getAsString());
 			col.spend = str(co, "spend", null);
 			col.spendLevel = str(co, "level", null);
+			col.spendNoun = str(co, "spendNoun", "slot");
+			col.verb = str(co, "verb", "cast");
+			col.levelWord = str(co, "levelWord", "level");
+			col.maxLevel = co.has("maxLevel") && co.get("maxLevel").isJsonPrimitive() ? Math.max(1, Math.min(30, co.get("maxLevel").getAsInt())) : 9;
 			col.diceCol = str(co, "dice", null);
 			col.uses = str(co, "uses", null);
 			col.usesMax = str(co, "max", null);

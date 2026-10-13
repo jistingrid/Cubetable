@@ -99,7 +99,7 @@ Column types:
 | `choice` | one of `options`, click cycles; stores the option's index | number |
 | `computed` | the result of `value`, a formula | nothing |
 | `roll` | a button showing `value`; clicking rolls `roll`. `rollLabel` may contain `{name}` | nothing |
-| `cast` | a button that spends a resource, then rolls: `spend` is the stored-value prefix (`"slots_"`), `level` the column holding the row's level (0 = free, a cantrip), optional `dice` the dice column to roll. Left-click spends a slot of that level; right-click the lowest higher slot that is left. With no dice it prints a "casts" line in chat | nothing |
+| `cast` | a button that spends a resource, then rolls: `spend` is the stored-value prefix (`"slots_"`), `level` the column holding the row's level (0 = free, a cantrip), optional `dice` the dice column to roll. Left-click spends a slot of that level; right-click the lowest higher slot that is left. With no dice it prints a "casts" line in chat. The wording is the pack's: `spendNoun` ("slot"), `verb` ("cast"), `levelWord` ("level"; "rank" ...) and `maxLevel` (highest level looked at when a higher one is used, default 9) | nothing |
 | `dice` | the row's own dice text, e.g. `1d8`, as a button. `modifier` is a formula added when rolled | text |
 
 A collection can set `groupBy` to a column (usually a `choice`): the table gets a heading per value, in order. On a choice column, `groupLabels` gives the heading for each option ("Cantrips", "1st level", ...).
