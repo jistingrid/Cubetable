@@ -235,8 +235,6 @@
     "death_f": 0,
     "inspiration": 0,
     "exhaustion": 0,
-    "second_wind": 1,
-    "action_surge": 1,
     "slots_1": 0,
     "slots_2": 0,
     "slots_3": 0,
@@ -759,20 +757,6 @@
                       "color": "#e0b84c"
                     },
                     {
-                      "label": "Second Wind",
-                      "widget": "pips",
-                      "store": "second_wind",
-                      "max": "1",
-                      "color": "#4cd964"
-                    },
-                    {
-                      "label": "Action Surge",
-                      "widget": "pips",
-                      "store": "action_surge",
-                      "max": "1",
-                      "color": "#4da3ff"
-                    },
-                    {
                       "label": "Death save: pass",
                       "widget": "pips",
                       "store": "death_s",
@@ -795,11 +779,7 @@
                     {
                       "widget": "button",
                       "label": "Short rest",
-                      "sub": "Second Wind and Action Surge back; features that come back on a short rest get their uses back",
-                      "set": {
-                        "second_wind": "1",
-                        "action_surge": "1"
-                      },
+                      "sub": "Features that come back on a short rest get their uses back",
                       "refill": [
                         { "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest"] }
                       ]
@@ -810,8 +790,6 @@
                       "sub": "Hit points, spell slots and short-rest abilities back to full; death saves cleared",
                       "set": {
                         "hp": "hp_max",
-                        "second_wind": "1",
-                        "action_surge": "1",
                         "death_s": "0",
                         "death_f": "0",
                         "slots_1": "slots_1_max",
