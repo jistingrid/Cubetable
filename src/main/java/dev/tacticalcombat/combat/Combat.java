@@ -1,5 +1,6 @@
 package dev.tacticalcombat.combat;
 
+import dev.tacticalcombat.sheet.CombatRules;
 import dev.tacticalcombat.grid.Grid;
 import dev.tacticalcombat.net.CombatStatePayload;
 import dev.tacticalcombat.net.GridPayload;
@@ -503,9 +504,10 @@ public final class Combat {
 		player.networkHandler.requestTeleport(player.getX(), player.getY(), player.getZ(), yaw, pitch);
 
 		player.swingHand(Hand.MAIN_HAND, true);
-		int before = c.resource("action");
+		String spends = c.setup.attackResource;
+		int before = spends.isEmpty() ? 0 : c.resource(spends);
 		player.attack(target); // the ALLOW_DAMAGE hook spends the action when the hit lands
-		if (c.resource("action") == before) c.spendAction();
+		if (spends.isEmpty() || c.resource(spends) == before) c.spendAction();
 		sync();
 	}
 
@@ -1154,7 +1156,10 @@ public final class Combat {
 		Combatant cur = current();
 		List<CombatStatePayload.Res> resources = new ArrayList<>();
 		for (Map.Entry<String, Integer> r : cur.max.entrySet()) {
-			resources.add(new CombatStatePayload.Res(r.getKey(), cur.resource(r.getKey()), r.getValue()));
+			CombatRules.ResStyle st = cur.setup.styles.get(r.getKey());
+			resources.add(new CombatStatePayload.Res(r.getKey(), cur.resource(r.getKey()), r.getValue(),
+					st == null ? "" : st.label(), st == null || st.color().isBlank() ? 0 : SheetHealth.color(st.color()),
+					st == null ? "" : st.shape(), r.getKey().equals(cur.setup.attackResource)));
 		}
 		List<CombatStatePayload.MoveButton> buttons = new ArrayList<>();
 		for (TurnSetup.MoveOption m : cur.setup.moves()) {

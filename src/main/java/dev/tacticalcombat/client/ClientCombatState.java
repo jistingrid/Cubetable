@@ -73,12 +73,6 @@ public final class ClientCombatState {
 		}
 	}
 
-	/** The main action is gone (or this game gives none). */
-	public static boolean actionUsed() {
-		for (CombatStatePayload.Res r : resources) if (r.id().equals("action")) return r.left() <= 0;
-		return true;
-	}
-
 	/** A distance in squares as the game shows it: "20 ft", or just the squares when the pack names no unit. */
 	public static String distance(double squares) {
 		if (unit.isEmpty()) return String.format("%.0f", squares);

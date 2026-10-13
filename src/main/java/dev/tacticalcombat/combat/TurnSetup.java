@@ -26,6 +26,9 @@ public final class TurnSetup {
 	public int pool;
 	/** Resource id -> how many the combatant gets each turn. */
 	public final Map<String, Integer> resources = new LinkedHashMap<>();
+	/** The resource an attack spends ("" = attacks are free) and how resources are drawn (from the pack). */
+	public String attackResource = "action";
+	public final Map<String, CombatRules.ResStyle> styles = new LinkedHashMap<>();
 	public final List<MoveOption> moves = new ArrayList<>();
 
 	public List<MoveOption> moves() {
@@ -61,6 +64,8 @@ public final class TurnSetup {
 		TurnSetup t = new TurnSetup();
 		t.square = r.square;
 		t.unit = r.unit;
+		t.attackResource = r.attackResourceId();
+		t.styles.putAll(r.resourceStyles);
 
 		String poolFormula = !r.pool.isBlank() ? r.pool : r.speed;
 		t.pool = poolFormula.isBlank() ? 0 : squares(sc.number(poolFormula), r.square);

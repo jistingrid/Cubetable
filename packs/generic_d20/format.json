@@ -250,6 +250,11 @@
   "combat": {
     "grid": { "square": 5, "unit": "ft" },
     "resources": { "action": "1", "bonus": "1" },
+    "attackResource": "action",
+    "resourceStyles": {
+      "action": { "label": "Action", "color": "#e0b84c", "shape": "circle" },
+      "bonus": { "label": "Bonus", "color": "#5fb7a8", "shape": "diamond" }
+    },
     "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
     "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
     "defense": { "value": "ac", "label": "AC", "hit": "gte" },

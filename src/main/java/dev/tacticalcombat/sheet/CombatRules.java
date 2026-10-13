@@ -18,6 +18,8 @@ import java.util.Map;
  * "combat": {
  *   "grid": { "square": 5, "unit": "ft" },                // one grid square = 5 ft (one block in the world)
  *   "resources": { "action": "1", "bonus": "1" },         // refilled every turn (formulas)
+ *   "attackResource": "action",                            // what an attack spends ("" = nothing); default: "action", else the first
+ *   "resourceStyles": { "bonus": { "label": "Bonus", "color": "#5fb7a8", "shape": "diamond" } },
  *   "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },   // the health bar (shorthand)
  *   "bars": [ { "id": "sanity", "label": "Sanity", "now": "sanity", "max": "sanity_max", "color": "purple" } ],
  *   "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
@@ -44,6 +46,24 @@ public final class CombatRules {
 	public String unit = "";
 	/** Per-turn resources: id -> formula for how many the character gets. */
 	public final Map<String, String> resources = new LinkedHashMap<>();
+
+	/** How a resource looks on the turn panel: its name, a colour ("gold", "#5fb7a8") and "circle" or "diamond". All optional. */
+	public record ResStyle(String label, String color, String shape) {}
+
+	public final Map<String, ResStyle> resourceStyles = new LinkedHashMap<>();
+
+	/** The resource an attack spends; null = the default, see {@link #attackResourceId()}. "" = attacks cost nothing of the turn. */
+	public String attackResource;
+
+	/**
+	 * The resource an attack spends each time: what the pack names in "attackResource", else "action" when the game
+	 * has one (or lists no resources at all), else its first resource. "" when attacks are free.
+	 */
+	public String attackResourceId() {
+		if (attackResource != null) return attackResource;
+		if (resources.isEmpty() || resources.containsKey("action")) return "action";
+		return resources.keySet().iterator().next();
+	}
 	/** Formula: distance of one full move. */
 	public String speed = "";
 	/** Formula: distance available as soon as the turn starts. Empty = the speed. */
@@ -223,6 +243,17 @@ public final class CombatRules {
 			JsonObject g = o.getAsJsonObject("grid");
 			if (g.has("square")) r.square = Math.max(0.0001, g.get("square").getAsDouble());
 			if (g.has("unit")) r.unit = g.get("unit").getAsString();
+		}
+		if (o.has("attackResource") && o.get("attackResource").isJsonPrimitive()) r.attackResource = o.get("attackResource").getAsString().toLowerCase(Locale.ROOT).trim();
+		if (o.has("resourceStyles") && o.get("resourceStyles").isJsonObject()) {
+			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("resourceStyles").entrySet()) {
+				if (!e.getValue().isJsonObject()) continue;
+				JsonObject so = e.getValue().getAsJsonObject();
+				r.resourceStyles.put(e.getKey().toLowerCase(Locale.ROOT), new ResStyle(
+						so.has("label") ? so.get("label").getAsString() : "",
+						so.has("color") ? so.get("color").getAsString() : "",
+						so.has("shape") ? so.get("shape").getAsString().toLowerCase(Locale.ROOT) : ""));
+			}
 		}
 		if (o.has("resources") && o.get("resources").isJsonObject()) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("resources").entrySet()) {

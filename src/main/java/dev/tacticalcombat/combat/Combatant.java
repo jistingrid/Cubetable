@@ -84,13 +84,15 @@ public final class Combatant {
 		}
 	}
 
-	/** The main "action" is gone (or the game has none to give). */
+	/** What an attack spends is gone (or the game has none to give). A game whose attacks are free is never out. */
 	public boolean actionUsed() {
-		return resource("action") <= 0;
+		String id = setup.attackResource;
+		return !id.isEmpty() && resource(id) <= 0;
 	}
 
 	public void spendAction() {
-		if (resource("action") > 0) left.merge("action", -1, Integer::sum);
+		String id = setup.attackResource;
+		if (!id.isEmpty() && resource(id) > 0) left.merge(id, -1, Integer::sum);
 	}
 
 	public void resetTurnResources(TurnSetup setup) {

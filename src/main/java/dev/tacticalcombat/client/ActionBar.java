@@ -144,7 +144,7 @@ public final class ActionBar {
 		if (f == null || f.combat == null || f.combat.sources.isEmpty()) return new Built(List.of(), List.of());
 		CombatRules rules = f.combat;
 		SheetContext sc = new SheetContext(f, c);
-		String main = rules.resources.isEmpty() ? "" : rules.resources.keySet().iterator().next();
+		String main = rules.attackResourceId();
 		String character = c.link.isEmpty() ? c.displayName() : c.link;
 
 		List<Slot> out = new ArrayList<>();
@@ -609,11 +609,11 @@ public final class ActionBar {
 	private static void drawResources(DrawContext ctx, TextRenderer font, int x0, int y0) {
 		int y = y0;
 		for (CombatStatePayload.Res r : ClientCombatState.resources) {
-			String label = CombatHud.resourceLabel(r.id());
+			String label = r.label().isEmpty() ? CombatHud.resourceLabel(r.id()) : r.label();
 			ctx.drawTextWithShadow(font, label, x0, y + 2, MUTED);
 			int x = x0 + font.getWidth(label) + 4;
-			boolean diamond = r.id().equals("bonus");
-			int color = switch (r.id()) {
+			boolean diamond = r.shape().isEmpty() ? r.id().equals("bonus") : r.shape().equals("diamond");
+			int color = r.color() != 0 ? r.color() : switch (r.id()) {
 				case "action" -> ACTION;
 				case "bonus" -> BONUS;
 				default -> OTHER;

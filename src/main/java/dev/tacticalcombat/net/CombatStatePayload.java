@@ -42,7 +42,7 @@ public record CombatStatePayload(
 			String unit = buf.readString(16);
 			int rn = buf.readVarInt();
 			List<Res> resources = new ArrayList<>(rn);
-			for (int i = 0; i < rn; i++) resources.add(new Res(buf.readString(32), buf.readVarInt(), buf.readVarInt()));
+			for (int i = 0; i < rn; i++) resources.add(new Res(buf.readString(32), buf.readVarInt(), buf.readVarInt(), buf.readString(24), buf.readInt(), buf.readString(8), buf.readBoolean()));
 			int mn = buf.readVarInt();
 			List<MoveButton> moves = new ArrayList<>(mn);
 			for (int i = 0; i < mn; i++) moves.add(new MoveButton(buf.readString(32), buf.readString(48), buf.readString(48), buf.readBoolean()));
@@ -72,6 +72,10 @@ public record CombatStatePayload(
 				buf.writeString(r.id, 32);
 				buf.writeVarInt(r.left);
 				buf.writeVarInt(r.max);
+				buf.writeString(r.label, 24);
+				buf.writeInt(r.color);
+				buf.writeString(r.shape, 8);
+				buf.writeBoolean(r.attack);
 			}
 			buf.writeVarInt(p.moves.size());
 			for (MoveButton m : p.moves) {
@@ -104,8 +108,11 @@ public record CombatStatePayload(
 	/** One player targeting one creature: entity ids of the targeter and of the target. */
 	public record Target(int by, int at) {}
 
-	/** A per-turn resource of the active combatant (action, bonus, ...). */
-	public record Res(String id, int left, int max) {}
+	/**
+	 * A per-turn resource of the active combatant (action, bonus, ...): the pack's own name ("" = the default one), colour
+	 * (0 = the default one) and shape ("diamond", else a circle), and whether an attack spends it.
+	 */
+	public record Res(String id, int left, int max, String label, int color, String shape, boolean attack) {}
 
 	/** A tracked bar of a combatant (hit points, sanity, stamina ...). */
 	public record Bar(String id, String label, float now, float max, int color, boolean vital) {}

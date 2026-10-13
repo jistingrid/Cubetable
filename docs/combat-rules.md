@@ -24,7 +24,9 @@ per-turn resources; attacks, defense and hit points come in later steps.
 |---|---|
 | `grid.square` | How many `unit`s one grid square is. A square is always one block in the world. `speed 30` with `square 5` gives 6 squares (rounded down). |
 | `grid.unit` | Name of the unit, only used for display ("20 ft"). Leave empty to show plain squares. |
-| `resources` | Per-turn resources, each a formula for how many you get. They refill when your turn starts. `action` is the one attacks spend. Default: `action 1`, `bonus 1`. |
+| `resources` | Per-turn resources, each a formula for how many you get. They refill when your turn starts. Default: `action 1`, `bonus 1`. |
+| `attackResource` | The resource an attack spends (one per attack, from any combatant). Default: `action` when the game has it, else its first resource. `""` makes attacks cost nothing of the turn (a game with no turn economy). |
+| `resourceStyles` | How a resource looks on the turn panel: `{ "bonus": { "label": "Bonus", "color": "#5fb7a8", "shape": "diamond" } }`. `label` is its name, `color` a name or `#RRGGBB`, `shape` `circle` or `diamond`. Anything left out keeps the default look (`action` gold circles, `bonus` teal diamonds, others grey). |
 | `movement.speed` | Formula: the distance of one full move (in `unit`s). |
 | `movement.pool` | Formula: distance you may walk as soon as the turn starts. Default: the speed. Use `"0"` when you must pay to move. |
 | `movement.moves` | Ways to buy more movement with resources (see below). |
