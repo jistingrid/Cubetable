@@ -834,7 +834,7 @@ public final class CharacterSheetScreen extends Screen {
 			return drawTracker(g, sc, it, x, y, w, clipTop, clipBottom);
 		}
 		if (it.widget.equals("rollmode")) {
-			return drawRollMode(g, it, x, y, w, clipTop, clipBottom);
+			return drawRollMode(g, sc, it, x, y, w, clipTop, clipBottom);
 		}
 		if (it.widget.equals("button")) {
 			return drawActionButton(g, sc, it, x, y, w, clipTop, clipBottom);
@@ -2060,15 +2060,19 @@ public final class CharacterSheetScreen extends Screen {
 		return false;
 	}
 
-	/** Roll mode row: Normal / Advantage / Disadvantage for single d20 rolls. */
-	private int drawRollMode(DrawContext g, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
+	/** Roll mode row: Normal / Advantage / Disadvantage for the rolls the game's rollMode rule covers (single d20s by default). */
+	private int drawRollMode(DrawContext g, SheetContext sc, SheetFormat.Item it, int x, int y, int w, int clipTop, int clipBottom) {
 		int h = 13;
 		if (y + h <= clipTop || y >= clipBottom) return h;
 		g.fill(x, y, x + w, y + h, PANEL);
 		g.fill(x, y, x + 1, y + h, EDGE);
 		g.drawText(textRenderer, textRenderer.trimToWidth(tr(it.label), Math.max(10, w - 80)), x + 4, y + 3, 0xFFE8E6E1, false);
+		dev.tacticalcombat.dice.RollMode rm = sc.format.combat == null ? dev.tacticalcombat.dice.RollMode.DEFAULT : sc.format.combat.rollMode;
+		String die = rm.die() == null ? "dice" : rm.die().label;
 		String[] names = {"Norm", "Adv", "Dis"};
-		String[] tips = {"Roll d20s normally", "Advantage: roll two d20, keep the higher", "Disadvantage: roll two d20, keep the lower"};
+		if (it.modeNames.size() == 3) names = it.modeNames.toArray(new String[0]);
+		String[] tips = {"Roll " + die + " normally", names[1] + ": roll two " + die + ", keep the " + (rm.advantageKeepsHigh() ? "higher" : "lower"),
+				names[2] + ": roll two " + die + ", keep the " + (rm.advantageKeepsHigh() ? "lower" : "higher")};
 		int bx = x + w - 3;
 		for (int i = 2; i >= 0; i--) {
 			final int mode = i;
@@ -2515,7 +2519,7 @@ public final class CharacterSheetScreen extends Screen {
 						.formatted(Formatting.RED), false);
 				return;
 			}
-			int mode = roll.type() == DiceType.D20 && roll.count() == 1 && hasRollMode(sc) ? rollMode : 0;
+			int mode = (sc.format.combat == null ? dev.tacticalcombat.dice.RollMode.DEFAULT : sc.format.combat.rollMode).appliesTo(roll.type(), roll.count()) && hasRollMode(sc) ? rollMode : 0;
 			ClientPlayNetworking.send(new DiceRequestPayload(label, roll.type(), roll.count(), roll.modifier(), mode, kind, "", crit, force, rules, ref));
 		} catch (RuntimeException e) {
 			RollGate.release(label);

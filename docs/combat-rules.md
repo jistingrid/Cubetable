@@ -476,6 +476,16 @@ it, then Request. Each creature's owner gets the same Roll / Advantage / Disadva
 character, the DM rolls for creatures. The dice show to everyone with success or failure when there is a DC. Your
 choices are kept while the game is open, so asking the same table again takes one click.
 
+## Advantage and disadvantage
+
+Which rolls can be rolled twice, and which way the better result goes, is the game's: `"rollMode": { "die": "d20",
+"better": "high" }` in the `combat` block (this is the default). A lone die of that kind rolled with advantage (the
+sheet's Normal / Advantage / Disadvantage control, or an `advantage` rule of a condition) is rolled twice and the
+higher is kept; disadvantage keeps the lower. `"better": "low"` turns it round for a game where low is good
+(`"die": "d%"` in the percentile pack: advantage keeps the lower). `"die": ""` means the game has no such thing. The
+dice window says which result was kept ("keeping the highest / lowest"). The control itself is the `rollmode` widget;
+give it `"names": ["Norm", "Boon", "Bane"]` to rename its three buttons.
+
 ## The default die
 
 A game names its own default die with `"defaultDie": "d%"` in the `combat` block (default `d20`). It is rolled when

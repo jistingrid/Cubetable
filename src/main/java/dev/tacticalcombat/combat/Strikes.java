@@ -4,6 +4,7 @@ import dev.tacticalcombat.character.Roles;
 import dev.tacticalcombat.dice.CritSpec;
 import dev.tacticalcombat.dice.DiceService;
 import dev.tacticalcombat.dice.DiceType;
+import dev.tacticalcombat.dice.RollMode;
 import dev.tacticalcombat.sheet.CombatRules;
 import dev.tacticalcombat.sheet.SheetContext;
 import net.minecraft.entity.LivingEntity;
@@ -87,6 +88,7 @@ public final class Strikes {
 		LivingEntity target = combat == null || kind == PLAIN ? null : combat.targetOf(player);
 		int now = player.getServer() == null ? 0 : player.getServer().getTicks();
 
+		RollMode rollMode = RollModes.of(asCreature ? actor.entity : player);
 		// roll rules of conditions: the roller's own ("I roll", "I attack") and the target's ("I'm attacked")
 		if (kind != DAMAGE && player.getServer() != null) {
 			LivingEntity self = asCreature ? actor.entity : player;
@@ -95,7 +97,7 @@ public final class Strikes {
 			Conditions.RollEffect theirs = kind == ATTACK && target != null ? Conditions.forRoll(target, java.util.List.of("attacked"), distance) : Conditions.RollEffect.NONE;
 			int adv = own.advantage() + theirs.advantage() + (mode == 1 ? 1 : 0);
 			int dis = own.disadvantage() + theirs.disadvantage() + (mode == 2 ? 1 : 0);
-			boolean single = type == DiceType.D20 && count == 1;
+			boolean single = rollMode.appliesTo(type, count);
 			if (single && (own.advantage() + own.disadvantage() + theirs.advantage() + theirs.disadvantage()) > 0) {
 				mode = adv > 0 && dis == 0 ? 1 : dis > 0 && adv == 0 ? 2 : 0; // one of each cancels out
 			}
@@ -128,7 +130,7 @@ public final class Strikes {
 			if (kind != PLAIN) player.sendMessage(Text.translatable("tacticalcombat.msg.no_target"), false);
 			DiceService.RollVerdict v = damageMark;
 			if (spec.attack()) v = (t, n) -> new DiceService.Verdict(0, "", spec.check(n)); // a critical shows even with no target
-			DiceService.rollNatural(player, roller, label, type, count, modifier, mode, v);
+			DiceService.rollNatural(player, roller, label, type, count, modifier, mode, rollMode, v);
 			// a plain roll of a feature, or a damage roll with nobody targeted: its "I use it" rules still run, on its user
 			if (kind != ATTACK && player.getServer() != null) {
 				LivingEntity self = asCreature ? actor.entity : player;
@@ -145,7 +147,7 @@ public final class Strikes {
 			final UUID who = player.getUuid();
 			final UUID aimed = target.getUuid();
 			final int[] outcome = {0}; // 1 hit, 2 miss, 0 not decided
-			DiceService.rollNatural(player, roller, label, type, count, modifier, mode, (total, natural) -> {
+			DiceService.rollNatural(player, roller, label, type, count, modifier, mode, rollMode, (total, natural) -> {
 				int crit = spec.check(natural);
 				if (crit == 1) outcome[0] = 1;
 				else if (crit == 2) outcome[0] = 2;
@@ -174,7 +176,7 @@ public final class Strikes {
 			return;
 		}
 
-		int total = DiceService.rollNatural(player, roller, label, type, count, modifier, mode, damageMark);
+		int total = DiceService.rollNatural(player, roller, label, type, count, modifier, mode, rollMode, damageMark);
 		Damage.offer(player, asCreature ? roller : null, target, label, Math.max(0, total));
 		if (kind == DAMAGE && player.getServer() != null) {
 			LivingEntity self = asCreature ? actor.entity : player;

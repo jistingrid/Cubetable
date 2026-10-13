@@ -4,6 +4,7 @@ import dev.tacticalcombat.character.CharacterStore;
 import dev.tacticalcombat.character.Roles;
 import dev.tacticalcombat.dice.DiceService;
 import dev.tacticalcombat.dice.DiceType;
+import dev.tacticalcombat.dice.RollMode;
 import dev.tacticalcombat.net.CheckPromptPayload;
 import dev.tacticalcombat.sheet.CombatRules;
 import dev.tacticalcombat.sheet.Expr;
@@ -150,7 +151,8 @@ public final class Checks {
 		}
 		// the target's own conditions ("I roll" rules) may add advantage, disadvantage or a bonus
 		Conditions.RollEffect eff = Conditions.forRoll(target, List.of("roll"), -1);
-		if (type == DiceType.D20 && count == 1 && eff.advantage() + eff.disadvantage() > 0) {
+		RollMode rollMode = RollModes.of(target);
+		if (rollMode.appliesTo(type, count) && eff.advantage() + eff.disadvantage() > 0) {
 			int adv = eff.advantage() + (mode == 1 ? 1 : 0);
 			int dis = eff.disadvantage() + (mode == 2 ? 1 : 0);
 			mode = adv > 0 && dis == 0 ? 1 : dis > 0 && adv == 0 ? 2 : 0;
@@ -162,7 +164,7 @@ public final class Checks {
 		}
 		final boolean hasDc = dc >= 0;
 		final int[] out = new int[2];
-		int total = DiceService.rollNatural(responder, name, label + (requester.isEmpty() ? "" : " for " + requester), type, count, modifier, mode, (t, natural) -> {
+		int total = DiceService.rollNatural(responder, name, label + (requester.isEmpty() ? "" : " for " + requester), type, count, modifier, mode, rollMode, (t, natural) -> {
 			out[0] = natural;
 			if (!hasDc) return DiceService.Verdict.NONE;
 			boolean pass = t >= dc;

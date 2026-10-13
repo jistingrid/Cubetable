@@ -238,6 +238,8 @@ public final class SheetFormat {
 		public int color = 0;
 		/** Cycle widget: the values a click steps through. */
 		public double[] cycle = {0, 1};
+		/** Widget "rollmode": the three button names, normal / advantage / disadvantage ("Norm", "Adv", "Dis" when not given). */
+		public final List<String> modeNames = new ArrayList<>();
 	}
 
 	public static final class Button {
@@ -528,6 +530,9 @@ public final class SheetFormat {
 		i.store = store == null ? null : store.toLowerCase(Locale.ROOT);
 		i.max = str(o, "max", null);
 		i.color = color(str(o, "color", "#e0b84c"));
+		if (o.has("names") && o.get("names").isJsonArray() && o.getAsJsonArray("names").size() == 3) {
+			for (JsonElement ne : o.getAsJsonArray("names")) i.modeNames.add(ne.getAsString());
+		}
 		if (o.has("cycle") && o.get("cycle").isJsonArray()) {
 			JsonArray a = o.getAsJsonArray("cycle");
 			i.cycle = new double[a.size()];

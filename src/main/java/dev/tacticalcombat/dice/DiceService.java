@@ -53,12 +53,18 @@ public final class DiceService {
 	/** The full form: the verdict also sees the natural roll, which is what a critical is decided on. */
 	public static int rollNatural(ServerPlayerEntity player, String roller, String label, DiceType type, int count, int modifier,
 								  int mode, RollVerdict verdict) {
+		return rollNatural(player, roller, label, type, count, modifier, mode, RollMode.DEFAULT, verdict);
+	}
+
+	/** As above, with the game's own rule for which rolls are rolled twice and which way the better one goes. */
+	public static int rollNatural(ServerPlayerEntity player, String roller, String label, DiceType type, int count, int modifier,
+								  int mode, RollMode rule, RollVerdict verdict) {
 		count = Math.max(1, Math.min(DiceSpec.MAX_COUNT, count));
 		modifier = Math.max(-999, Math.min(999, modifier));
 		int keep = 0;
-		if (type == DiceType.D20 && count == 1 && (mode == 1 || mode == 2)) {
+		if (rule.appliesTo(type, count) && (mode == 1 || mode == 2)) {
 			count = 2;
-			keep = mode;
+			keep = rule.keepFor(mode);
 		}
 		int[] results = new int[count];
 		for (int i = 0; i < count; i++) {

@@ -160,6 +160,9 @@ public final class CombatRules {
 	/** The checks of {@code combat.checks}; Roll requests ({@code check} rules, later other mechanics) name one by id. */
 	public final List<Check> checks = new ArrayList<>();
 
+	/** Which rolls can have advantage or disadvantage and which way the better result goes ("rollMode" in the pack). */
+	public dev.tacticalcombat.dice.RollMode rollMode = dev.tacticalcombat.dice.RollMode.DEFAULT;
+
 	/** The die this game rolls when nothing says which ("d20", "d%", "d6"): a check without a formula, a creature's initiative. */
 	public String defaultDie = "d20";
 
@@ -259,6 +262,13 @@ public final class CombatRules {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("resources").entrySet()) {
 				r.resources.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
 			}
+		}
+		if (o.has("rollMode") && o.get("rollMode").isJsonObject()) {
+			JsonObject m = o.getAsJsonObject("rollMode");
+			String die = m.has("die") ? m.get("die").getAsString().toLowerCase(Locale.ROOT).trim() : "d20";
+			dev.tacticalcombat.dice.DiceType type = die.startsWith("d") ? dev.tacticalcombat.dice.DiceType.fromSides(die.substring(1)) : null;
+			boolean high = !m.has("better") || !m.get("better").getAsString().equalsIgnoreCase("low");
+			r.rollMode = type == null ? dev.tacticalcombat.dice.RollMode.NONE : new dev.tacticalcombat.dice.RollMode(type, high);
 		}
 		if (o.has("defaultDie") && o.get("defaultDie").isJsonPrimitive()) r.defaultDie = o.get("defaultDie").getAsString();
 		if (o.has("initiative") && o.get("initiative").isJsonObject()) {

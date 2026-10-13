@@ -97,8 +97,8 @@ public final class DiceAnimation {
 		String spec = (rolled > 1 ? String.valueOf(rolled) : "") + roll.type().label
 				+ (roll.modifier() > 0 ? "+" + roll.modifier() : roll.modifier() < 0 ? String.valueOf(roll.modifier()) : "");
 		String what = roll.label().isEmpty() ? spec : roll.label() + " (" + spec + ")";
-		if (roll.keep() == 1) what += " with advantage";
-		if (roll.keep() == 2) what += " with disadvantage";
+		if (roll.keep() == 1) what += " (keeping the highest)";
+		if (roll.keep() == 2) what += " (keeping the lowest)";
 
 		Text text = Text.literal(roll.roller()).formatted(Formatting.YELLOW)
 				.append(Text.literal(" rolled " + what + ": ").formatted(Formatting.GRAY))
