@@ -26,6 +26,8 @@ public final class ActorRecord {
 	public int disposition = HOSTILE;
 	/** The Dungeon Master walks and acts for this Actor in a fight, whatever the Auto movement switch says. */
 	public boolean dmControl;
+	/** Invisible to everyone but the Dungeon Masters (see {@link Ghosts}). */
+	public boolean hidden;
 	/** The folder it is filed in ("" = none). Folders are one level deep. */
 	public String folder = "";
 	/** Free labels for searching and filtering ("undead", "act 2"). */

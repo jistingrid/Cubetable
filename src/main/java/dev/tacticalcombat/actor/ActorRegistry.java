@@ -66,6 +66,7 @@ public final class ActorRegistry {
 				if (o.has("value")) r.value = o.get("value").getAsString();
 				if (o.has("disposition")) r.disposition = o.get("disposition").getAsInt();
 				if (o.has("dm")) r.dmControl = o.get("dm").getAsBoolean();
+				if (o.has("hidden")) r.hidden = o.get("hidden").getAsBoolean();
 				if (o.has("body")) r.entityUuid = UUID.fromString(o.get("body").getAsString());
 				if (o.has("folder")) r.folder = o.get("folder").getAsString();
 				if (o.has("tags")) for (JsonElement t : o.getAsJsonArray("tags")) r.tags.add(t.getAsString());
@@ -91,6 +92,7 @@ public final class ActorRegistry {
 				o.addProperty("value", r.value);
 				o.addProperty("disposition", r.disposition);
 				o.addProperty("dm", r.dmControl);
+				if (r.hidden) o.addProperty("hidden", true);
 				if (r.entityUuid != null) o.addProperty("body", r.entityUuid.toString());
 				if (!r.folder.isEmpty()) o.addProperty("folder", r.folder);
 				if (!r.tags.isEmpty()) {

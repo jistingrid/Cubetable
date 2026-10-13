@@ -66,6 +66,8 @@ public record ActorActionPayload(int op, String id, String a, String b, String c
 	public static final int NUDGE = 24;
 	/** Make a copy of the Actor and place it beside the original. */
 	public static final int CLONE = 25;
+	/** n = 1 hide the Actor from the players (the Dungeon Masters still see a ghost), 0 show it. */
+	public static final int HIDE = 26;
 	/** Make an Actor out of a sheet, named after it. id = folder ("" none), b = sheet id, c = "kind:value", n as CREATE, d = tags. */
 	public static final int IMPORT = 20;
 

@@ -240,7 +240,7 @@ public final class ActorStageScreen extends Screen {
 		panel[0] = panel[1] = panel[2] = panel[3] = -1;
 		if (a == null) return;
 		int w = 176;
-		int h = 148;
+		int h = 166;
 		int x = 6;
 		int y = height - 18 - h;
 		panel[0] = x;
@@ -287,6 +287,9 @@ public final class ActorStageScreen extends Screen {
 			close();
 			EncounterScreen.requestTab(2);
 		});
+		by += 18;
+		button(ctx, mouseX, mouseY, ix, by, 160, a.hidden() ? "Hidden from players: click to show" : "Visible: click to hide it", a.hidden(), true,
+				() -> send(ActorActionPayload.HIDE, a.id(), "", a.hidden() ? 0 : 1));
 		by += 18;
 		button(ctx, mouseX, mouseY, ix, by, 160, "Possess (walk as it)", false, placed && !a.inFight(), () -> {
 			send(ActorActionPayload.POSSESS, a.id(), "", 0);

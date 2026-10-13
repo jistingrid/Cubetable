@@ -26,7 +26,7 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 	/** One Actor for the Actors window; entityId is -1 while it is not placed in the world. */
 	public record ActorInfo(String id, String name, String sheetId, boolean ownsSheet, String kind, String value,
 							int disposition, boolean dmControl, int entityId, float hp, float max, boolean inFight,
-							String folder, String tags) {}
+							String folder, String tags, boolean hidden) {}
 
 	public static final PacketCodec<RegistryByteBuf, DmStatePayload> CODEC = new PacketCodec<>() {
 		@Override
@@ -42,7 +42,7 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			for (int i = 0; i < m; i++) {
 				actors.add(new ActorInfo(buf.readString(64), buf.readString(64), buf.readString(64), buf.readBoolean(),
 						buf.readString(16), buf.readString(128), buf.readVarInt(), buf.readBoolean(), buf.readVarInt(),
-						buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readString(32), buf.readString(300)));
+						buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readString(32), buf.readString(300), buf.readBoolean()));
 			}
 			int f = buf.readVarInt();
 			List<String> folders = new ArrayList<>(f);
@@ -86,6 +86,7 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 				buf.writeBoolean(a.inFight);
 				buf.writeString(a.folder, 32);
 				buf.writeString(a.tags, 300);
+				buf.writeBoolean(a.hidden);
 			}
 			buf.writeVarInt(p.folders.size());
 			for (String f : p.folders) buf.writeString(f, 32);

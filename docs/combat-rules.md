@@ -235,6 +235,16 @@ Actor named after its sheet, looking like the Minecraft creature of that name wh
   clicks roll with its numbers, chat names the Actor as the roller, and costs come from its own resources.
 - **Anyone attacking an Actor:** the attack is compared with the `defense` formula on the Actor's sheet.
 
+### Hidden Actors
+
+An Actor can be **hidden**: its body is invisible to the players and its floating name is switched off. Dungeon
+Masters still see it as the pale, see-through ghost Minecraft draws for an invisible teammate (the hidden bodies and
+the DMs share a scoreboard team called `tc_ghosts`, kept up to date by the server). Switch it in the Stage panel
+("Visible / Hidden") or in the Actors tab (**Seen by**). It is saved with the Actor, kept by Clone and Duplicate, and
+applies when the Actor is placed. Not hidden yet: armor and held items of the body still show (as with any
+invisible creature), a hidden Actor still shows in the players' initiative bar once in a fight, and a player who
+guesses where it stands can still click it.
+
 ### The Stage
 
 `G` (or `/stage`, or the Stage row in the DM tools tab) gives a DM a free cursor over the world, like Foundry's token

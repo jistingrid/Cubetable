@@ -53,6 +53,7 @@ public final class ActorService {
 			case ActorActionPayload.MODEL -> setModel(dm.getServer(), p.id(), kindOf(p.c()), valueOf(p.c()));
 			case ActorActionPayload.SHEET -> setSheet(dm, p.id(), p.b(), p.n() != 0);
 			case ActorActionPayload.DISPOSITION -> setDisposition(dm.getServer(), p.id(), p.n());
+			case ActorActionPayload.HIDE -> setHidden(dm.getServer(), p.id(), p.n() != 0);
 			case ActorActionPayload.CONTROL -> setControl(dm.getServer(), p.id(), p.n() != 0);
 			case ActorActionPayload.RENAME -> rename(dm.getServer(), p.id(), p.a());
 			case ActorActionPayload.FIGHT -> addToFight(dm.getServer(), p.id());
@@ -225,6 +226,7 @@ public final class ActorService {
 		r.value = src.value;
 		r.disposition = src.disposition;
 		r.dmControl = src.dmControl;
+		r.hidden = src.hidden;
 		r.folder = src.folder;
 		r.tags.addAll(src.tags);
 		attachSheet(dm.getServer(), dm, r, sheet, !src.ownsSheet); // a copy of a private sheet gets its own, a shared one stays shared
@@ -268,6 +270,15 @@ public final class ActorService {
 		if (r == null) return "No such Actor.";
 		r.disposition = Math.max(0, Math.min(2, disposition));
 		ActorRegistry.save();
+		return null;
+	}
+
+	public static String setHidden(MinecraftServer server, String id, boolean hidden) {
+		ActorRecord r = ActorRegistry.find(id);
+		if (r == null) return "No such Actor.";
+		r.hidden = hidden;
+		ActorRegistry.save();
+		Ghosts.apply(server, r);
 		return null;
 	}
 
@@ -407,6 +418,7 @@ public final class ActorService {
 		world.spawnEntity(body);
 		r.entityUuid = body.getUuid();
 		ActorRegistry.save();
+		if (r.hidden) Ghosts.apply(world.getServer(), r);
 		return null;
 	}
 
@@ -527,6 +539,7 @@ public final class ActorService {
 		r.value = src.value;
 		r.disposition = src.disposition;
 		r.dmControl = src.dmControl;
+		r.hidden = src.hidden;
 		r.folder = src.folder;
 		r.tags.addAll(src.tags);
 		attachSheet(dm.getServer(), dm, r, sheet, !src.ownsSheet);

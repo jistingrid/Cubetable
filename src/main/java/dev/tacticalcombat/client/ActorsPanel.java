@@ -738,6 +738,12 @@ final class ActorsPanel {
 				"Whether you walk it in a fight or it takes its own turns", a.dmControl() ? 0xFF6B4E12 : ui.panel, a.dmControl() ? ui.gold : 0xFF3B414C);
 		y += 20;
 
+		label(ui, g, "Seen by", x, y);
+		btn(ui, g, cx, y, a.hidden() ? "Hidden from players" : "Everyone", () ->
+				send(new ActorActionPayload(ActorActionPayload.HIDE, id, "", "", "", a.hidden() ? 0 : 1)),
+				"A hidden Actor is invisible to the players; Dungeon Masters still see it as a pale ghost", a.hidden() ? 0xFF6B4E12 : ui.panel, a.hidden() ? ui.gold : 0xFF3B414C);
+		y += 20;
+
 		label(ui, g, "Folder", x, y);
 		plain(ui, g, cx, y, ui.font().trimToWidth(folderLabel(a.folder()), Math.max(30, cw - 8)), () ->
 				send(new ActorActionPayload(ActorActionPayload.FOLDER, id, nextFolder(a.folder()), "", "", 0)),

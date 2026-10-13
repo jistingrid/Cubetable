@@ -119,7 +119,10 @@ public final class DmTools {
 
 	/** Every second: tell the DMs how things stand. */
 	public static void tick(MinecraftServer server) {
-		if (server.getTicks() % 20 == 0) broadcast(server);
+		if (server.getTicks() % 20 == 0) {
+			dev.tacticalcombat.actor.Ghosts.syncDms(server); // DMs see hidden Actors as ghosts
+			broadcast(server);
+		}
 	}
 
 	public static void broadcast(MinecraftServer server) {
@@ -145,7 +148,7 @@ public final class DmTools {
 			}
 			actors.add(new DmStatePayload.ActorInfo(r.id, r.name, r.sheetId, r.ownsSheet, r.kind, r.value, r.disposition,
 					r.dmControl, body == null ? -1 : body.getId(), hp == null ? 0f : (float) hp.now(), hp == null ? 0f : (float) hp.max(),
-					body != null && CombatManager.isInCombat(body), r.folder, dev.tacticalcombat.actor.ActorRegistry.joinTags(r.tags)));
+					body != null && CombatManager.isInCombat(body), r.folder, dev.tacticalcombat.actor.ActorRegistry.joinTags(r.tags), r.hidden));
 		}
 		// formats that characters use and this server has no pack for: without them there are no hit points or combat rules
 		java.util.Set<String> missing = new java.util.LinkedHashSet<>();
