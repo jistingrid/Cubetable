@@ -83,7 +83,7 @@ no bars or no actions just gets a smaller bar.
   everyone, like the Show button. One entry shows once however many rolls follow (attack, then damage); rolling
   another entry, or the same one a minute later, shows it again.
 - **Trays:** a source with a `tray` does not take a slot; its entries live in a pop-up list opened by the tray's
-  button (or `T`; pressing it again moves on to the next tray). Entries can be grouped under headings, show their
+  button. Entries can be grouped under headings, show their
   icon, level, cost and spell-slot dots, and the star on an entry **pins** it to the bar (pins are remembered per
   character). Click an entry to use it, right click for its damage. `Esc` or a click elsewhere closes the tray.
 - **Settings** (the three dots): size, opacity, and whether to show health bars, resources, movement and key

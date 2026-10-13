@@ -510,7 +510,7 @@ public final class ActionBar {
 				List<Text> tt = new ArrayList<>();
 				tt.add(Text.literal(tray.label()));
 				tt.add(Text.literal(count + (count == 1 ? " entry" : " entries")).formatted(Formatting.GRAY));
-				tt.add(Text.literal("Click or press T to " + (t == openTray ? "close" : "open")).formatted(Formatting.GRAY));
+				tt.add(Text.literal("Click to " + (t == openTray ? "close" : "open")).formatted(Formatting.GRAY));
 				hit(tx, ty, SLOT, SLOT, () -> toggleTray(index), null, tt);
 				if (over) tip = tt;
 			}
@@ -719,7 +719,6 @@ public final class ActionBar {
 		m.push();
 		m.scale(0.5f, 0.5f, 1f);
 		ctx.drawText(font, String.valueOf(count), (x + 3) * 2, (y + SLOT - 7) * 2, open ? ACCENT : 0xFFB8BECC, false);
-		ctx.drawText(font, "T", (x + SLOT - 3) * 2 - font.getWidth("T"), (y + 2) * 2, 0xFFB8BECC, false);
 		m.pop();
 		// a little tab mark under the icon says "this opens a list"
 		ctx.fill(x + SLOT / 2 - 3, y + SLOT - 3, x + SLOT / 2 + 3, y + SLOT - 2, open ? ACCENT : 0xFF7C8394);
@@ -1080,18 +1079,12 @@ public final class ActionBar {
 		return true;
 	}
 
-	/** Number keys pick the matching slot of the bar, T opens the tray (again: the next one), Esc closes a pop-up. */
+	/** Number keys pick the matching slot of the bar, Esc closes a pop-up. */
 	public static boolean keyPressed(int keyCode) {
 		if (!ClientCombatState.active) return false;
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE && (openTray >= 0 || settingsOpen)) {
 			openTray = -1;
 			settingsOpen = false;
-			return true;
-		}
-		if (keyCode == GLFW.GLFW_KEY_T && !lastTrays.isEmpty()) {
-			openTray = openTray + 1 >= lastTrays.size() ? -1 : openTray + 1;
-			settingsOpen = false;
-			trayScroll = 0;
 			return true;
 		}
 		if (!ClientCombatState.canMoveActive()) return false;
