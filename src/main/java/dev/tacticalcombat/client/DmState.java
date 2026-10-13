@@ -21,6 +21,14 @@ public final class DmState {
 	public static List<String> folders = List.of();
 	/** Everyone who can be in a fight, ticked or not. */
 	public static List<DmStatePayload.Member> roster = List.of();
+	/** Entity ids of the Dungeon Masters who are invisible to the players. */
+	public static List<Integer> invisibleDms = List.of();
+
+	/** This Dungeon Master has hidden themselves from the players. */
+	public static boolean selfInvisible() {
+		net.minecraft.client.network.ClientPlayerEntity p = net.minecraft.client.MinecraftClient.getInstance().player;
+		return p != null && invisibleDms.contains(p.getId());
+	}
 	/** Formats the server has characters for but no game pack. */
 	public static List<String> missingFormats = List.of();
 
@@ -32,6 +40,7 @@ public final class DmState {
 		actors = p.actors();
 		folders = p.folders();
 		roster = p.roster();
+		invisibleDms = p.invisibleDms();
 		missingFormats = p.missingFormats();
 		FormatUploader.offer(p.missingFormats());
 	}
@@ -50,6 +59,7 @@ public final class DmState {
 		actors = List.of();
 		folders = List.of();
 		roster = List.of();
+		invisibleDms = List.of();
 		missingFormats = List.of();
 		FormatUploader.reset();
 	}

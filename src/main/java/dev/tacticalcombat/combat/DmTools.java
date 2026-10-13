@@ -88,6 +88,7 @@ public final class DmTools {
 				net.minecraft.entity.LivingEntity e = candidate(player.getServer(), value);
 				if (e != null) setChecked(player.getServer(), e, !isChecked(e));
 			}
+			case 5 -> dev.tacticalcombat.actor.Ghosts.setDmInvisible(player.getServer(), player, value != 0); // the DM hides from the players (or not)
 			case 4 -> { // everybody in (1) or out (0)
 				for (net.minecraft.entity.LivingEntity e : candidates(player.getServer())) {
 					if (isChecked(e) != (value != 0)) setChecked(player.getServer(), e, value != 0);
@@ -164,8 +165,10 @@ public final class DmTools {
 					hp != null ? (float) hp.now() : e.getHealth(), hp != null ? (float) hp.max() : e.getMaxHealth(),
 					!player && dev.tacticalcombat.actor.ActorRegistry.isHostileBody(e), player, isChecked(e)));
 		}
+		List<Integer> invisibleDms = new ArrayList<>();
+		for (ServerPlayerEntity dm : dms) if (dev.tacticalcombat.actor.Ghosts.isInvisibleDm(dm.getUuid())) invisibleDms.add(dm.getId());
 		DmStatePayload payload = new DmStatePayload(autoMovement, who, actors, dev.tacticalcombat.actor.ActorRegistry.folders(),
-				new ArrayList<>(missing), roster);
+				new ArrayList<>(missing), roster, invisibleDms);
 		for (ServerPlayerEntity dm : dms) ServerPlayNetworking.send(dm, payload);
 	}
 }

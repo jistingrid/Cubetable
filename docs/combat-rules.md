@@ -245,6 +245,13 @@ applies when the Actor is placed. Not hidden yet: armor and held items of the bo
 invisible creature), a hidden Actor still shows in the players' initiative bar once in a fight, and a player who
 guesses where it stands can still click it.
 
+### Hiding yourself
+
+The DM tools tab has an **Invisible** switch: it makes the Dungeon Master invisible to the players (and hides their
+name tag). It uses the same ghost team as hidden Actors, so other DMs still see a pale ghost. It lasts until the
+server stops or the switch is turned off, and is put back if a milk bucket or a respawn removes it. Your armor and
+held items still show.
+
 ### The Stage
 
 `G` (or `/stage`, or the Stage row in the DM tools tab) gives a DM a free cursor over the world, like Foundry's token
