@@ -264,6 +264,13 @@ where it stands and hands the creature to the DM, who walks it by hand from then
 
 Not there yet: saving throws and advantage on bar rolls.
 
+### Which bar damage lowers
+
+By default damage lowers the health bar and healing raises it. A game can point damage at another bar and name it:
+`"damage": { "bar": "stress", "noun": "stress" }` in the `combat` block (`bar` is the id of one of the `bars`, `noun`
+is the word in "X takes 5 stress"; chat says "X healed 3 Stress" with the bar's label). Damage prompts, damage from
+rules, healing and the floating numbers all follow it. Going down (below) still works from the health bar.
+
 ## At 0 hit points
 
 The format's `combat.downed` block says what happens when the vital bar reaches 0, whatever lowered it (a damage

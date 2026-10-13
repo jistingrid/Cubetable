@@ -243,7 +243,7 @@ public final class Conditions {
 		switch (r.effect()) {
 			case "damage", "heal" -> {
 				int amount = Math.max(0, rollAmount(s, subject, sub(r.value(), vars, false)));
-				String bar = r.target().isEmpty() ? SheetHealth.vitalId(subject) : r.target();
+				String bar = r.target().isEmpty() ? SheetHealth.damageBarId(subject) : r.target();
 				boolean heal = r.effect().equals("heal");
 				if (bar == null || !SheetHealth.change(server, subject, bar, heal ? amount : -amount)) return;
 				server.getPlayerManager().broadcast(Text.literal(prefix + (heal ? "heals " : "takes ") + amount

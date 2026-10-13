@@ -168,7 +168,8 @@ public final class SheetHealth {
 		e.json = json;
 		CharacterSync.changedByServer(server, e);
 		// the number floating over the creature
-		if (bar.vital()) {
+		CombatRules.Bar dmg = f.combat.damageTarget();
+		if (dmg != null && dmg.id().equals(bar.id())) {
 			if (amount < 0) Floaters.damage(player, -amount, maxHp);
 			else Floaters.heal(player, after - now);
 		} else {
@@ -184,11 +185,37 @@ public final class SheetHealth {
 		return vital == null ? null : vital.id();
 	}
 
-	/** Damage to the character's health bar. */
+	/** The bar damage lowers and healing raises for this creature (its game's choice, else the health bar), or null. */
+	private static CombatRules.Bar damageBarOf(CharacterStore.Entry e) {
+		SheetFormat f = formatOf(e);
+		return f == null || f.combat == null ? null : f.combat.damageTarget();
+	}
+
+	/** Id of that bar, or null when the creature has none. */
+	public static String damageBarId(LivingEntity who) {
+		CharacterStore.Entry e = entryFor(who);
+		CombatRules.Bar b = e == null ? null : damageBarOf(e);
+		return b == null ? null : b.id();
+	}
+
+	/** What the creature's game calls losing that bar ("damage"). */
+	public static String damageNoun(LivingEntity who) {
+		CharacterStore.Entry e = entryFor(who);
+		SheetFormat f = e == null ? null : formatOf(e);
+		return f == null || f.combat == null ? "damage" : f.combat.damageNoun;
+	}
+
+	/** The name of that bar as the game shows it ("HP" for a creature with no sheet). */
+	public static String damageBarLabel(LivingEntity who) {
+		CharacterStore.Entry e = entryFor(who);
+		CombatRules.Bar b = e == null ? null : damageBarOf(e);
+		return b == null ? "HP" : b.label();
+	}
+
+	/** Damage to the bar the game's damage lowers (the health bar unless the pack says otherwise). */
 	public static boolean damage(MinecraftServer server, LivingEntity player, double amount) {
-		CharacterStore.Entry e = entryFor(player);
-		CombatRules.Bar vital = e == null ? null : vitalOf(e);
-		return vital != null && change(server, player, vital.id(), -amount);
+		String bar = damageBarId(player);
+		return bar != null && change(server, player, bar, -amount);
 	}
 
 	/** ALLOW_DAMAGE hook: damage to a player with a sheet health bar goes to the sheet, not to Minecraft health. */

@@ -85,7 +85,7 @@ public final class DamagePrompt {
 		Entry e = QUEUE.get(0);
 		int[] p = panel(screenW);
 		CardStyle.frame(ctx, p[0], p[1], p[2], p[3], CardStyle.GOLD);
-		ctx.drawText(font, font.trimToWidth(Text.translatable("tacticalcombat.prompt.takes", e.target(), e.amount()).getString(), p[2] - 28),
+		ctx.drawText(font, font.trimToWidth(Text.translatable("tacticalcombat.prompt.takes", e.target(), e.amount(), e.noun().isEmpty() ? "damage" : e.noun()).getString(), p[2] - 28),
 				p[0] + 6, p[1] + 7, CardStyle.WHITE, true);
 		String from = e.attacker() + (e.label().isEmpty() ? "" : " - " + e.label());
 		CardStyle.small(ctx, font, from, p[0] + 6, p[1] + CardStyle.HEADER + 4, CardStyle.MUTED, p[2] - 12);

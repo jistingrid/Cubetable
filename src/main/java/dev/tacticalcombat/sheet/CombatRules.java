@@ -85,6 +85,17 @@ public final class CombatRules {
 	 */
 	public record Bar(String id, String label, String now, String max, String temp, String color, boolean vital) {}
 
+	/** The id of the bar that damage lowers ("damage": { "bar": ... } in the pack); "" = the health bar. */
+	public String damageBar = "";
+	/** What the game calls it when a creature loses that bar ("damage", "harm", "stress"). */
+	public String damageNoun = "damage";
+
+	/** The bar damage lowers and healing raises: the one the pack names, else the health bar; null when there is none. */
+	public Bar damageTarget() {
+		if (!damageBar.isEmpty()) for (Bar b : bars) if (b.id().equalsIgnoreCase(damageBar)) return b;
+		return vital();
+	}
+
 	/** The health bar, or null when the game leaves health to Minecraft. */
 	public Bar vital() {
 		for (Bar b : bars) if (b.vital()) return b;
@@ -271,6 +282,11 @@ public final class CombatRules {
 			dev.tacticalcombat.dice.DiceType type = die.startsWith("d") ? dev.tacticalcombat.dice.DiceType.fromSides(die.substring(1)) : null;
 			boolean high = !m.has("better") || !m.get("better").getAsString().equalsIgnoreCase("low");
 			r.rollMode = type == null ? dev.tacticalcombat.dice.RollMode.NONE : new dev.tacticalcombat.dice.RollMode(type, high);
+		}
+		if (o.has("damage") && o.get("damage").isJsonObject()) {
+			JsonObject d = o.getAsJsonObject("damage");
+			if (d.has("bar")) r.damageBar = d.get("bar").getAsString().toLowerCase(Locale.ROOT).trim();
+			if (d.has("noun") && !d.get("noun").getAsString().isBlank()) r.damageNoun = d.get("noun").getAsString().trim();
 		}
 		if (o.has("defaultDie") && o.get("defaultDie").isJsonPrimitive()) r.defaultDie = o.get("defaultDie").getAsString();
 		if (o.has("initiative") && o.get("initiative").isJsonObject()) {

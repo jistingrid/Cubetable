@@ -59,7 +59,7 @@ public final class Damage {
 		List<UUID> uuids = new ArrayList<>();
 		for (ServerPlayerEntity p : owners) uuids.add(p.getUuid());
 		PROMPTS.put(id, new Prompt(id, target.getUuid(), name, from, label, amount, uuids));
-		DamagePromptPayload payload = new DamagePromptPayload(id, false, name, from, label, amount);
+		DamagePromptPayload payload = new DamagePromptPayload(id, false, name, from, label, amount, SheetHealth.damageNoun(target));
 		for (ServerPlayerEntity p : owners) ServerPlayNetworking.send(p, payload);
 	}
 
@@ -71,7 +71,7 @@ public final class Damage {
 		MinecraftServer server = responder.getServer();
 		if (server == null) return;
 
-		DamagePromptPayload close = new DamagePromptPayload(id, true, "", "", "", 0);
+		DamagePromptPayload close = new DamagePromptPayload(id, true, "", "", "", 0, "");
 		for (UUID u : p.owners()) {
 			ServerPlayerEntity o = server.getPlayerManager().getPlayer(u);
 			if (o != null && o != responder) ServerPlayNetworking.send(o, close);
@@ -104,7 +104,7 @@ public final class Damage {
 		int n = Math.abs(signed);
 		boolean wasDown = Downed.isDown(target);
 		if (signed < 0) {
-			if (SheetHealth.of(target) != null) { // a player's Active Actor or an Actor's own sheet
+			if (SheetHealth.damageBarId(target) != null) { // a player's Active Actor or an Actor's own sheet
 				SheetHealth.damage(server, target, n);
 				target.getWorld().sendEntityStatus(target, (byte) 2); // the hurt flash, without Minecraft damage
 				if (target instanceof ServerPlayerEntity tp) SheetHealth.syncBar(tp);
@@ -112,16 +112,16 @@ public final class Damage {
 				target.damage(target.getWorld().getDamageSources().generic(), n);
 				Floaters.damage(target, n, target.getMaxHealth());
 			}
-			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_received", name, n), false);
+			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_received", name, n, SheetHealth.damageNoun(target)), false);
 		} else {
-			if (SheetHealth.of(target) != null) {
-				SheetHealth.change(server, target, SheetHealth.vitalId(target), n);
+			if (SheetHealth.damageBarId(target) != null) {
+				SheetHealth.change(server, target, SheetHealth.damageBarId(target), n);
 				if (target instanceof ServerPlayerEntity tp) SheetHealth.syncBar(tp);
 			} else {
 				target.heal(n);
 				Floaters.heal(target, n);
 			}
-			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_healed", name, n), false);
+			server.getPlayerManager().broadcast(Text.translatable("tacticalcombat.msg.damage_healed", name, n, SheetHealth.damageBarLabel(target)), false);
 		}
 		if (signed < 0) Downed.afterDamage(server, target, n, wasDown);
 		else Downed.check(server, target);

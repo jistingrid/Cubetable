@@ -10,7 +10,7 @@ import net.minecraft.util.Identifier;
  * Server -> client: "{target} takes {amount} damage" for the owner of the target to settle (full, half, heal or a
  * custom amount). With {@code close} set the prompt is gone (someone else answered it).
  */
-public record DamagePromptPayload(long id, boolean close, String target, String attacker, String label, int amount)
+public record DamagePromptPayload(long id, boolean close, String target, String attacker, String label, int amount, String noun)
 		implements CustomPayload {
 	public static final Id<DamagePromptPayload> ID = new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "damage_prompt"));
 
@@ -18,7 +18,7 @@ public record DamagePromptPayload(long id, boolean close, String target, String 
 		@Override
 		public DamagePromptPayload decode(RegistryByteBuf buf) {
 			return new DamagePromptPayload(buf.readLong(), buf.readBoolean(), buf.readString(64), buf.readString(64),
-					buf.readString(64), buf.readVarInt());
+					buf.readString(64), buf.readVarInt(), buf.readString(24));
 		}
 
 		@Override
@@ -29,6 +29,7 @@ public record DamagePromptPayload(long id, boolean close, String target, String 
 			buf.writeString(p.attacker, 64);
 			buf.writeString(p.label, 64);
 			buf.writeVarInt(p.amount);
+			buf.writeString(p.noun, 24);
 		}
 	};
 
