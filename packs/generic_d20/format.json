@@ -267,7 +267,18 @@
       { "id": "con_check", "label": "Constitution check", "roll": "d20 + con_mod" },
       { "id": "int_check", "label": "Intelligence check", "roll": "d20 + int_mod" },
       { "id": "wis_check", "label": "Wisdom check", "roll": "d20 + wis_mod" },
-      { "id": "cha_check", "label": "Charisma check", "roll": "d20 + cha_mod" }
+      { "id": "cha_check", "label": "Charisma check", "roll": "d20 + cha_mod" },
+      { "id": "skill_acrobatics", "label": "Acrobatics (skill)", "roll": "d20 + skill_acrobatics" },
+      { "id": "skill_athletics", "label": "Athletics (skill)", "roll": "d20 + skill_athletics" },
+      { "id": "skill_arcana", "label": "Arcana (skill)", "roll": "d20 + skill_arcana" },
+      { "id": "skill_history", "label": "History (skill)", "roll": "d20 + skill_history" },
+      { "id": "skill_insight", "label": "Insight (skill)", "roll": "d20 + skill_insight" },
+      { "id": "skill_intimidation", "label": "Intimidation (skill)", "roll": "d20 + skill_intimidation" },
+      { "id": "skill_investigation", "label": "Investigation (skill)", "roll": "d20 + skill_investigation" },
+      { "id": "skill_perception", "label": "Perception (skill)", "roll": "d20 + skill_perception" },
+      { "id": "skill_persuasion", "label": "Persuasion (skill)", "roll": "d20 + skill_persuasion" },
+      { "id": "skill_stealth", "label": "Stealth (skill)", "roll": "d20 + skill_stealth" },
+      { "id": "skill_survival", "label": "Survival (skill)", "roll": "d20 + skill_survival" }
     ],
     "conditions": { "collection": "conditions", "duration": "duration", "unit": "unit", "turns": "turns", "seconds": "seconds" },
     "downed": {

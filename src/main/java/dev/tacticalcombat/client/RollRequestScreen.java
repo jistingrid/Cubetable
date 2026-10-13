@@ -42,6 +42,11 @@ public final class RollRequestScreen extends Screen {
 	private ButtonWidget checkButton;
 	private ButtonWidget showButton;
 	private int scroll;
+	/** The roll-type dropdown: open or not, and its first visible row. */
+	private boolean menuOpen;
+	private int menuScroll;
+	private static final int MENU_ROWS = 9;
+	private static final int MENU_ROW = 12;
 	private int left;
 	private int top;
 	private int listTop;
@@ -78,8 +83,8 @@ public final class RollRequestScreen extends Screen {
 		listTop = y + 18;
 		int by = listTop + ROWS * ROW + 6;
 		checkButton = addDrawableChild(ButtonWidget.builder(Text.empty(), b -> {
-			checkIndex = (checkIndex + 1) % checks.size();
-			refresh();
+			menuOpen = !menuOpen;
+			if (menuOpen) menuScroll = Math.max(0, Math.min(checkIndex - MENU_ROWS / 2, checks.size() - MENU_ROWS));
 		}).dimensions(left + 44, by, W - 50, 14).build());
 		dcBox = new TextFieldWidget(textRenderer, left + 44, by + 18, 50, 14, Text.literal("DC"));
 		dcBox.setMaxLength(3);
@@ -97,7 +102,7 @@ public final class RollRequestScreen extends Screen {
 	}
 
 	private void refresh() {
-		checkButton.setMessage(Text.literal(checks.get(checkIndex)[1]));
+		checkButton.setMessage(Text.literal(checks.get(checkIndex)[1] + (menuOpen ? "  \u25B2" : "  \u25BC")));
 		showButton.setMessage(Text.literal(showDc ? "Players see the DC" : "DC hidden"));
 	}
 
@@ -115,9 +120,13 @@ public final class RollRequestScreen extends Screen {
 		note = "Sent to " + PICKED.size() + ".";
 	}
 
+	/** No blur and no dimming: the battlefield stays visible behind the window, as with the other windows. */
+	@Override
+	public void renderBackground(DrawContext g, int mouseX, int mouseY, float delta) {
+	}
+
 	@Override
 	public void render(DrawContext g, int mouseX, int mouseY, float delta) {
-		renderBackground(g, mouseX, mouseY, delta);
 		int h = (listTop + ROWS * ROW + 66) - top;
 		CardStyle.frame(g, left, top, W, h, CardStyle.STEEL);
 		g.drawText(textRenderer, "Roll request", left + 6, top + 7, CardStyle.WHITE, true);
@@ -146,11 +155,65 @@ public final class RollRequestScreen extends Screen {
 		g.drawText(textRenderer, "Roll", left + 8, by + 3, CardStyle.MUTED, false);
 		g.drawText(textRenderer, "DC", left + 8, by + 21, CardStyle.MUTED, false);
 		if (!note.isEmpty()) g.drawText(textRenderer, note, left + 112, by + 42, CardStyle.MUTED, false);
+		refresh();
 		super.render(g, mouseX, mouseY, delta);
+		if (menuOpen) drawMenu(g, mouseX, mouseY);
+	}
+
+	private int menuX() {
+		return left + 44;
+	}
+
+	private int menuY() {
+		return listTop + ROWS * ROW + 6 + 15;
+	}
+
+	private int menuRows() {
+		return Math.min(MENU_ROWS, checks.size());
+	}
+
+	/** The roll types in a list under the button, above everything else in the window. */
+	private void drawMenu(DrawContext g, int mouseX, int mouseY) {
+		int x = menuX(), y = menuY(), w = W - 50, rows = menuRows();
+		menuScroll = Math.max(0, Math.min(menuScroll, checks.size() - rows));
+		g.getMatrices().push();
+		g.getMatrices().translate(0, 0, 400);
+		g.fill(x - 1, y - 1, x + w + 1, y + rows * MENU_ROW + 1, CardStyle.EDGE);
+		g.fill(x, y, x + w, y + rows * MENU_ROW, 0xFF0F1117);
+		for (int i = 0; i < rows; i++) {
+			int idx = menuScroll + i;
+			int ry = y + i * MENU_ROW;
+			boolean over = mouseX >= x && mouseX < x + w - 4 && mouseY >= ry && mouseY < ry + MENU_ROW;
+			if (over) g.fill(x, ry, x + w, ry + MENU_ROW, CardStyle.BUTTON_HOVER);
+			else if (idx == checkIndex) g.fill(x, ry, x + 2, ry + MENU_ROW, 0xFFE0A526);
+			g.drawText(textRenderer, textRenderer.trimToWidth(checks.get(idx)[1], w - 12), x + 5, ry + 2,
+					idx == checkIndex ? CardStyle.WHITE : CardStyle.MUTED, false);
+		}
+		int more = checks.size() - rows;
+		if (more > 0) {
+			int barH = Math.max(8, Math.round(rows * MENU_ROW * (rows / (float) checks.size())));
+			int barY = y + Math.round((rows * MENU_ROW - barH) * (menuScroll / (float) more));
+			g.fill(x + w - 3, barY, x + w - 1, barY + barH, 0xFF5A616C);
+		}
+		g.getMatrices().pop();
 	}
 
 	@Override
 	public boolean mouseClicked(double mx, double my, int button) {
+		if (menuOpen) {
+			int x = menuX(), y = menuY(), w = W - 50;
+			if (button == 0 && mx >= x && mx < x + w && my >= y && my < y + menuRows() * MENU_ROW) {
+				checkIndex = menuScroll + (int) ((my - y) / MENU_ROW);
+				menuOpen = false;
+				return true;
+			}
+			// the button itself toggles it; a click anywhere else only closes it
+			boolean onButton = mx >= left + 44 && mx < left + W - 6 && my >= menuY() - 15 && my < menuY() - 1;
+			if (!onButton) {
+				menuOpen = false;
+				return true;
+			}
+		}
 		if (super.mouseClicked(mx, my, button)) return true;
 		if (button != 0 || mx < left + 7 || mx >= left + W - 7 || my < listTop || my >= listTop + ROWS * ROW) return false;
 		int i = scroll + (int) ((my - listTop) / ROW);
@@ -163,8 +226,21 @@ public final class RollRequestScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double mx, double my, double h, double v) {
+		if (menuOpen) {
+			menuScroll = Math.max(0, Math.min(menuScroll - (int) Math.signum(v), checks.size() - menuRows()));
+			return true;
+		}
 		scroll -= (int) Math.signum(v);
 		return true;
+	}
+
+	@Override
+	public boolean keyPressed(int key, int scan, int mods) {
+		if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && menuOpen) { // ESC closes the list first
+			menuOpen = false;
+			return true;
+		}
+		return super.keyPressed(key, scan, mods);
 	}
 
 	@Override
