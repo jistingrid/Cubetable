@@ -11,6 +11,15 @@
     "bars": [ { "id": "sanity", "label": "Sanity", "now": "sanity", "max": "sanity_max", "color": "purple" } ],
     "movement": { "speed": "mov", "pool": "mov" }
   },
+  "codex": {
+    "monsters": {
+      "label": "Creatures",
+      "columns": [
+        { "label": "HP", "value": "hp_max" },
+        { "label": "Mov", "value": "mov" }
+      ]
+    }
+  },
   "derived": {},
   "header": {
     "title": "$name",

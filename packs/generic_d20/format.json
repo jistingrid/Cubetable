@@ -313,6 +313,16 @@
       ]
     }
   },
+  "codex": {
+    "monsters": {
+      "label": "Bestiary",
+      "kind": "npc",
+      "columns": [
+        { "label": "HP", "value": "hp_max" },
+        { "label": "AC", "value": "ac" }
+      ]
+    }
+  },
   "derived": {
     "str_mod": "floor((str - 10) / 2)",
     "dex_mod": "floor((dex - 10) / 2)",

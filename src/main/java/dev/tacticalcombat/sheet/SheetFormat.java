@@ -33,6 +33,8 @@ public final class SheetFormat {
 	public final Map<String, String> derived = new LinkedHashMap<>();
 	/** How combat reads this game's sheets; null when the format has no "combat" block. */
 	public CombatRules combat;
+	/** How the codex presents each entry type ("monsters" ...), from the "codex" block; types it does not mention use defaults. */
+	public final Map<String, CodexRules.Type> codex = new LinkedHashMap<>();
 	/** Values a character may leave out (flags such as "not proficient" = 0). */
 	public final Map<String, Double> defaults = new LinkedHashMap<>();
 	/** Declared inputs; when a format declares none, they are worked out from the names its formulas use. */
@@ -259,6 +261,23 @@ public final class SheetFormat {
 		return l != null ? l : layouts.values().iterator().next();
 	}
 
+	/** How the codex shows one entry type of this game (the pack's choice, else plain defaults). */
+	public CodexRules.Type codexType(String type) {
+		CodexRules.Type t = codex.get(type);
+		return t != null ? t : CodexRules.defaults(type);
+	}
+
+	/**
+	 * The sheet kind entries of a codex type use: the pack's choice when it names a layout this format has, else the
+	 * NPC layout when there is one, else the format's first layout.
+	 */
+	public String codexKind(String type) {
+		String kind = codexType(type).kind;
+		if (!kind.isEmpty() && layouts.containsKey(kind)) return kind;
+		if (layouts.containsKey("npc")) return "npc";
+		return layouts.keySet().iterator().next();
+	}
+
 	// ------------------------------------------------------------------ parsing
 
 	public static SheetFormat parse(JsonObject o, String source) {
@@ -273,6 +292,13 @@ public final class SheetFormat {
 
 		if (o.has("combat") && o.get("combat").isJsonObject()) {
 			f.combat = CombatRules.parse(o.getAsJsonObject("combat"));
+		}
+		if (o.has("codex") && o.get("codex").isJsonObject()) {
+			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("codex").entrySet()) {
+				if (!e.getValue().isJsonObject()) throw new IllegalArgumentException("codex." + e.getKey() + " must be an object");
+				String type = e.getKey().toLowerCase(Locale.ROOT);
+				f.codex.put(type, CodexRules.parse(type, e.getValue().getAsJsonObject()));
+			}
 		}
 		if (o.has("derived")) {
 			for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("derived").entrySet()) {

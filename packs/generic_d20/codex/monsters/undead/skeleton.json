@@ -1,0 +1,55 @@
+{
+  "format": "generic_d20",
+  "kind": "npc",
+  "codex": {
+    "model": "mob:minecraft:skeleton",
+    "side": "hostile",
+    "tags": ["undead"]
+  },
+  "text": {
+    "name": "Skeleton",
+    "subtitle": "Medium undead, lawful evil (CR 1/4)"
+  },
+  "values": {
+    "str": 10,
+    "dex": 14,
+    "con": 15,
+    "int": 6,
+    "wis": 8,
+    "cha": 5,
+    "prof": 2,
+    "level": 1,
+    "hp": 13,
+    "hp_max": 13,
+    "ac": 13,
+    "speed": 30
+  },
+  "collections": {
+    "weapons": [
+      {
+        "name": "Shortsword",
+        "ability": 1,
+        "dmg": "1d6",
+        "prof": 1,
+        "notes": "Melee, 5 ft, piercing."
+      },
+      {
+        "name": "Shortbow",
+        "ability": 1,
+        "dmg": "1d6",
+        "prof": 1,
+        "notes": "Ranged, 80/320 ft, piercing."
+      }
+    ],
+    "features": [
+      {
+        "name": "Damage Vulnerability",
+        "notes": "Bludgeoning."
+      },
+      {
+        "name": "Damage and Condition Immunities",
+        "notes": "Immune to poison damage and to the exhaustion and poisoned conditions."
+      }
+    ]
+  }
+}

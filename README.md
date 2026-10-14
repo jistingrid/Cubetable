@@ -80,6 +80,8 @@ At 0 hit points a pack-defined state applies (`combat.downed`): the model lies d
 
 **Actors** are the enemies and NPCs of a scene, placed by a DM like tokens: each has a sheet (its own copy or a shared one), a model (any mob, a player skin, an item or a block), a side and optional DM control. Manage them in the Actors window (`/actors`) or `/actor ...`, and select and drag them in the world with the Stage (`G`): [docs/combat-rules.md](docs/combat-rules.md#actors-the-creatures-of-a-fight). `packs/generic_d20/characters/wolf.json` is a ready sheet (5e wolf).
 
+**The Codex** is a library of ready-made monsters that a game pack carries (`packs/<game>/codex/monsters/`), kept out of everyone's sheet list until the DM adds one. Open it with `/codex` (a tab of the DM window): search, tick, **Add as Actor**, or drop your own `.json` files onto it. What a game calls its entries and which numbers it shows come from its pack: [docs/codex.md](docs/codex.md).
+
 ## Shared characters and the Dungeon Master
 
 - **Link to server** (Edit page of a character): the server keeps a copy, saved with the world (`tacticalcombat/characters.json`). Every save you make is sent to it; changes made by a DM come back to your own file. **Unlink** stops sharing (your file stays).

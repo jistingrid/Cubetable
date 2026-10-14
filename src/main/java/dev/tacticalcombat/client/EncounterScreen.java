@@ -32,10 +32,10 @@ import java.util.List;
  * DM simply orders the turns by hand.
  */
 public final class EncounterScreen extends Screen {
-	/** Remembered size of the window for each tab: Encounter, DM tools, Actors. */
-	private static final int[][] SIZE = {{400, 262}, {250, 190}, {380, 236}};
-	private static final int[][] MIN = {{300, 210}, {200, 110}, {290, 170}};
-	private static final String[] TAB_NAMES = {"Encounter", "DM tools", "Actors"};
+	/** Remembered size of the window for each tab: Encounter, DM tools, Actors, Codex. */
+	private static final int[][] SIZE = {{400, 262}, {250, 190}, {380, 236}, {420, 250}};
+	private static final int[][] MIN = {{300, 210}, {200, 110}, {290, 170}, {330, 190}};
+	private static final String[] TAB_NAMES = {"Encounter", "DM tools", "Actors", "Codex"};
 	private static final int GRAB = 5;
 	private static final int TITLE_H = 16;
 	private static final int ROW_H = 24;
@@ -50,7 +50,7 @@ public final class EncounterScreen extends Screen {
 	private static boolean pendingAuto;
 	/** A Dungeon Master asked for the screen. */
 	private static boolean pendingDm;
-	/** Remembered between openings: 0 the encounter, 1 the DM tools, 2 the Actors. */
+	/** Remembered between openings: 0 the encounter, 1 the DM tools, 2 the Actors, 3 the Codex. */
 	private static int tab;
 	/** A tab somebody asked for (the /actors command, the Stage's Actors button). */
 	private static int pendingTab = -1;
@@ -80,6 +80,9 @@ public final class EncounterScreen extends Screen {
 	private int resizeMode;
 	private int resizeMouseX, resizeMouseY, resizeW, resizeH;
 	private final ActorsPanel actors = new ActorsPanel();
+	private final CodexPanel codex = new CodexPanel();
+	/** The tab drawn last frame, to read the codex files again when it is switched to. */
+	private int lastDrawnTab = -1;
 	/** Opened by the start of a fight: closes by itself when the turns begin. */
 	private final boolean autoClose;
 
@@ -216,6 +219,10 @@ public final class EncounterScreen extends Screen {
 
 		boolean dm = ServerCharacters.isDm();
 		if (!dm) tab = 0;
+		if (tab != lastDrawnTab) {
+			lastDrawnTab = tab;
+			if (dm && tab == 3) codex.onOpen(); // files may have changed on disk since it was last open
+		}
 		int w = MathHelper.clamp(SIZE[tab][0], MIN[tab][0], Math.max(MIN[tab][0], width - 8));
 		int h = MathHelper.clamp(SIZE[tab][1], MIN[tab][1], Math.max(MIN[tab][1], height - 8));
 		curW = w;
@@ -241,7 +248,7 @@ public final class EncounterScreen extends Screen {
 		// title bar
 		g.fill(x, y, x + w, y + TITLE_H, 0xFF0F1114);
 		g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, edge);
-		String title = dm && tab == 1 ? "DM tools" : dm && tab == 2 ? "Actors" : !inFight ? "Encounter" : planning ? "Encounter - initiative" : "Combat - round " + ClientCombatState.round;
+		String title = dm && tab == 1 ? "DM tools" : dm && tab == 2 ? "Actors" : dm && tab == 3 ? "Codex" : !inFight ? "Encounter" : planning ? "Encounter - initiative" : "Combat - round " + ClientCombatState.round;
 		g.drawText(textRenderer, title, x + 6, y + 4, 0xFFC9CCD2, false);
 		int right = x + w - 3;
 		right -= button(g, right - 12, y + 3, "x", this::close, "Close (the fight carries on; J or /encounter opens this again)", 0xFF7A1C27, 0xFFB8323F) + 3;
@@ -276,6 +283,12 @@ public final class EncounterScreen extends Screen {
 		}
 		if (dm && tab == 2) {
 			actors.draw(this, g, x, top + 1, w, h - (top - y) - 1);
+			drawGrip(g, x, y, w, h);
+			drawTooltip(g, mx, my);
+			return;
+		}
+		if (dm && tab == 3) {
+			codex.draw(this, g, x, top + 1, w, h - (top - y) - 1);
 			drawGrip(g, x, y, w, h);
 			drawTooltip(g, mx, my);
 			return;
@@ -669,6 +682,7 @@ public final class EncounterScreen extends Screen {
 				return true;
 			}
 			if (tab == 2 && ServerCharacters.isDm()) actors.blur();
+			if (tab == 3 && ServerCharacters.isDm()) codex.blur();
 			for (int i = hits.size() - 1; i >= 0; i--) {
 				Hit hit = hits.get(i);
 				if (hit.contains(mx, my)) {
@@ -713,6 +727,7 @@ public final class EncounterScreen extends Screen {
 			return true;
 		}
 		if (ServerCharacters.isDm() && tab == 2) return actors.scrolled(mx, my, vertical);
+		if (ServerCharacters.isDm() && tab == 3) return codex.scrolled(mx, my, vertical);
 		scroll = Math.max(0, scroll - (int) Math.signum(vertical));
 		return true;
 	}
@@ -720,6 +735,7 @@ public final class EncounterScreen extends Screen {
 	@Override
 	public boolean charTyped(char chr, int modifiers) {
 		if (ServerCharacters.isDm() && tab == 2 && actors.charTyped(chr)) return true;
+		if (ServerCharacters.isDm() && tab == 3 && codex.charTyped(chr)) return true;
 		return super.charTyped(chr, modifiers);
 	}
 
@@ -729,10 +745,20 @@ public final class EncounterScreen extends Screen {
 			actors.keyPressed(keyCode, modifiers); // a text box swallows every key: typing J or Esc must not close the window
 			return true;
 		}
+		if (ServerCharacters.isDm() && tab == 3 && codex.typing()) {
+			codex.keyPressed(keyCode, modifiers);
+			return true;
+		}
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE || (ServerCharacters.isDm() && TacticalCombatClient.ENCOUNTER_KEY.matchesKey(keyCode, scanCode))) {
 			close();
 			return true;
 		}
 		return super.keyPressed(keyCode, scanCode, modifiers);
+	}
+
+	/** Files dragged onto the window from the desktop: on the Codex tab they are added to the codex. */
+	@Override
+	public void filesDragged(java.util.List<java.nio.file.Path> paths) {
+		if (ServerCharacters.isDm() && tab == 3) codex.dropped(paths);
 	}
 }

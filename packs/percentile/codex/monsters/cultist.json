@@ -1,0 +1,28 @@
+{
+  "format": "percentile",
+  "codex": {
+    "model": "mob:minecraft:vindicator",
+    "side": "hostile",
+    "tags": ["human", "cult"]
+  },
+  "text": {
+    "name": "Cultist",
+    "subtitle": "Robed, armed and certain"
+  },
+  "values": {
+    "hp": 11,
+    "hp_max": 11,
+    "mov": 8
+  },
+  "collections": {
+    "skills": [
+      { "name": "Fighting", "value": 45 },
+      { "name": "Firearms", "value": 30 },
+      { "name": "Dodge", "value": 30 }
+    ],
+    "damage": [
+      { "name": "Knife", "dmg": "1d4+2" },
+      { "name": "Revolver", "dmg": "1d10" }
+    ]
+  }
+}

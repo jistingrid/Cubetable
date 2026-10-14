@@ -1,0 +1,48 @@
+{
+  "format": "generic_d20",
+  "kind": "npc",
+  "codex": {
+    "model": "mob:minecraft:silverfish",
+    "side": "hostile",
+    "tags": ["beast", "pack"]
+  },
+  "text": {
+    "name": "Giant Rat",
+    "subtitle": "Small beast, unaligned (CR 1/8)"
+  },
+  "values": {
+    "str": 7,
+    "dex": 15,
+    "con": 11,
+    "int": 2,
+    "wis": 10,
+    "cha": 4,
+    "prof": 2,
+    "level": 1,
+    "hp": 7,
+    "hp_max": 7,
+    "ac": 12,
+    "speed": 30
+  },
+  "collections": {
+    "weapons": [
+      {
+        "name": "Bite",
+        "ability": 1,
+        "dmg": "1d4",
+        "prof": 1,
+        "notes": "Melee, 5 ft, piercing."
+      }
+    ],
+    "features": [
+      {
+        "name": "Keen Smell",
+        "notes": "Advantage on Wisdom (Perception) checks that rely on smell."
+      },
+      {
+        "name": "Pack Tactics",
+        "notes": "Advantage on an attack roll against a creature if at least one of the rat's allies is within 5 feet of the creature and the ally isn't incapacitated."
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "format": "generic_d20",
+  "kind": "npc",
+  "codex": {
+    "model": "mob:minecraft:pillager",
+    "side": "hostile",
+    "tags": ["goblinoid"]
+  },
+  "text": {
+    "name": "Goblin",
+    "subtitle": "Small humanoid (goblinoid), neutral evil (CR 1/4)"
+  },
+  "values": {
+    "str": 8,
+    "dex": 14,
+    "con": 10,
+    "int": 10,
+    "wis": 8,
+    "cha": 8,
+    "prof": 2,
+    "level": 1,
+    "hp": 7,
+    "hp_max": 7,
+    "ac": 15,
+    "speed": 30,
+    "sk_stealth": 2
+  },
+  "collections": {
+    "weapons": [
+      {
+        "name": "Scimitar",
+        "ability": 1,
+        "dmg": "1d6",
+        "prof": 1,
+        "notes": "Melee, 5 ft, slashing."
+      },
+      {
+        "name": "Shortbow",
+        "ability": 1,
+        "dmg": "1d6",
+        "prof": 1,
+        "notes": "Ranged, 80/320 ft, piercing."
+      }
+    ],
+    "features": [
+      {
+        "name": "Nimble Escape",
+        "notes": "The goblin can take the Disengage or Hide action as a bonus action on each of its turns."
+      }
+    ]
+  }
+}

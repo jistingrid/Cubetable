@@ -52,6 +52,9 @@ public class TacticalCombatMod implements ModInitializer {
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.FormatUploadPayload.ID, dev.tacticalcombat.net.FormatUploadPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.FormatUploadPayload.ID, (payload, context) ->
 				context.server().execute(() -> dev.tacticalcombat.character.FormatUpload.receive(context.player(), payload)));
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.CodexActionPayload.ID, dev.tacticalcombat.net.CodexActionPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CodexActionPayload.ID, (payload, context) ->
+				context.server().execute(() -> dev.tacticalcombat.character.CodexService.handle(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(DiceRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> dev.tacticalcombat.combat.Strikes.roll(context.player(), payload.label(),
 						payload.type(), payload.count(), payload.modifier(), payload.mode(), payload.kind(), payload.cost(), payload.crit(), payload.force(), payload.rules(), payload.ref())));

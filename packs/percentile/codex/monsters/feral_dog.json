@@ -1,0 +1,27 @@
+{
+  "format": "percentile",
+  "codex": {
+    "model": "mob:minecraft:wolf",
+    "side": "hostile",
+    "tags": ["animal"]
+  },
+  "text": {
+    "name": "Feral Dog",
+    "subtitle": "Starving, and not afraid of you"
+  },
+  "values": {
+    "hp": 9,
+    "hp_max": 9,
+    "mov": 12
+  },
+  "collections": {
+    "skills": [
+      { "name": "Fighting", "value": 40 },
+      { "name": "Dodge", "value": 35 },
+      { "name": "Listen", "value": 60 }
+    ],
+    "damage": [
+      { "name": "Bite", "dmg": "1d6" }
+    ]
+  }
+}

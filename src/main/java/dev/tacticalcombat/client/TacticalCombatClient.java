@@ -120,6 +120,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			CheckPrompt.clear();
 			DownedCard.clear();
 			DmState.clear();
+			CodexClient.clear();
 		});
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -130,6 +131,11 @@ public class TacticalCombatClient implements ClientModInitializer {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				dispatcher.register(ClientCommandManager.literal("actors").executes(ctx -> {
 					EncounterScreen.requestTab(2);
+					return 1;
+				})));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+				dispatcher.register(ClientCommandManager.literal("codex").executes(ctx -> {
+					EncounterScreen.requestTab(3);
 					return 1;
 				})));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->

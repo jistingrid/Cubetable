@@ -125,6 +125,20 @@ public final class ServerCharacters {
 		return ACTOR_SHEETS.contains(id);
 	}
 
+	/** True for a sheet the codex put in the game (a template for Actors, not a character): see {@code CodexService}. */
+	public static boolean isCodexSheet(CharacterData c) {
+		return c.remote && !c.link.isEmpty() && dev.tacticalcombat.character.CodexService.OWNER_NAME.equals(c.ownerName)
+				&& ACTOR_SHEETS.contains(c.link);
+	}
+
+	/** Codex entries that are in the game right now, by server id. */
+	public static List<CharacterData> codexSheets() {
+		List<CharacterData> list = new ArrayList<>();
+		for (CharacterData c : REMOTE.values()) if (isCodexSheet(c)) list.add(c);
+		list.sort((x, y) -> x.displayName().compareToIgnoreCase(y.displayName()));
+		return list;
+	}
+
 	/** Lets the sheet window list this Actor sheet while it is open (empty = none). */
 	public static void reveal(String id) {
 		revealed = id == null ? "" : id;

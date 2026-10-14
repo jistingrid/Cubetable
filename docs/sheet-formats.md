@@ -18,7 +18,7 @@ config/tacticalcombat/packs/my_game/
   themes/ember.json    optional colour themes for it
 ```
 
-Press **Reload** in the Formats view (the **Open packs folder** button opens the folder). The mod itself ships no game, only the colour themes (`core`). The games that come with the project live in the repository's top-level `packs/` folder (`packs/generic_d20`, `packs/percentile`): copy the folders you want into `config/tacticalcombat/packs/` and press Reload. A pack may also contain `characters/*.json` examples; they are copied once into the characters folder when it is empty. Copying `generic_d20/` and editing it is the quickest way to start a new game. (For development, `./gradlew installPacks` copies the repository's `packs/` into `run/config/tacticalcombat/packs/`, and `runClient` does it automatically.)
+Press **Reload** in the Formats view (the **Open packs folder** button opens the folder). The mod itself ships no game, only the colour themes (`core`). The games that come with the project live in the repository's top-level `packs/` folder (`packs/generic_d20`, `packs/percentile`): copy the folders you want into `config/tacticalcombat/packs/` and press Reload. A pack may also contain a `codex/` folder of ready-made monsters (see [codex.md](codex.md)), which stays out of your sheet list. A pack may also contain `characters/*.json` examples; they are copied once into the characters folder when it is empty. Copying `generic_d20/` and editing it is the quickest way to start a new game. (For development, `./gradlew installPacks` copies the repository's `packs/` into `run/config/tacticalcombat/packs/`, and `runClient` does it automatically.)
 
 ## Character file
 
@@ -41,6 +41,7 @@ Press **Reload** in the Formats view (the **Open packs folder** button opens the
 | `defaults` | values a character may leave out, e.g. `"sp_dex": 0` for "not proficient" |
 | `derived` | calculated values, `name: formula`, in any order; they may use each other |
 | `theme` | id of the colour theme this format prefers (see Themes) |
+| `codex` | how the game's codex of ready-made monsters is labelled and what it shows beside each name (optional; see [codex.md](codex.md)) |
 | `sheets` | the kinds of sheet this game has, e.g. `character` and `npc`. Each has `kind`, `name`, a `header` and `pages`. (A format with just a top-level `header` and `pages` is one `character` sheet.) |
 | `header` | `title` / `subtitle` templates (`$name`, `$subtitle` come from the character's `text`), `bars` (`label`, `value`, `max`, `temp`, `color`) and `badges` (`label`, `value`, `signed`). A bar whose `value` is a stored number gets -/+ buttons; negative changes are soaked up by the `temp` value first |
 | `pages` | tabs: `id`, `title`, optional `enabled`; each has `columns` (with a `weight`), each with `sections` (`id`, `title`, optional `enabled`, `items`) |

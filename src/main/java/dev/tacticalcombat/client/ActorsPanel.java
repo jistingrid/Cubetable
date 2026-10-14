@@ -127,6 +127,7 @@ final class ActorsPanel {
 		List<CharacterData> out = new ArrayList<>();
 		for (CharacterData c : SheetLibrary.CHARACTERS) if (!c.remote && !c.link.isEmpty() && !owned.contains(c.link)) out.add(c);
 		for (CharacterData c : ServerCharacters.remotes()) if (!c.link.isEmpty() && !owned.contains(c.link)) out.add(c);
+		for (CharacterData c : ServerCharacters.codexSheets()) if (!owned.contains(c.link)) out.add(c); // monsters the codex put in the game
 		out.sort((a, b) -> {
 			int k = Boolean.compare(!"npc".equals(a.kind), !"npc".equals(b.kind));
 			return k != 0 ? k : a.displayName().compareToIgnoreCase(b.displayName());
@@ -154,7 +155,12 @@ final class ActorsPanel {
 
 	/** A sheet called "Wolf" becomes a wolf; anything Minecraft has no creature for becomes a villager. */
 	private static String guessModel(CharacterData c) {
-		String n = c.displayName().toLowerCase(Locale.ROOT).replaceAll("\\s+\\d+$", "").trim().replace(' ', '_');
+		return guessModel(c.displayName());
+	}
+
+	/** The same guess from a name alone (the codex uses it for entries that name no model). */
+	static String guessModel(String name) {
+		String n = name.toLowerCase(Locale.ROOT).replaceAll("\\s+\\d+$", "").trim().replace(' ', '_');
 		Identifier id = n.isEmpty() ? null : Identifier.tryParse("minecraft:" + n);
 		if (id != null && Registries.ENTITY_TYPE.containsId(id) && ActorService.checkModel("mob", id.toString()) == null) return "mob:" + id;
 		return "mob:minecraft:villager";
