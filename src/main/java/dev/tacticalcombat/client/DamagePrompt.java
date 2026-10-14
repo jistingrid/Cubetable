@@ -17,7 +17,7 @@ import java.util.List;
  * a number and then Damage or Heal). Prompts wait in a queue and show one at a time, after the dice have stopped.
  */
 public final class DamagePrompt {
-	private record Entry(long id, String target, String attacker, String label, int amount) {}
+	private record Entry(long id, String target, String attacker, String label, int amount, String noun) {}
 
 	private static final List<Entry> QUEUE = new ArrayList<>();
 	private static boolean custom;
@@ -33,7 +33,7 @@ public final class DamagePrompt {
 			if (QUEUE.isEmpty()) reset();
 			return;
 		}
-		QUEUE.add(new Entry(p.id(), p.target(), p.attacker(), p.label(), p.amount()));
+		QUEUE.add(new Entry(p.id(), p.target(), p.attacker(), p.label(), p.amount(), p.noun()));
 	}
 
 	public static void clear() {
