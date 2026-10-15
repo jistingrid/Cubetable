@@ -1126,6 +1126,13 @@ public final class CharacterSheetScreen extends Screen {
 					dev.tacticalcombat.sheet.Crits.damage(diceCol), critForce(), dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row),
 					dev.tacticalcombat.sheet.ConditionRules.ref(coll, sc.character, row));
 		} else {
+			// a spell with no dice but "I use it" rules (it asks for a saving throw, applies a condition ...): they run now
+			for (dev.tacticalcombat.sheet.ConditionRules.Rule r : dev.tacticalcombat.sheet.ConditionRules.parse(dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row))) {
+				if (r.when().equals("used")) {
+					activate(sc, coll, row, false);
+					break;
+				}
+			}
 			MinecraftClient mc = MinecraftClient.getInstance();
 			if (mc.player != null) {
 				mc.player.sendMessage(Text.literal("[sheet] " + sc.character.displayName() + " " + col.verb + "s " + label

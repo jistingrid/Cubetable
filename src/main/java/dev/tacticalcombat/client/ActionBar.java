@@ -1140,6 +1140,13 @@ public final class ActionBar {
 		SheetFormat.Col col = isDamage ? dice : attack;
 		String formula = isDamage ? diceFormula : attack == null ? null : attack.roll;
 		if (col == null || formula == null) {
+			// nothing to roll, but "I use it" rules (a spell that only asks for a saving throw): it is used like a feature
+			if (!damage && hasUsedRule(s.coll(), s.row())) {
+				CharacterSheetScreen.activate(s.sc(), s.coll(), s.row(), s.own());
+				FLASH.put(s.key(), System.currentTimeMillis());
+				spendSpellSlot(s);
+				return;
+			}
 			mc.player.sendMessage(Text.literal("[sheet] " + s.name() + " has nothing to roll.").formatted(Formatting.GRAY), false);
 			return;
 		}
@@ -1169,8 +1176,20 @@ public final class ActionBar {
 		FLASH.put(s.key(), System.currentTimeMillis());
 		CharacterSheetScreen.autoShow(s.sc(), s.coll(), s.row());
 
-		// a levelled spell uses up one of its slots (on your own sheet; a creature's sheet is not changed)
-		if (!damage && s.level() >= 1 && s.own() && !s.store().isEmpty()) {
+		if (!damage) spendSpellSlot(s);
+	}
+
+	/** True when the entry has a rule that runs when it is used ("I use it"). */
+	private static boolean hasUsedRule(SheetFormat.Collection coll, CharacterData.Row row) {
+		for (dev.tacticalcombat.sheet.ConditionRules.Rule r : dev.tacticalcombat.sheet.ConditionRules.parse(dev.tacticalcombat.sheet.ConditionRules.rowRules(coll, row))) {
+			if (r.when().equals("used")) return true;
+		}
+		return false;
+	}
+
+	/** A levelled spell uses up one of its slots (on your own sheet; a creature's sheet is not changed). */
+	private static void spendSpellSlot(Slot s) {
+		if (s.level() >= 1 && s.own() && !s.store().isEmpty()) {
 			String key = s.store() + s.level();
 			CharacterData c = s.sc().character;
 			c.values.put(key, Math.max(0, c.values.getOrDefault(key, 0.0) - 1));

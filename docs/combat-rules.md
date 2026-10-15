@@ -488,6 +488,22 @@ Wolf bite     hit  | | check | str_save | 11                   Strength save, DC
 Anything a rule could not do shows to the Dungeon Masters as a `[rules]` line in chat (a condition name the pack does
 not have, a formula that does not work, a game pack the server lacks) instead of silently doing nothing.
 
+### Saving throws from spells and features
+
+A `check` rule works on any entry, not only on an attack: a spell or a feature can ask its target for a saving throw
+and say what follows. With the target picked, **using the entry** (its action-bar slot, its Use button, or the sheet's
+Cast button) runs its "I use it" rules, and an Auto `check` is asked of the **target** (switch the rule to Self to ask
+the user instead). With nobody targeted, the user is told to pick a target and nothing is asked.
+
+```
+Hold Person   used | | check | wis_save | 8 + prof + wis_mod     the target rolls a Wisdom save, DC from the caster's sheet
+              check_failed | | apply | Paralyzed |                ... and is paralyzed if it fails
+```
+
+A spell that has damage dice or an attack roll keeps working as before (its rules run on the attack's hit / miss or
+when the damage is rolled); a spell with neither, only rules, is now used from the action bar instead of answering
+"has nothing to roll".
+
 ### One roll at a time
 
 A roll that is already on its way can not be started again: from the sheet or the action bar, the same roll (an

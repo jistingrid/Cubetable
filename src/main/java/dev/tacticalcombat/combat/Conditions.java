@@ -233,12 +233,25 @@ public final class Conditions {
 		}
 	}
 
+	/** Who a rule's effect is for. An Auto {@code check} on an entry is asked of the entry's target; null = nobody (no target picked). */
+	private static LivingEntity askedOf(Src s, ConditionRules.Rule r, LivingEntity picked) {
+		if (!r.effect().equals("check") || !r.who().isEmpty() || s.selfCondition() || s.owner() == null || picked != s.owner()) return picked;
+		if (s.target() != null && s.target() != s.owner()) return s.target();
+		if (s.target() == null && s.roller() != null) {
+			s.roller().sendMessage(Text.literal(s.name() + ": pick a target first, then use it to ask for the saving throw."), true);
+		}
+		return s.target() == null ? null : picked;
+	}
+
 	private static void effect(MinecraftServer server, LivingEntity defaultSubject, Src s, ConditionRules.Rule r, java.util.Map<String, Integer> vars) {
-		LivingEntity subject = switch (r.who()) {
+		LivingEntity picked = switch (r.who()) {
 			case "self" -> s.owner() != null ? s.owner() : defaultSubject;
 			case "target" -> s.target() != null ? s.target() : defaultSubject;
 			default -> defaultSubject;
 		};
+		// a saving throw asked by an entry (a spell, a feature, an attack) is asked of its target, not of whoever used it
+		final LivingEntity subject = askedOf(s, r, picked);
+		if (subject == null) return;
 		String prefix = Damage.nameOf(subject) + ": " + s.name() + " - ";
 		switch (r.effect()) {
 			case "damage", "heal" -> {
