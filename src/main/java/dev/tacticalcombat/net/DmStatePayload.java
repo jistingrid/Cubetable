@@ -14,7 +14,8 @@ import java.util.List;
  * missingFormats: sheet formats that characters on the server use but the server has no game pack for.
  */
 public record DmStatePayload(boolean autoMovement, List<Who> players, List<ActorInfo> actors, List<String> folders,
-							 List<String> missingFormats, List<Member> roster, List<Integer> invisibleDms) implements CustomPayload {
+							 List<String> missingFormats, List<Member> roster, List<Integer> invisibleDms,
+							 boolean diagonals) implements CustomPayload {
 	public static final Id<DmStatePayload> ID = new Id<>(Identifier.of(TacticalCombatMod.MOD_ID, "dm_state"));
 
 	/** One player: entity id, name, health (the sheet's when they have one), and whether they are in a fight. */
@@ -59,7 +60,7 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			int iv = buf.readVarInt();
 			List<Integer> invisible = new ArrayList<>(iv);
 			for (int i = 0; i < iv; i++) invisible.add(buf.readVarInt());
-			return new DmStatePayload(auto, list, actors, folders, missing, roster, invisible);
+			return new DmStatePayload(auto, list, actors, folders, missing, roster, invisible, buf.readBoolean());
 		}
 
 		@Override
@@ -107,6 +108,7 @@ public record DmStatePayload(boolean autoMovement, List<Who> players, List<Actor
 			}
 			buf.writeVarInt(p.invisibleDms.size());
 			for (int id : p.invisibleDms) buf.writeVarInt(id);
+			buf.writeBoolean(p.diagonals);
 		}
 	};
 

@@ -11,6 +11,8 @@ public final class DmState {
 	public static int possessed = -1;
 	/** The game is paused by the Dungeon Master (everyone gets this, not only DMs). */
 	public static boolean paused;
+	/** Diagonal steps are allowed (cost one square). */
+	public static boolean diagonals = true;
 	/** The time of day and weather the DM holds (0 = natural; see combat.Ambience). */
 	public static int timeMode, weatherMode;
 
@@ -38,6 +40,7 @@ public final class DmState {
 
 	public static void receive(DmStatePayload p) {
 		autoMovement = p.autoMovement();
+		diagonals = p.diagonals();
 		players = p.players();
 		actors = p.actors();
 		folders = p.folders();

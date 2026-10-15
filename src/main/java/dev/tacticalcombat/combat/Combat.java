@@ -1118,6 +1118,14 @@ public final class Combat {
 					BlockPos s = Grid.step(world, b, dir); // squares next to a reachable one can be hit
 					if (s != null) out.add(s.asLong());
 				}
+				if (Grid.diagonals) {
+					for (Direction a : new Direction[] {Direction.NORTH, Direction.SOUTH}) {
+						for (Direction d : new Direction[] {Direction.EAST, Direction.WEST}) {
+							BlockPos s = Grid.stepDiagonal(world, b, a, d);
+							if (s != null) out.add(s.asLong());
+						}
+					}
+				}
 			}
 		}
 		return out;

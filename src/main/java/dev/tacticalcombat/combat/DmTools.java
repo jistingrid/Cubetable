@@ -97,6 +97,11 @@ public final class DmTools {
 			case 2 -> TimePause.set(player.getServer(), value != 0);
 			case 6 -> Ambience.setTime(player.getServer(), value); // hold a time of day (0 = let it run)
 			case 7 -> Ambience.setWeather(player.getServer(), value); // hold the weather (0 = let it run)
+			case 8 -> { // diagonal steps cost one square (1) or are not allowed (0)
+				dev.tacticalcombat.grid.Grid.diagonals = value != 0;
+				Combat running = CombatManager.primary();
+				if (running != null) running.markGridDirty();
+			}
 			case 1 -> {
 				autoMovement = value != 0;
 				Combat running = CombatManager.primary();
@@ -170,7 +175,7 @@ public final class DmTools {
 		List<Integer> invisibleDms = new ArrayList<>();
 		for (ServerPlayerEntity dm : dms) if (dev.tacticalcombat.actor.Ghosts.isInvisibleDm(dm.getUuid())) invisibleDms.add(dm.getId());
 		DmStatePayload payload = new DmStatePayload(autoMovement, who, actors, dev.tacticalcombat.actor.ActorRegistry.folders(),
-				new ArrayList<>(missing), roster, invisibleDms);
+				new ArrayList<>(missing), roster, invisibleDms, dev.tacticalcombat.grid.Grid.diagonals);
 		for (ServerPlayerEntity dm : dms) ServerPlayNetworking.send(dm, payload);
 	}
 }

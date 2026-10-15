@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * The square grid the combat is played on. One square = one block column position, identified by the
- * block position where the feet stand. Movement is 4-directional (no diagonals), one square costs 1.
+ * block position where the feet stand. Movement is 4-directional, plus diagonals when {@link #diagonals} is on; every step costs 1 square.
  * Shared by server (pathfinding, validation) and client (highlight height).
  */
 public final class Grid {
@@ -29,6 +29,12 @@ public final class Grid {
 	public static final int MAX_DROP = 3;
 	/** Melee reach used for click-to-attack, measured eye -> nearest point of the target's hitbox. */
 	public static final double ATTACK_REACH = 3.2;
+
+	/**
+	 * Whether a creature may step diagonally for the cost of one square (the Dungeon Master's switch; on by default).
+	 * A diagonal step may not cut a corner: both squares beside it must be free of blocks.
+	 */
+	public static volatile boolean diagonals = true;
 
 	private Grid() {}
 
@@ -77,13 +83,38 @@ public final class Grid {
 				if (r.index.containsKey(key) || blocked.contains(key)) continue;
 				r.add(key, n.cost + 1, i);
 			}
+			if (!diagonals) continue;
+			for (Direction a : new Direction[] {Direction.NORTH, Direction.SOUTH}) {
+				for (Direction b : new Direction[] {Direction.EAST, Direction.WEST}) {
+					BlockPos next = stepDiagonal(world, from, a, b);
+					if (next == null) continue;
+					long key = next.asLong();
+					if (r.index.containsKey(key) || blocked.contains(key)) continue;
+					r.add(key, n.cost + 1, i);
+				}
+			}
 		}
 		return r;
 	}
 
 	/** The square reached by walking one step from {@code from} towards {@code dir}, or null if that is impossible. */
 	public static BlockPos step(World world, BlockPos from, Direction dir) {
-		BlockPos column = from.offset(dir);
+		return stepInto(world, from, from.offset(dir));
+	}
+
+	/**
+	 * The square reached by a diagonal step, or null. Like a straight step, and in addition neither of the two squares
+	 * beside the path (at feet and head height) may hold a block, so nobody cuts a corner of a wall.
+	 */
+	public static BlockPos stepDiagonal(World world, BlockPos from, Direction a, Direction b) {
+		for (Direction side : new Direction[] {a, b}) {
+			BlockPos beside = from.offset(side);
+			if (!isPassable(world, beside) || !isPassable(world, beside.up())) return null;
+		}
+		return stepInto(world, from, from.offset(a).offset(b));
+	}
+
+	private static BlockPos stepInto(World world, BlockPos from, BlockPos column) {
 		for (int dy = 1; dy >= -MAX_DROP; dy--) {
 			BlockPos cand = column.add(0, dy, 0);
 			if (!isStandable(world, cand)) continue;

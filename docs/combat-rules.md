@@ -356,6 +356,7 @@ two tabs.
   each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
   tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.
 
+- **Diagonal movement** (in the DM tools tab): on by default. A step to a corner square costs one square, the same as a straight step, for everyone (players, Actors and creatures, and the red squares enemies threaten). A diagonal step can not cut the corner of a wall: the two squares beside it must be free of blocks. Off: only straight steps, so a diagonal costs two. It lasts until the server stops.
 - **Pause game** (in the DM tools tab): while it is on, players cannot walk, jump or touch blocks (break, place,
   use), and a "Game Paused" banner shows. DMs are not held, and neither are players inside a fight (the grid
   rules their movement). Looking around, the sheet, dice and chat keep working. Like the other settings it lasts
