@@ -20,6 +20,7 @@ public record CombatStatePayload(
 		float moveBudget,
 		float square,
 		String unit,
+		boolean diagonals,
 		List<Res> resources,
 		List<MoveButton> moves,
 		List<Entry> entries,
@@ -40,6 +41,7 @@ public record CombatStatePayload(
 			float moveBudget = buf.readFloat();
 			float square = buf.readFloat();
 			String unit = buf.readString(16);
+			boolean diagonals = buf.readBoolean();
 			int rn = buf.readVarInt();
 			List<Res> resources = new ArrayList<>(rn);
 			for (int i = 0; i < rn; i++) resources.add(new Res(buf.readString(32), buf.readVarInt(), buf.readVarInt(), buf.readString(24), buf.readInt(), buf.readString(8), buf.readBoolean()));
@@ -54,7 +56,7 @@ public record CombatStatePayload(
 			int tn = buf.readVarInt();
 			List<Target> targets = new ArrayList<>(tn);
 			for (int i = 0; i < tn; i++) targets.add(new Target(buf.readVarInt(), buf.readVarInt()));
-			return new CombatStatePayload(active, planning, round, activeIndex, moveUsed, moveBudget, square, unit, resources, moves, entries, targets);
+			return new CombatStatePayload(active, planning, round, activeIndex, moveUsed, moveBudget, square, unit, diagonals, resources, moves, entries, targets);
 		}
 
 		@Override
@@ -67,6 +69,7 @@ public record CombatStatePayload(
 			buf.writeFloat(p.moveBudget);
 			buf.writeFloat(p.square);
 			buf.writeString(p.unit, 16);
+			buf.writeBoolean(p.diagonals);
 			buf.writeVarInt(p.resources.size());
 			for (Res r : p.resources) {
 				buf.writeString(r.id, 32);
@@ -97,7 +100,7 @@ public record CombatStatePayload(
 	};
 
 	public static CombatStatePayload inactive() {
-		return new CombatStatePayload(false, false, 0, 0, 0f, 0f, 1f, "", List.of(), List.of(), List.of(), List.of());
+		return new CombatStatePayload(false, false, 0, 0, 0f, 0f, 1f, "", false, List.of(), List.of(), List.of(), List.of());
 	}
 
 	@Override

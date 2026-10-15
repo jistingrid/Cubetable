@@ -56,6 +56,9 @@ public final class TacticalScreen extends Screen {
 			MousePicker.update(mc, mouseX, mouseY);
 		}
 
+		Ruler.update(mc, mouseX, mouseY, onPanel);
+		Ruler.drawLabels(ctx, mc.textRenderer);
+
 		String panelTip = TrackerPanel.render(ctx, mc.textRenderer, mouseX, mouseY, width, height);
 		Text tip = onPanel ? (panelTip == null ? null : Text.literal(panelTip)) : tooltip(mc);
 		if (tip != null) {
@@ -93,6 +96,7 @@ public final class TacticalScreen extends Screen {
 		if (CheckPrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (DownedCard.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (ActionBar.mouseClicked(mouseX, mouseY, button, width, height)) return true;
+		if (Ruler.mouseClicked(button)) return true;
 		if (button != 0) return true;
 
 		// a creature under the pointer: it becomes (or stops being) your target, on anyone's turn
@@ -131,6 +135,7 @@ public final class TacticalScreen extends Screen {
 
 	@Override
 	public void removed() {
+		Ruler.stop();
 		TrackerPanel.clearHighlight();
 		super.removed();
 	}

@@ -39,6 +39,13 @@ public class TacticalCombatClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_J,
 			"key.categories.tacticalcombat"));
 
+	/** Hold to measure distances on the battlefield (see {@link Ruler}). */
+	public static final KeyBinding RULER_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.tacticalcombat.ruler",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_LEFT_SHIFT,
+			"key.categories.tacticalcombat"));
+
 	public static final KeyBinding STAGE_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			"key.tacticalcombat.stage",
 			InputUtil.Type.KEYSYM,
@@ -188,6 +195,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 				net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterRender(screen).register(
 						(s, ctx, mouseX, mouseY, delta) -> ShareCardHud.drawOverScreen(ctx, delta, mouseX, mouseY)));
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
+		WorldRenderEvents.AFTER_TRANSLUCENT.register(Ruler::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientCombatState.tick(client);

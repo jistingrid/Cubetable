@@ -25,6 +25,7 @@ Needs Fabric Loader and Fabric API on the client **and** the server.
 | Left click on a hostile | melee attack it (uses your action; must be within ~3 blocks, so move first) |
 | Enter (rebindable "End Turn") or `/tbc endturn` | end your turn |
 | W A S D | pan the camera away from the active unit |
+| Hold Left Shift (rebindable "Ruler") | ruler: the square under the pointer becomes the start of a measuring line that follows the pointer and shows its length in the game's unit (`20 ft`). Left click fixes a corner and carries on (a total is shown), right click takes the last corner back, letting go clears it. Diagonals are measured with the pack's rule (`combat.grid.diagonals`). Client only: nothing is sent to the server |
 | Mouse wheel | zoom |
 | Middle mouse drag / Left-Right arrows | rotate (drag up/down also tilts) |
 | 1-9, E, T, / , Esc | hotbar, inventory, chat, command, pause menu still work |

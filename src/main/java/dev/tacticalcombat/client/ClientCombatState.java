@@ -27,6 +27,8 @@ public final class ClientCombatState {
 	/** Size of one grid square in the game's own unit (feet, metres ...) and the unit's name. */
 	public static float square = 1f;
 	public static String unit = "";
+	/** The game lets a creature step diagonally for one square (the ruler measures the same way). */
+	public static boolean diagonals;
 	public static List<CombatStatePayload.Res> resources = List.of();
 	public static List<CombatStatePayload.MoveButton> moveButtons = List.of();
 	public static List<CombatStatePayload.Entry> entries = List.of();
@@ -64,6 +66,7 @@ public final class ClientCombatState {
 		moveBudget = p.moveBudget();
 		square = p.square();
 		unit = p.unit();
+		diagonals = p.diagonals();
 		resources = p.resources();
 		moveButtons = p.moves();
 		entries = p.entries();

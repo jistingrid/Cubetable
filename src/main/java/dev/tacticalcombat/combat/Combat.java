@@ -1210,7 +1210,7 @@ public final class Combat {
 		List<CombatStatePayload.Target> targetList = new ArrayList<>();
 		targets.forEach((by, at) -> targetList.add(new CombatStatePayload.Target(by, at)));
 		CombatStatePayload payload = new CombatStatePayload(true, planning, round, turn,
-				(float) cur.moveUsed, (float) cur.moveBudget, (float) cur.setup.square, cur.setup.unit,
+				(float) cur.moveUsed, (float) cur.moveBudget, (float) cur.setup.square, cur.setup.unit, cur.setup.diagonals,
 				resources, buttons, entries, targetList);
 
 		for (Combatant c : order) {
