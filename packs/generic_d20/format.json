@@ -248,7 +248,7 @@
     "spell_ability": 0
   },
   "combat": {
-    "grid": { "square": 5, "unit": "ft" },
+    "grid": { "square": 5, "unit": "ft", "diagonals": "free" },
     "resources": { "action": "1", "bonus": "1" },
     "attackResource": "action",
     "resourceStyles": {

@@ -481,9 +481,6 @@ public final class EncounterScreen extends Screen {
 		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Auto movement",
 				"Off (default): while you are connected you walk every creature yourself on its turn - click a square, then End turn in the tracker. On: creatures take their own turns. Each Actor can also be set to DM control in the Actors tab.",
 				DmState.autoMovement, () -> ClientPlayNetworking.send(new DmActionPayload(1, DmState.autoMovement ? 0 : 1)));
-		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Diagonal movement",
-				"On (default): a step to a corner square costs one square, like a straight step. Off: only straight steps (a diagonal costs two). A diagonal step can not cut the corner of a wall.",
-				DmState.diagonals, () -> ClientPlayNetworking.send(new DmActionPayload(8, DmState.diagonals ? 0 : 1)));
 		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Invisible",
 				"On: players can not see you (your name tag is hidden too); other Dungeon Masters see you as a pale ghost. Your armor and held items still show. Stays on until the server stops or you switch it off.",
 				DmState.selfInvisible(), () -> ClientPlayNetworking.send(new DmActionPayload(5, DmState.selfInvisible() ? 0 : 1)));

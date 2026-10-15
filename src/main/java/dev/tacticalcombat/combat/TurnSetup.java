@@ -22,6 +22,8 @@ public final class TurnSetup {
 	/** Distance of one grid square in the game's own unit (display only) and that unit's name. */
 	public double square = 1;
 	public String unit = "";
+	/** The game allows diagonal steps (they cost one square). */
+	public boolean diagonals;
 	/** Squares available when the turn starts. */
 	public int pool;
 	/** Resource id -> how many the combatant gets each turn. */
@@ -64,6 +66,7 @@ public final class TurnSetup {
 		TurnSetup t = new TurnSetup();
 		t.square = r.square;
 		t.unit = r.unit;
+		t.diagonals = r.diagonals;
 		t.attackResource = r.attackResourceId();
 		t.styles.putAll(r.resourceStyles);
 

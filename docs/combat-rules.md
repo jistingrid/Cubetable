@@ -8,7 +8,7 @@ per-turn resources; attacks, defense and hit points come in later steps.
 
 ```json
 "combat": {
-  "grid": { "square": 5, "unit": "ft" },
+  "grid": { "square": 5, "unit": "ft", "diagonals": "free" },
   "resources": { "action": "1", "bonus": "1" },
   "movement": {
     "speed": "speed",
@@ -23,6 +23,7 @@ per-turn resources; attacks, defense and hit points come in later steps.
 | Key | Meaning |
 |---|---|
 | `grid.square` | How many `unit`s one grid square is. A square is always one block in the world. `speed 30` with `square 5` gives 6 squares (rounded down). |
+| `grid.diagonals` | `"free"`: a step to a corner square costs one square, like a straight step, for players, Actors, creatures and the red threat squares. A diagonal step never cuts the corner of a wall (the two squares beside it must be free of blocks). `"none"` or left out: straight steps only, so a diagonal costs two. |
 | `grid.unit` | Name of the unit, only used for display ("20 ft"). Leave empty to show plain squares. |
 | `resources` | Per-turn resources, each a formula for how many you get. They refill when your turn starts. Default: `action 1`, `bonus 1`. |
 | `attackResource` | The resource an attack spends (one per attack, from any combatant). Default: `action` when the game has it, else its first resource. `""` makes attacks cost nothing of the turn (a game with no turn economy). |
@@ -356,7 +357,6 @@ two tabs.
   each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
   tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.
 
-- **Diagonal movement** (in the DM tools tab): on by default. A step to a corner square costs one square, the same as a straight step, for everyone (players, Actors and creatures, and the red squares enemies threaten). A diagonal step can not cut the corner of a wall: the two squares beside it must be free of blocks. Off: only straight steps, so a diagonal costs two. It lasts until the server stops.
 - **Pause game** (in the DM tools tab): while it is on, players cannot walk, jump or touch blocks (break, place,
   use), and a "Game Paused" banner shows. DMs are not held, and neither are players inside a fight (the grid
   rules their movement). Looking around, the sheet, dice and chat keep working. Like the other settings it lasts

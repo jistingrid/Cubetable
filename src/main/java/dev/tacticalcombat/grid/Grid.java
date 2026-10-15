@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * The square grid the combat is played on. One square = one block column position, identified by the
- * block position where the feet stand. Movement is 4-directional, plus diagonals when {@link #diagonals} is on; every step costs 1 square.
+ * block position where the feet stand. Movement is 4-directional, plus diagonals when the game's pack allows them; every step costs 1 square.
  * Shared by server (pathfinding, validation) and client (highlight height).
  */
 public final class Grid {
@@ -29,12 +29,6 @@ public final class Grid {
 	public static final int MAX_DROP = 3;
 	/** Melee reach used for click-to-attack, measured eye -> nearest point of the target's hitbox. */
 	public static final double ATTACK_REACH = 3.2;
-
-	/**
-	 * Whether a creature may step diagonally for the cost of one square (the Dungeon Master's switch; on by default).
-	 * A diagonal step may not cut a corner: both squares beside it must be free of blocks.
-	 */
-	public static volatile boolean diagonals = true;
 
 	private Grid() {}
 
@@ -68,8 +62,10 @@ public final class Grid {
 	/**
 	 * Breadth-first search over walkable squares.
 	 * @param blocked squares that can not be entered at all (enemies)
+	 * @param diagonals whether a step to a corner square is allowed (it then costs 1 like a straight step and may not cut a
+	 *                  wall's corner: both squares beside it must be free of blocks)
 	 */
-	public static Result reachable(World world, BlockPos start, int budget, Set<Long> blocked) {
+	public static Result reachable(World world, BlockPos start, int budget, Set<Long> blocked, boolean diagonals) {
 		Result r = new Result();
 		r.add(start.asLong(), 0, -1);
 		for (int i = 0; i < r.nodes.size(); i++) {

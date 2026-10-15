@@ -860,7 +860,7 @@ public final class Combat {
 			if (o.isPlayer()) playerCells.add(key);
 		}
 
-		Grid.Result r = Grid.reachable(world, Grid.cellOf(mob), Math.max(1, (int) c.moveBudget), playerCells);
+		Grid.Result r = Grid.reachable(world, Grid.cellOf(mob), Math.max(1, (int) c.moveBudget), playerCells, c.setup.diagonals);
 		boolean ranged = mob instanceof RangedAttackMob;
 		Vec3d goal = target.getPos();
 
@@ -1077,7 +1077,7 @@ public final class Combat {
 					remaining = Math.max(remaining, m.keep() ? remaining + m.grant() : m.grant());
 				}
 			}
-			Grid.Result r = Grid.reachable(world, Grid.cellOf(cur.entity), remaining, enemyCells);
+			Grid.Result r = Grid.reachable(world, Grid.cellOf(cur.entity), remaining, enemyCells, cur.setup.diagonals);
 			for (Grid.Node n : r.nodes) {
 				if (n.cost == 0 || occupied.contains(n.pos)) n.endable = false;
 			}
@@ -1110,7 +1110,7 @@ public final class Combat {
 			if (o.isPlayer() || o.entity.squaredDistanceTo(viewer.entity) > range2) continue;
 			if (++scanned > CombatConfig.THREAT_MAX_ENEMIES) break;
 
-			Grid.Result r = Grid.reachable(world, Grid.cellOf(o.entity), Math.max(1, (int) setupFor(o.entity).pool), playerCells);
+			Grid.Result r = Grid.reachable(world, Grid.cellOf(o.entity), Math.max(1, (int) setupFor(o.entity).pool), playerCells, setupFor(o.entity).diagonals);
 			for (Grid.Node n : r.nodes) {
 				out.add(n.pos);
 				BlockPos b = BlockPos.fromLong(n.pos);
@@ -1118,7 +1118,7 @@ public final class Combat {
 					BlockPos s = Grid.step(world, b, dir); // squares next to a reachable one can be hit
 					if (s != null) out.add(s.asLong());
 				}
-				if (Grid.diagonals) {
+				if (setupFor(o.entity).diagonals) {
 					for (Direction a : new Direction[] {Direction.NORTH, Direction.SOUTH}) {
 						for (Direction d : new Direction[] {Direction.EAST, Direction.WEST}) {
 							BlockPos s = Grid.stepDiagonal(world, b, a, d);

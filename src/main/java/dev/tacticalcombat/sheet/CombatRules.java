@@ -16,7 +16,8 @@ import java.util.Map;
  *
  * <pre>
  * "combat": {
- *   "grid": { "square": 5, "unit": "ft" },                // one grid square = 5 ft (one block in the world)
+ *   "grid": { "square": 5, "unit": "ft", "diagonals": "free" },   // one grid square = 5 ft (one block in the world);
+ *                                                         // diagonals: "free" (a corner step costs one square) or "none" (default: straight steps only)
  *   "resources": { "action": "1", "bonus": "1" },         // refilled every turn (formulas)
  *   "attackResource": "action",                            // what an attack spends ("" = nothing); default: "action", else the first
  *   "resourceStyles": { "bonus": { "label": "Bonus", "color": "#5fb7a8", "shape": "diamond" } },
@@ -43,6 +44,8 @@ import java.util.Map;
 public final class CombatRules {
 	/** Grid units per square and the name of the unit (display only). */
 	public double square = 1;
+	/** Whether a step to a corner square is allowed and costs one square ("grid.diagonals": "free"); default straight steps only. */
+	public boolean diagonals;
 	public String unit = "";
 	/** Per-turn resources: id -> formula for how many the character gets. */
 	public final Map<String, String> resources = new LinkedHashMap<>();
@@ -265,6 +268,10 @@ public final class CombatRules {
 			JsonObject g = o.getAsJsonObject("grid");
 			if (g.has("square")) r.square = Math.max(0.0001, g.get("square").getAsDouble());
 			if (g.has("unit")) r.unit = g.get("unit").getAsString();
+			if (g.has("diagonals") && g.get("diagonals").isJsonPrimitive()) {
+				String d = g.get("diagonals").getAsString().trim().toLowerCase(Locale.ROOT);
+				r.diagonals = d.equals("free") || d.equals("true") || d.equals("on");
+			}
 		}
 		if (o.has("attackResource") && o.get("attackResource").isJsonPrimitive()) r.attackResource = o.get("attackResource").getAsString().toLowerCase(Locale.ROOT).trim();
 		if (o.has("resourceStyles") && o.get("resourceStyles").isJsonObject()) {
