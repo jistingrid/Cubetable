@@ -90,6 +90,11 @@ public class TacticalCombatClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(() -> FloatingText.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PausePayload.ID,
 				(payload, context) -> context.client().execute(() -> DmState.paused = payload.paused()));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.AmbiencePayload.ID,
+				(payload, context) -> context.client().execute(() -> {
+					DmState.timeMode = payload.time();
+					DmState.weatherMode = payload.weather();
+				}));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.PossessPayload.ID,
 				(payload, context) -> context.client().execute(() -> DmState.possessed = payload.bodyId()));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DmStatePayload.ID,

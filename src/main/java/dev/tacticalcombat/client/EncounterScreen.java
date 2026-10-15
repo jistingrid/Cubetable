@@ -487,6 +487,12 @@ public final class EncounterScreen extends Screen {
 		ry += tool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Pause game",
 				"On: players can not walk or touch blocks (breaking, placing, using); you still can. A player in a fight keeps using the grid. Looking around, the sheet and chat keep working.",
 				DmState.paused, () -> ClientPlayNetworking.send(new DmActionPayload(2, DmState.paused ? 0 : 1)));
+		ry += choices(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Time of day",
+				"Hold the sun at one point of the day: it stays there until you click the lit button again (then the day runs as usual). Sleeping does not move it.",
+				new String[] {"Morning", "Day", "Sunset", "Night"}, DmState.timeMode, 6);
+		ry += choices(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Weather",
+				"Hold the weather: it stays until you click the lit button again (clear weather ends held rain; then the weather changes by itself again).",
+				new String[] {"Clear", "Rain", "Storm"}, DmState.weatherMode, 7);
 		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Stage",
 				"Click an Actor in the world to select it, drag it to walk it, possess it, and take control of it in a fight. Also G or /stage.",
 				() -> {
@@ -555,6 +561,34 @@ public final class EncounterScreen extends Screen {
 			g.drawCenteredTextWithShadow(textRenderer, label, bx + bw / 2, y + 8, 0xFFFFFFFF);
 		}
 		return TOOL_H + 3;
+	}
+
+	/**
+	 * A tool row with a set of choices (the time of day, the weather). {@code mode} is the one held now, 1-based, 0 = none;
+	 * clicking a choice holds it, clicking the held one lets go. Sends {@code op} with the 1-based choice (0 = let go).
+	 */
+	private int choices(DrawContext g, int x, int y, int w, int clipTop, int clipBottom, String name, String help, String[] labels, int mode, int op) {
+		int h = TOOL_H + 18;
+		g.fill(x, y, x + w, y + h, panel);
+		g.fill(x, y, x + 2, y + h, mode > 0 ? 0xFF3CB84A : 0xFF7A1C27);
+		toolHead(g, x, y, clipTop, clipBottom, name, help, mode > 0 ? 0xFF3CB84A : 0xFF7A1C27);
+		String state = mode > 0 ? "Held" : "Natural";
+		g.drawText(textRenderer, state, x + w - tw(state) - 8, y + 7, mode > 0 ? 0xFF3CB84A : muted, false);
+		if (y + h > clipTop && y < clipBottom) {
+			int bx = x + 8;
+			for (int i = 0; i < labels.length; i++) {
+				final int pick = i + 1;
+				boolean on = mode == pick;
+				int bw = Math.max(36, tw(labels[i]) + 12);
+				boolean over = hit(bx, y + TOOL_H, bw, 14, () -> ClientPlayNetworking.send(new DmActionPayload(op, on ? 0 : pick)),
+						on ? "Click to let go" : "Hold this");
+				g.fill(bx, y + TOOL_H, bx + bw, y + TOOL_H + 14, on ? 0xFF3CB84A : 0xFF3B414C);
+				g.fill(bx + 1, y + TOOL_H + 1, bx + bw - 1, y + TOOL_H + 13, over ? panelHover : on ? 0xFF1E4A25 : panel);
+				g.drawCenteredTextWithShadow(textRenderer, labels[i], bx + bw / 2, y + TOOL_H + 3, 0xFFFFFFFF);
+				bx += bw + 4;
+			}
+		}
+		return h + 3;
 	}
 
 	/** The corner mark that shows the window can be resized: a small triangle of dots. */

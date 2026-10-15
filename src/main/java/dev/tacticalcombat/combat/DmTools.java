@@ -95,6 +95,8 @@ public final class DmTools {
 				}
 			}
 			case 2 -> TimePause.set(player.getServer(), value != 0);
+			case 6 -> Ambience.setTime(player.getServer(), value); // hold a time of day (0 = let it run)
+			case 7 -> Ambience.setWeather(player.getServer(), value); // hold the weather (0 = let it run)
 			case 1 -> {
 				autoMovement = value != 0;
 				Combat running = CombatManager.primary();

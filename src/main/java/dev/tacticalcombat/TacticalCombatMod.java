@@ -76,6 +76,9 @@ public class TacticalCombatMod implements ModInitializer {
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.FloatTextPayload.ID, dev.tacticalcombat.net.FloatTextPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.PausePayload.ID, dev.tacticalcombat.net.PausePayload.CODEC);
 		dev.tacticalcombat.combat.TimePause.register();
+		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.AmbiencePayload.ID, dev.tacticalcombat.net.AmbiencePayload.CODEC);
+		dev.tacticalcombat.combat.Ambience.register();
+		ServerTickEvents.END_SERVER_TICK.register(dev.tacticalcombat.combat.Ambience::tick);
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.DownedPayload.ID, dev.tacticalcombat.net.DownedPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.DownedActionPayload.ID, dev.tacticalcombat.net.DownedActionPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DownedActionPayload.ID, (payload, context) ->

@@ -552,6 +552,7 @@ and the Dungeon Master puts everyone in order by hand (see the `percentile` pack
 When a fight starts, an encounter window opens (`J`, or `/encounter`, opens it again later): the party on the
 left, the enemies on the right, and the turn order along the bottom.
 
+- **Time of day** and **Weather** (in the DM tools tab): hold the sun at *Morning*, *Day*, *Sunset* or *Night*, and the weather at *Clear*, *Rain* or *Storm*. A held choice stays until the DM clicks the lit button again (the day and the weather then run as usual again); sleeping does not move it, and if anything else changes it (a `/time` command, say) it is put back within a second. It holds the overworld and does not survive a server restart.
 - **Players** press *Roll* for their own initiative (only if the pack has a roll).
 - **The Dungeon Master** presses *Roll enemies*, can change any value with `-` / `+` (Shift = 5), moves
   anyone earlier or later in the order with `<` `>`, and presses *Start combat*. Moving someone by hand

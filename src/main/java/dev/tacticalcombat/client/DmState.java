@@ -11,6 +11,8 @@ public final class DmState {
 	public static int possessed = -1;
 	/** The game is paused by the Dungeon Master (everyone gets this, not only DMs). */
 	public static boolean paused;
+	/** The time of day and weather the DM holds (0 = natural; see combat.Ambience). */
+	public static int timeMode, weatherMode;
 
 	/** True when this client's player is stopped by the pause (a Dungeon Master never is). */
 	public static boolean holdsPlayer() {
@@ -55,6 +57,8 @@ public final class DmState {
 		autoMovement = false;
 		possessed = -1;
 		paused = false;
+		timeMode = 0;
+		weatherMode = 0;
 		players = List.of();
 		actors = List.of();
 		folders = List.of();
