@@ -240,7 +240,7 @@ public final class ActorStageScreen extends Screen {
 		panel[0] = panel[1] = panel[2] = panel[3] = -1;
 		if (a == null) return;
 		int w = 176;
-		int h = 166;
+		int h = 184;
 		int x = 6;
 		int y = height - 18 - h;
 		panel[0] = x;
@@ -286,6 +286,12 @@ public final class ActorStageScreen extends Screen {
 		button(ctx, mouseX, mouseY, ix + 80, by, 80, "Actors...", false, true, () -> {
 			close();
 			EncounterScreen.requestTab(2);
+		});
+		by += 18;
+		boolean hasSheet = !a.sheetId().isEmpty() && CharacterSheetScreen.find(a.sheetId(), "") != null;
+		button(ctx, mouseX, mouseY, ix, by, 160, "Open character sheet", false, hasSheet, () -> {
+			MinecraftClient client = MinecraftClient.getInstance();
+			CharacterSheetScreen.open(client, client.currentScreen, a.sheetId(), ""); // closing the sheet comes back to the Stage
 		});
 		by += 18;
 		button(ctx, mouseX, mouseY, ix, by, 160, a.hidden() ? "Hidden from players: click to show" : "Visible: click to hide it", a.hidden(), true,
