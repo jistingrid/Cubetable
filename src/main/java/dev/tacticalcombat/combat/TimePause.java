@@ -42,6 +42,11 @@ public final class TimePause {
 		});
 	}
 
+	/** Forgets where a player was held (they were moved on purpose, e.g. teleported by the Dungeon Master). */
+	public static void release(PlayerEntity p) {
+		HOLD.remove(p.getUuid());
+	}
+
 	/** True when this player is stopped by the pause. */
 	private static boolean held(PlayerEntity p) {
 		return (paused && !Roles.isDm(p.getUuid())) || Downed.isDown(p);

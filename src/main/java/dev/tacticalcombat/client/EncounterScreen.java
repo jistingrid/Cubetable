@@ -499,6 +499,9 @@ public final class EncounterScreen extends Screen {
 					MinecraftClient.getInstance().setScreen(null);
 					ActorStageScreen.requestOpen();
 				});
+		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Teleport",
+				"Bring a player (or everyone) next to you, or go to a player. They land on a free square beside you, even from another dimension.",
+				() -> MinecraftClient.getInstance().setScreen(new TeleportScreen()));
 		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Roll request",
 				"Ask players or creatures for a roll: pick who, the kind of roll (a saving throw, an ability check ...) and the DC. Each one's owner gets a prompt to roll it.",
 				() -> MinecraftClient.getInstance().setScreen(new RollRequestScreen()));

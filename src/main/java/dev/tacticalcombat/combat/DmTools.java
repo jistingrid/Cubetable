@@ -95,6 +95,9 @@ public final class DmTools {
 				}
 			}
 			case 2 -> TimePause.set(player.getServer(), value != 0);
+			case 9 -> Teleports.bring(player, value); // bring one player next to the DM
+			case 10 -> Teleports.bringAll(player);
+			case 11 -> Teleports.goTo(player, value); // the DM goes to a player
 			case 6 -> Ambience.setTime(player.getServer(), value); // hold a time of day (0 = let it run)
 			case 7 -> Ambience.setWeather(player.getServer(), value); // hold the weather (0 = let it run)
 			case 1 -> {

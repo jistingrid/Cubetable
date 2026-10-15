@@ -357,6 +357,7 @@ two tabs.
   each creature: on its turn the squares it can reach are shown, click one to walk there, then press End turn in the
   tracker. Creatures do not attack on their own while it is off. *Combat tracker* shows or hides the corner list.
 
+- **Teleport** (in the DM tools tab): a list of the players online. *Bring* puts one next to you, *Bring everyone to me* does it for all players who are not Dungeon Masters, and *Go* takes you next to a player. Each lands on a free, standable square near the target (never inside a wall or on someone), even from another dimension; a paused player is not pulled back.
 - **Pause game** (in the DM tools tab): while it is on, players cannot walk, jump or touch blocks (break, place,
   use), and a "Game Paused" banner shows. DMs are not held, and neither are players inside a fight (the grid
   rules their movement). Looking around, the sheet, dice and chat keep working. Like the other settings it lasts
