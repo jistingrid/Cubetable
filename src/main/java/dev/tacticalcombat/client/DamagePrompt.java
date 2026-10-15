@@ -17,7 +17,7 @@ import java.util.List;
  * a number and then Damage or Heal). Prompts wait in a queue and show one at a time, after the dice have stopped.
  */
 public final class DamagePrompt {
-	private record Entry(long id, String target, String attacker, String label, int amount, String noun) {}
+	private record Entry(long id, String target, String attacker, String label, int amount, String noun, int hint, String reason) {}
 
 	private static final List<Entry> QUEUE = new ArrayList<>();
 	private static boolean custom;
@@ -33,7 +33,14 @@ public final class DamagePrompt {
 			if (QUEUE.isEmpty()) reset();
 			return;
 		}
-		QUEUE.add(new Entry(p.id(), p.target(), p.attacker(), p.label(), p.amount(), p.noun()));
+		Entry fresh = new Entry(p.id(), p.target(), p.attacker(), p.label(), p.amount(), p.noun(), p.hint(), p.reason());
+		for (int i = 0; i < QUEUE.size(); i++) {
+			if (QUEUE.get(i).id() == p.id()) { // the same prompt again: a suggestion arrived after it was shown
+				QUEUE.set(i, fresh);
+				return;
+			}
+		}
+		QUEUE.add(fresh);
 	}
 
 	public static void clear() {
@@ -89,6 +96,9 @@ public final class DamagePrompt {
 				p[0] + 6, p[1] + 7, CardStyle.WHITE, true);
 		String from = e.attacker() + (e.label().isEmpty() ? "" : " - " + e.label());
 		CardStyle.small(ctx, font, from, p[0] + 6, p[1] + CardStyle.HEADER + 4, CardStyle.MUTED, p[2] - 12);
+		if (e.hint() > 0 && !custom && !e.reason().isEmpty()) {
+			CardStyle.small(ctx, font, e.reason(), p[0] + 6, p[1] + CardStyle.HEADER + 15, 0xFFE0B84C, p[2] - 12);
+		}
 		if (QUEUE.size() > 1) {
 			String more = "+" + (QUEUE.size() - 1);
 			ctx.drawText(font, more, p[0] + p[2] - font.getWidth(more) - 5, p[1] + 7, CardStyle.MUTED, true);
@@ -117,6 +127,15 @@ public final class DamagePrompt {
 			int[] b = btns[i];
 			boolean over = mx >= b[0] && mx < b[0] + b[2] && my >= b[1] && my < b[1] + b[3];
 			CardStyle.button(ctx, font, b[0], b[1], b[2], b[3], labels[i], over);
+			// the button the rules suggest (Full or Half): a gold frame and tint
+			if (!custom && e.hint() > 0 && i == (e.hint() == 2 ? 1 : 0)) {
+				int gold = 0xFFE0B84C;
+				ctx.fill(b[0] - 1, b[1] - 1, b[0] + b[2] + 1, b[1], gold);
+				ctx.fill(b[0] - 1, b[1] + b[3], b[0] + b[2] + 1, b[1] + b[3] + 1, gold);
+				ctx.fill(b[0] - 1, b[1], b[0], b[1] + b[3], gold);
+				ctx.fill(b[0] + b[2], b[1], b[0] + b[2] + 1, b[1] + b[3], gold);
+				ctx.fill(b[0] + 1, b[1] + 1, b[0] + b[2] - 1, b[1] + b[3] - 1, 0x33E0B84C);
+			}
 		}
 	}
 

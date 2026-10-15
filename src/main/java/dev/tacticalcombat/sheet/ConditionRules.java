@@ -36,12 +36,12 @@ public final class ConditionRules {
 
 	public static final List<String> WHEN = List.of("turn_start", "turn_end", "expired", "roll", "attack", "attacked",
 			"round_start", "moved", "hit", "miss", "struck", "dodged", "damaged", "healed", "downed", "applied",
-			"used", "check_passed", "check_failed");
+			"used", "check_passed", "check_failed", "incoming");
 	public static final List<String> WHEN_LABEL = List.of("Turn starts", "Turn ends", "Ends", "I roll", "I attack", "I'm attacked",
 			"Round starts", "I finish moving", "My attack hits", "My attack misses", "I'm hit", "An attack misses me", "I take damage",
-			"I'm healed", "I go down", "Applied", "I use it", "Check passed", "Check failed");
-	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus", "apply", "remove", "check");
-	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition", "Ask for a roll");
+			"I'm healed", "I go down", "Applied", "I use it", "Check passed", "Check failed", "Damage is offered to me");
+	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus", "apply", "remove", "check", "hint");
+	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition", "Ask for a roll", "Suggest half / full");
 
 	/** One rule; every field is plain text as typed. */
 	public record Rule(String when, String cond, String effect, String target, String value, String who) {
@@ -159,6 +159,7 @@ public final class ConditionRules {
 			case "apply" -> "add " + r.target;
 			case "check" -> "ask for " + r.target + (r.value.isEmpty() ? "" : " vs DC " + r.value);
 			case "remove" -> "remove " + (r.target.isEmpty() ? "itself" : r.target);
+			case "hint" -> "suggest " + (r.value.isEmpty() ? "half" : r.value) + " damage";
 			default -> "\"" + r.value + "\"";
 		};
 		return when + (r.cond.isEmpty() ? "" : " if " + r.cond) + ": " + what + (r.who.isEmpty() ? "" : " (" + r.who + ")");

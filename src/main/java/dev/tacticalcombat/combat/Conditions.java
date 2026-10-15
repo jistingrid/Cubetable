@@ -55,6 +55,24 @@ public final class Conditions {
 		runRules(server, who, "turn_start", turn, null, java.util.Map.of());
 	}
 
+	/** The suggestion collected while {@link #incomingHint} runs the "damage is offered to me" rules. */
+	private static Damage.Hint collected;
+	private static boolean collecting;
+
+	/** Runs the target's "damage is offered to me" rules and returns the Half / Full they suggest, or null. */
+	static Damage.Hint incomingHint(MinecraftServer server, LivingEntity who, int amount) {
+		if (collecting) return null;
+		collected = null;
+		collecting = true;
+		try {
+			fire(server, who, "incoming", java.util.Map.of("damage", amount));
+			return collected;
+		} finally {
+			collecting = false;
+			collected = null;
+		}
+	}
+
 	/** An event happened to {@code who} (see {@link ConditionRules}): their conditions' rules for it run. */
 	public static void fire(MinecraftServer server, LivingEntity who, String when, java.util.Map<String, Integer> vars) {
 		if (server == null || who == null) return;
@@ -290,6 +308,17 @@ public final class Conditions {
 					after.put("check", res.total());
 					executeRules(server, subject, s, res.passed() ? "check_passed" : "check_failed", after);
 				});
+			}
+			case "hint" -> {
+				String v = sub(r.value(), vars, false).trim().toLowerCase(java.util.Locale.ROOT);
+				int kind = v.startsWith("half") || v.isEmpty() ? 2 : v.startsWith("full") ? 1 : 0;
+				if (kind == 0) return;
+				String reason = s.selfCondition() ? s.name() + (kind == 2 ? ": half?" : ": full") : (kind == 2 ? "Saved: half?" : "Failed the save: full");
+				if (collecting) {
+					if (collected == null) collected = new Damage.Hint(kind, reason);
+				} else if (!s.selfCondition()) {
+					Damage.suggest(server, subject, s.name(), kind, reason);
+				}
 			}
 			case "advantage", "disadvantage", "bonus" -> {
 			}

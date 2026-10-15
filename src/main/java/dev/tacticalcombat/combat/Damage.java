@@ -24,13 +24,24 @@ import java.util.UUID;
 public final class Damage {
 	private record Prompt(long id, UUID target, String targetName, String attacker, String label, int amount, List<UUID> owners) {}
 
+	/** A suggestion for how to settle damage: 1 Full, 2 Half. */
+	public record Hint(int kind, String reason) {}
+
+	private record Suggest(String entry, Hint hint, int tick) {}
+
 	private static final Map<Long, Prompt> PROMPTS = new HashMap<>();
+	private static final Map<Long, Hint> HINTS = new HashMap<>();
+	/** What an entry's rules suggested for a target (a saving throw passed or failed), kept for a while for the damage to come. */
+	private static final Map<UUID, Suggest> SUGGESTS = new HashMap<>();
+	private static final int SUGGEST_TICKS = 2400;
 	private static long nextId = 1;
 
 	private Damage() {}
 
 	public static void clear() {
 		PROMPTS.clear();
+		HINTS.clear();
+		SUGGESTS.clear();
 	}
 
 	static String nameOf(Entity e) {
@@ -59,8 +70,35 @@ public final class Damage {
 		List<UUID> uuids = new ArrayList<>();
 		for (ServerPlayerEntity p : owners) uuids.add(p.getUuid());
 		PROMPTS.put(id, new Prompt(id, target.getUuid(), name, from, label, amount, uuids));
-		DamagePromptPayload payload = new DamagePromptPayload(id, false, name, from, label, amount, SheetHealth.damageNoun(target));
-		for (ServerPlayerEntity p : owners) ServerPlayNetworking.send(p, payload);
+		Hint hint = null;
+		Suggest said = SUGGESTS.get(target.getUuid());
+		if (said != null && server.getTicks() - said.tick() <= SUGGEST_TICKS && Strikes.entryName(label).equalsIgnoreCase(said.entry())) hint = said.hint();
+		if (hint == null) hint = Conditions.incomingHint(server, target, amount); // a condition that says "half" (resistance ...)
+		if (hint != null) HINTS.put(id, hint);
+		send(server, id, name, from, label, amount, SheetHealth.damageNoun(target), hint, uuids);
+	}
+
+	private static void send(MinecraftServer server, long id, String name, String from, String label, int amount, String noun, Hint hint, List<UUID> owners) {
+		DamagePromptPayload payload = new DamagePromptPayload(id, false, name, from, label, amount, noun,
+				hint == null ? 0 : hint.kind(), hint == null ? "" : hint.reason());
+		for (UUID u : owners) {
+			ServerPlayerEntity p = server.getPlayerManager().getPlayer(u);
+			if (p != null) ServerPlayNetworking.send(p, payload);
+		}
+	}
+
+	/**
+	 * An entry's rules suggest how to settle its damage on {@code target} (a saving throw passed: half; failed: full).
+	 * It marks the open prompt for that entry, or waits for the damage if it has not been rolled yet.
+	 */
+	public static void suggest(MinecraftServer server, LivingEntity target, String entry, int kind, String reason) {
+		Hint hint = new Hint(kind, reason);
+		SUGGESTS.put(target.getUuid(), new Suggest(entry, hint, server.getTicks()));
+		for (Prompt p : PROMPTS.values()) {
+			if (!p.target().equals(target.getUuid()) || !Strikes.entryName(p.label()).equalsIgnoreCase(entry)) continue;
+			HINTS.put(p.id(), hint);
+			send(server, p.id(), p.targetName(), p.attacker(), p.label(), p.amount(), SheetHealth.damageNoun(target), hint, p.owners());
+		}
 	}
 
 	/** An owner pressed a button. mode: 0 full, 1 half, 2 heal, 3 custom damage, 4 custom heal. */
@@ -68,10 +106,11 @@ public final class Damage {
 		Prompt p = PROMPTS.get(id);
 		if (p == null || !p.owners().contains(responder.getUuid())) return;
 		PROMPTS.remove(id);
+		HINTS.remove(id);
 		MinecraftServer server = responder.getServer();
 		if (server == null) return;
 
-		DamagePromptPayload close = new DamagePromptPayload(id, true, "", "", "", 0, "");
+		DamagePromptPayload close = new DamagePromptPayload(id, true, "", "", "", 0, "", 0, "");
 		for (UUID u : p.owners()) {
 			ServerPlayerEntity o = server.getPlayerManager().getPlayer(u);
 			if (o != null && o != responder) ServerPlayNetworking.send(o, close);

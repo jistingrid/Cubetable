@@ -220,7 +220,7 @@ public final class Strikes {
 	}
 
 	/** The roll label without its roll word: "Bite attack" and "Bite damage" are both the entry "Bite". */
-	private static String entryName(String label) {
+	static String entryName(String label) {
 		String t = label == null ? "" : label.trim();
 		for (String w : new String[] {" (critical)", " attack", " damage"}) {
 			if (t.endsWith(w)) t = t.substring(0, t.length() - w.length()).trim();

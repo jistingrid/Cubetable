@@ -2069,6 +2069,7 @@ public final class CharacterSheetScreen extends Screen {
 					case "advantage", "disadvantage", "apply", "remove" -> "nothing needed";
 					case "check" -> "DC, e.g. 8 + prof + str_mod";
 					case "bonus" -> "e.g. -2";
+					case "hint" -> "half or full";
 					default -> "a number or formula";
 				};
 				g.drawText(textRenderer, hint, vx + 4, y1 + 2, DIM, false);

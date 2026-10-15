@@ -423,6 +423,7 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `downed` | the owner dropped to 0 and is down |
 | `applied` | this condition was just added (from the sheet or by another rule) |
 | `used` | (on an entry) it was used: its Use button or slot, a plain roll of it, or its damage roll |
+| `incoming` | damage is about to be offered to the owner (`damage` = the amount); only the `hint` effect does anything here |
 | `check_passed` / `check_failed` | a `check` effect of the same rule list was rolled and met / missed its DC |
 
 | Do | target | value |
@@ -434,6 +435,7 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `check` | check id (`str_save`) | asks the creature to roll that check against the DC in the value (a formula; blank: no DC) - see Roll requests |
 | `apply` | condition name | adds the pack's preset condition of that name to the owner |
 | `remove` | condition name (blank: this one) | removes that condition; its `expired` rules run |
+| `hint` | - | `half` or `full`: marks that button on the damage prompt (see Suggesting Half or Full) |
 | `advantage` / `disadvantage` | - | on a single d20; the roll is made with two dice. One of each cancels out, as does any number of both. |
 | `bonus` | - | a number added to the roll (`-2`), or a formula |
 
@@ -503,6 +505,25 @@ Hold Person   used | | check | wis_save | 8 + prof + wis_mod     the target roll
 A spell that has damage dice or an attack roll keeps working as before (its rules run on the attack's hit / miss or
 when the damage is rolled); a spell with neither, only rules, is now used from the action bar instead of answering
 "has nothing to roll".
+
+### Suggesting Half or Full
+
+The damage prompt always leaves the choice to the player, but the rules can mark the button they think is right (a gold
+frame, and a line under the title saying why). The effect is **Suggest half / full**, with `half` or `full` as its value:
+
+- **After a saving throw.** Add the suggestion to the save's outcome rules: `check_passed | | hint | | half` and
+  `check_failed | | hint | | full`. It marks the damage of the same entry on the creature that rolled the save, whether
+  the prompt is already up (it updates when the save is rolled) or the damage comes a moment later. Entries that do
+  not suggest anything (the wolf's Bite, whose save only decides Prone) never mark a button.
+- **Resistance and the like.** A condition can have a rule `Damage is offered to me | if | hint | | half`, e.g.
+  Raging, or a Resistant condition added by hand; its `if` can use `damage` (the amount). The prompt then marks Half
+  whenever damage is offered to that creature.
+
+```
+Fireball   used         | | check | dex_save | 8 + prof + int_mod
+           check_passed | | hint  | | half
+           check_failed | | hint  | | full
+```
 
 ### One roll at a time
 
