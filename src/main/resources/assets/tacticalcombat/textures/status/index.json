@@ -1,0 +1,1831 @@
+{
+ "icons": [
+  {
+   "id": "blindfold",
+   "name": "Blindfold",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "blind",
+    "blinded",
+    "blindfold"
+   ]
+  },
+  {
+   "id": "eye-target",
+   "name": "Eye Target",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "eye",
+    "target"
+   ]
+  },
+  {
+   "id": "sight-disabled",
+   "name": "Sight Disabled",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "disabled",
+    "sight"
+   ]
+  },
+  {
+   "id": "sound-off",
+   "name": "Sound Off",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "off",
+    "sound"
+   ]
+  },
+  {
+   "id": "hearing-disabled",
+   "name": "Hearing Disabled",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "disabled",
+    "hearing"
+   ]
+  },
+  {
+   "id": "charm",
+   "name": "Charm",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "charm",
+    "charmed"
+   ]
+  },
+  {
+   "id": "hearts",
+   "name": "Hearts",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "charm",
+    "hearts",
+    "love"
+   ]
+  },
+  {
+   "id": "love-howl",
+   "name": "Love Howl",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "howl",
+    "love"
+   ]
+  },
+  {
+   "id": "heart-plus",
+   "name": "Heart Plus",
+   "author": "Zeromancer",
+   "license": "CC0 1.0",
+   "tags": [
+    "heal",
+    "heart",
+    "plus",
+    "regeneration"
+   ]
+  },
+  {
+   "id": "heart-minus",
+   "name": "Heart Minus",
+   "author": "Zeromancer",
+   "license": "CC0 1.0",
+   "tags": [
+    "heart",
+    "minus"
+   ]
+  },
+  {
+   "id": "heart-inside",
+   "name": "Heart Inside",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "heart",
+    "inside"
+   ]
+  },
+  {
+   "id": "terror",
+   "name": "Terror",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "fear",
+    "frightened",
+    "terror"
+   ]
+  },
+  {
+   "id": "screaming",
+   "name": "Screaming",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "screaming"
+   ]
+  },
+  {
+   "id": "chained-heart",
+   "name": "Chained Heart",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "chained",
+    "heart"
+   ]
+  },
+  {
+   "id": "grab",
+   "name": "Grab",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "grab",
+    "grapple",
+    "grappled"
+   ]
+  },
+  {
+   "id": "grapple",
+   "name": "Grapple",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "grapple"
+   ]
+  },
+  {
+   "id": "knockout",
+   "name": "Knockout",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "knockout",
+    "stun",
+    "unconscious"
+   ]
+  },
+  {
+   "id": "sleepy",
+   "name": "Sleepy",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "sleep",
+    "sleepy",
+    "unconscious"
+   ]
+  },
+  {
+   "id": "sleeping-bag",
+   "name": "Sleeping Bag",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bag",
+    "sleeping"
+   ]
+  },
+  {
+   "id": "invisible-face",
+   "name": "Invisible Face",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "face",
+    "invisible"
+   ]
+  },
+  {
+   "id": "ninja-mask",
+   "name": "Ninja Mask",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "hidden",
+    "invisible",
+    "mask",
+    "ninja"
+   ]
+  },
+  {
+   "id": "ghost-ally",
+   "name": "Ghost Ally",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "ally",
+    "ghost"
+   ]
+  },
+  {
+   "id": "spectre",
+   "name": "Spectre",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "spectre"
+   ]
+  },
+  {
+   "id": "lightning-frequency",
+   "name": "Lightning Frequency",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "frequency",
+    "lightning"
+   ]
+  },
+  {
+   "id": "stone-pile",
+   "name": "Stone Pile",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "pile",
+    "stone"
+   ]
+  },
+  {
+   "id": "stone-block",
+   "name": "Stone Block",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "block",
+    "petrified",
+    "stone"
+   ]
+  },
+  {
+   "id": "rock",
+   "name": "Rock",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "rock"
+   ]
+  },
+  {
+   "id": "cursed-star",
+   "name": "Cursed Star",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "cursed",
+    "star"
+   ]
+  },
+  {
+   "id": "poison-bottle",
+   "name": "Poison Bottle",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bottle",
+    "poison",
+    "poisoned"
+   ]
+  },
+  {
+   "id": "poison-gas",
+   "name": "Poison Gas",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "gas",
+    "poison",
+    "poisoned"
+   ]
+  },
+  {
+   "id": "poison-cloud",
+   "name": "Poison Cloud",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "cloud",
+    "poison"
+   ]
+  },
+  {
+   "id": "death-juice",
+   "name": "Death Juice",
+   "author": "DarkZaitzev",
+   "license": "CC BY 3.0",
+   "tags": [
+    "death",
+    "juice"
+   ]
+  },
+  {
+   "id": "skull-crossed-bones",
+   "name": "Skull Crossed Bones",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bones",
+    "crossed",
+    "skull"
+   ]
+  },
+  {
+   "id": "falling",
+   "name": "Falling",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "falling"
+   ]
+  },
+  {
+   "id": "falling-boulder",
+   "name": "Falling Boulder",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "boulder",
+    "falling"
+   ]
+  },
+  {
+   "id": "manacles",
+   "name": "Manacles",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "manacles",
+    "restrained"
+   ]
+  },
+  {
+   "id": "spider-web",
+   "name": "Spider Web",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "restrained",
+    "spider",
+    "web"
+   ]
+  },
+  {
+   "id": "handcuffs",
+   "name": "Handcuffs",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "handcuffs",
+    "restrained"
+   ]
+  },
+  {
+   "id": "rope-coil",
+   "name": "Rope Coil",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "coil",
+    "rope"
+   ]
+  },
+  {
+   "id": "coma",
+   "name": "Coma",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "coma"
+   ]
+  },
+  {
+   "id": "tired-eye",
+   "name": "Tired Eye",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "eye",
+    "tired"
+   ]
+  },
+  {
+   "id": "burning-embers",
+   "name": "Burning Embers",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "burning",
+    "embers"
+   ]
+  },
+  {
+   "id": "flame",
+   "name": "Flame",
+   "author": "Carl Olsen",
+   "license": "CC BY 3.0",
+   "tags": [
+    "burning",
+    "fire",
+    "flame"
+   ]
+  },
+  {
+   "id": "fire-bowl",
+   "name": "Fire Bowl",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bowl",
+    "fire"
+   ]
+  },
+  {
+   "id": "burn",
+   "name": "Burn",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "burn"
+   ]
+  },
+  {
+   "id": "fire-silhouette",
+   "name": "Fire Silhouette",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "fire",
+    "silhouette"
+   ]
+  },
+  {
+   "id": "frostfire",
+   "name": "Frostfire",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "frostfire"
+   ]
+  },
+  {
+   "id": "snowflake-1",
+   "name": "Snowflake 1",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "1",
+    "snowflake"
+   ]
+  },
+  {
+   "id": "frozen-block",
+   "name": "Frozen Block",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "block",
+    "frozen"
+   ]
+  },
+  {
+   "id": "ice-cube",
+   "name": "Ice Cube",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "cube",
+    "ice"
+   ]
+  },
+  {
+   "id": "ice-bolt",
+   "name": "Ice Bolt",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bolt",
+    "ice"
+   ]
+  },
+  {
+   "id": "bleeding-wound",
+   "name": "Bleeding Wound",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bleeding",
+    "blood",
+    "wound"
+   ]
+  },
+  {
+   "id": "bleeding-heart",
+   "name": "Bleeding Heart",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bleeding",
+    "heart"
+   ]
+  },
+  {
+   "id": "drop",
+   "name": "Drop",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "drop"
+   ]
+  },
+  {
+   "id": "dripping-blade",
+   "name": "Dripping Blade",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "blade",
+    "dripping"
+   ]
+  },
+  {
+   "id": "drop-weapon",
+   "name": "Drop Weapon",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "drop",
+    "weapon"
+   ]
+  },
+  {
+   "id": "shield-bounces",
+   "name": "Shield Bounces",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bounces",
+    "defense",
+    "dodge",
+    "dodging",
+    "shield"
+   ]
+  },
+  {
+   "id": "shield-reflect",
+   "name": "Shield Reflect",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "reflect",
+    "shield"
+   ]
+  },
+  {
+   "id": "checked-shield",
+   "name": "Checked Shield",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "checked",
+    "shield"
+   ]
+  },
+  {
+   "id": "vibrating-shield",
+   "name": "Vibrating Shield",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "shield",
+    "vibrating"
+   ]
+  },
+  {
+   "id": "bolt-shield",
+   "name": "Bolt Shield",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bolt",
+    "shield"
+   ]
+  },
+  {
+   "id": "magic-shield",
+   "name": "Magic Shield",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "magic",
+    "shield"
+   ]
+  },
+  {
+   "id": "holy-grail",
+   "name": "Holy Grail",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "grail",
+    "holy"
+   ]
+  },
+  {
+   "id": "angel-wings",
+   "name": "Angel Wings",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "angel",
+    "wings"
+   ]
+  },
+  {
+   "id": "holy-symbol",
+   "name": "Holy Symbol",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "holy",
+    "symbol"
+   ]
+  },
+  {
+   "id": "sunbeams",
+   "name": "Sunbeams",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "sunbeams"
+   ]
+  },
+  {
+   "id": "shining-sword",
+   "name": "Shining Sword",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "shining",
+    "sword"
+   ]
+  },
+  {
+   "id": "sparkles",
+   "name": "Sparkles",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "sparkles"
+   ]
+  },
+  {
+   "id": "bullseye",
+   "name": "Bullseye",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bullseye"
+   ]
+  },
+  {
+   "id": "target-arrows",
+   "name": "Target Arrows",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "arrows",
+    "target"
+   ]
+  },
+  {
+   "id": "crosshair",
+   "name": "Crosshair",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "crosshair"
+   ]
+  },
+  {
+   "id": "sword-wound",
+   "name": "Sword Wound",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "sword",
+    "wound"
+   ]
+  },
+  {
+   "id": "broken-bone",
+   "name": "Broken Bone",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bone",
+    "broken"
+   ]
+  },
+  {
+   "id": "broken-heart",
+   "name": "Broken Heart",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "broken",
+    "heart"
+   ]
+  },
+  {
+   "id": "broken-shield",
+   "name": "Broken Shield",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "broken",
+    "shield"
+   ]
+  },
+  {
+   "id": "broken-skull",
+   "name": "Broken Skull",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "broken",
+    "skull"
+   ]
+  },
+  {
+   "id": "fast-forward-button",
+   "name": "Fast Forward Button",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "button",
+    "fast",
+    "forward",
+    "haste",
+    "hasted"
+   ]
+  },
+  {
+   "id": "running-ninja",
+   "name": "Running Ninja",
+   "author": "DarkZaitzev",
+   "license": "CC BY 3.0",
+   "tags": [
+    "ninja",
+    "running"
+   ]
+  },
+  {
+   "id": "speedometer",
+   "name": "Speedometer",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "speedometer"
+   ]
+  },
+  {
+   "id": "winged-leg",
+   "name": "Winged Leg",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "fast",
+    "haste",
+    "hasted",
+    "leg",
+    "winged"
+   ]
+  },
+  {
+   "id": "snail",
+   "name": "Snail",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "slow",
+    "slowed",
+    "snail"
+   ]
+  },
+  {
+   "id": "turtle",
+   "name": "Turtle",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "turtle"
+   ]
+  },
+  {
+   "id": "hourglass",
+   "name": "Hourglass",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "hourglass",
+    "slow",
+    "slowed",
+    "time"
+   ]
+  },
+  {
+   "id": "sands-of-time",
+   "name": "Sands Of Time",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "of",
+    "sands",
+    "time"
+   ]
+  },
+  {
+   "id": "stopwatch",
+   "name": "Stopwatch",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "stopwatch"
+   ]
+  },
+  {
+   "id": "time-trap",
+   "name": "Time Trap",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "time",
+    "trap"
+   ]
+  },
+  {
+   "id": "enrage",
+   "name": "Enrage",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "enrage"
+   ]
+  },
+  {
+   "id": "angry-eyes",
+   "name": "Angry Eyes",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "angry",
+    "eyes"
+   ]
+  },
+  {
+   "id": "muscle-up",
+   "name": "Muscle Up",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "muscle",
+    "rage",
+    "strong",
+    "up"
+   ]
+  },
+  {
+   "id": "strong",
+   "name": "Strong",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "strong"
+   ]
+  },
+  {
+   "id": "rolling-dices",
+   "name": "Rolling Dices",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "dices",
+    "rolling"
+   ]
+  },
+  {
+   "id": "uncertainty",
+   "name": "Uncertainty",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "uncertainty"
+   ]
+  },
+  {
+   "id": "backup",
+   "name": "Backup",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "backup"
+   ]
+  },
+  {
+   "id": "mushroom-gills",
+   "name": "Mushroom Gills",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "gills",
+    "mushroom"
+   ]
+  },
+  {
+   "id": "evil-eyes",
+   "name": "Evil Eyes",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "evil",
+    "eyes"
+   ]
+  },
+  {
+   "id": "abstract-050",
+   "name": "Abstract 050",
+   "author": "Viscious Speed",
+   "license": "CC0 1.0",
+   "tags": [
+    "050",
+    "abstract"
+   ]
+  },
+  {
+   "id": "haunting",
+   "name": "Haunting",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "haunting"
+   ]
+  },
+  {
+   "id": "silenced",
+   "name": "Silenced",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "silenced"
+   ]
+  },
+  {
+   "id": "silence",
+   "name": "Silence",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "silence",
+    "silenced"
+   ]
+  },
+  {
+   "id": "mute",
+   "name": "Mute",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "mute",
+    "silenced"
+   ]
+  },
+  {
+   "id": "sound-waves",
+   "name": "Sound Waves",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "sound",
+    "waves"
+   ]
+  },
+  {
+   "id": "lips",
+   "name": "Lips",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "lips"
+   ]
+  },
+  {
+   "id": "talk",
+   "name": "Talk",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "talk"
+   ]
+  },
+  {
+   "id": "vomiting",
+   "name": "Vomiting",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "vomiting"
+   ]
+  },
+  {
+   "id": "biohazard",
+   "name": "Biohazard",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "biohazard",
+    "disease",
+    "poison",
+    "sick"
+   ]
+  },
+  {
+   "id": "virus",
+   "name": "Virus",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "virus"
+   ]
+  },
+  {
+   "id": "regeneration",
+   "name": "Regeneration",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "regeneration"
+   ]
+  },
+  {
+   "id": "health-increase",
+   "name": "Health Increase",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "health",
+    "increase"
+   ]
+  },
+  {
+   "id": "health-decrease",
+   "name": "Health Decrease",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "decrease",
+    "health"
+   ]
+  },
+  {
+   "id": "heart-bottle",
+   "name": "Heart Bottle",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bottle",
+    "heart"
+   ]
+  },
+  {
+   "id": "healing",
+   "name": "Healing",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "healing"
+   ]
+  },
+  {
+   "id": "medical-pack",
+   "name": "Medical Pack",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "medical",
+    "pack"
+   ]
+  },
+  {
+   "id": "bolt-spell-cast",
+   "name": "Bolt Spell Cast",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bolt",
+    "cast",
+    "spell"
+   ]
+  },
+  {
+   "id": "magic-swirl",
+   "name": "Magic Swirl",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "magic",
+    "swirl"
+   ]
+  },
+  {
+   "id": "magic-palm",
+   "name": "Magic Palm",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "magic",
+    "palm"
+   ]
+  },
+  {
+   "id": "aura",
+   "name": "Aura",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "aura"
+   ]
+  },
+  {
+   "id": "wolf-howl",
+   "name": "Wolf Howl",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "howl",
+    "wolf"
+   ]
+  },
+  {
+   "id": "bear-head",
+   "name": "Bear Head",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bear",
+    "head"
+   ]
+  },
+  {
+   "id": "eagle-emblem",
+   "name": "Eagle Emblem",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "eagle",
+    "emblem"
+   ]
+  },
+  {
+   "id": "flying-flag",
+   "name": "Flying Flag",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "flag",
+    "flying"
+   ]
+  },
+  {
+   "id": "angel-outfit",
+   "name": "Angel Outfit",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "angel",
+    "outfit"
+   ]
+  },
+  {
+   "id": "wing-cloak",
+   "name": "Wing Cloak",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "cloak",
+    "wing"
+   ]
+  },
+  {
+   "id": "moon-orbit",
+   "name": "Moon Orbit",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "moon",
+    "orbit"
+   ]
+  },
+  {
+   "id": "night-sky",
+   "name": "Night Sky",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "night",
+    "sky"
+   ]
+  },
+  {
+   "id": "eclipse",
+   "name": "Eclipse",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "eclipse"
+   ]
+  },
+  {
+   "id": "dark-squad",
+   "name": "Dark Squad",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "dark",
+    "squad"
+   ]
+  },
+  {
+   "id": "light-bulb",
+   "name": "Light Bulb",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bulb",
+    "light"
+   ]
+  },
+  {
+   "id": "lantern",
+   "name": "Lantern",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "lantern"
+   ]
+  },
+  {
+   "id": "lightning-helix",
+   "name": "Lightning Helix",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "helix",
+    "lightning"
+   ]
+  },
+  {
+   "id": "lightning-tree",
+   "name": "Lightning Tree",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "lightning",
+    "tree"
+   ]
+  },
+  {
+   "id": "meditation",
+   "name": "Meditation",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "concentrating",
+    "concentration",
+    "focus",
+    "meditation"
+   ]
+  },
+  {
+   "id": "third-eye",
+   "name": "Third Eye",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "eye",
+    "third"
+   ]
+  },
+  {
+   "id": "psychic-waves",
+   "name": "Psychic Waves",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "psychic",
+    "waves"
+   ]
+  },
+  {
+   "id": "brain",
+   "name": "Brain",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "brain"
+   ]
+  },
+  {
+   "id": "hunter-eyes",
+   "name": "Hunter Eyes",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "eyes",
+    "hunter"
+   ]
+  },
+  {
+   "id": "pointing",
+   "name": "Pointing",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "pointing"
+   ]
+  },
+  {
+   "id": "target-dummy",
+   "name": "Target Dummy",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "dummy",
+    "target"
+   ]
+  },
+  {
+   "id": "targeting",
+   "name": "Targeting",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "targeting"
+   ]
+  },
+  {
+   "id": "slime",
+   "name": "Slime",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "slime"
+   ]
+  },
+  {
+   "id": "water-drop",
+   "name": "Water Drop",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "drop",
+    "water"
+   ]
+  },
+  {
+   "id": "acid",
+   "name": "Acid",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "acid"
+   ]
+  },
+  {
+   "id": "acid-blob",
+   "name": "Acid Blob",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "acid",
+    "blob"
+   ]
+  },
+  {
+   "id": "dead-eye",
+   "name": "Dead Eye",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "dead",
+    "eye"
+   ]
+  },
+  {
+   "id": "death-skull",
+   "name": "Death Skull",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "death",
+    "skull"
+   ]
+  },
+  {
+   "id": "tombstone",
+   "name": "Tombstone",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "tombstone"
+   ]
+  },
+  {
+   "id": "grim-reaper",
+   "name": "Grim Reaper",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "grim",
+    "reaper"
+   ]
+  },
+  {
+   "id": "crowned-skull",
+   "name": "Crowned Skull",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "crowned",
+    "skull"
+   ]
+  },
+  {
+   "id": "wind-slap",
+   "name": "Wind Slap",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "slap",
+    "wind"
+   ]
+  },
+  {
+   "id": "tornado",
+   "name": "Tornado",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "tornado"
+   ]
+  },
+  {
+   "id": "whirlwind",
+   "name": "Whirlwind",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "whirlwind"
+   ]
+  },
+  {
+   "id": "shield-impact",
+   "name": "Shield Impact",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "impact",
+    "shield"
+   ]
+  },
+  {
+   "id": "armor-upgrade",
+   "name": "Armor Upgrade",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "armor",
+    "upgrade"
+   ]
+  },
+  {
+   "id": "armor-downgrade",
+   "name": "Armor Downgrade",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "armor",
+    "downgrade"
+   ]
+  },
+  {
+   "id": "wolf-head",
+   "name": "Wolf Head",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "head",
+    "wolf"
+   ]
+  },
+  {
+   "id": "lion",
+   "name": "Lion",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "lion"
+   ]
+  },
+  {
+   "id": "dragon-head",
+   "name": "Dragon Head",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "dragon",
+    "head"
+   ]
+  },
+  {
+   "id": "fist",
+   "name": "Fist",
+   "author": "Skoll",
+   "license": "CC BY 3.0",
+   "tags": [
+    "fist"
+   ]
+  },
+  {
+   "id": "punch",
+   "name": "Punch",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "punch"
+   ]
+  },
+  {
+   "id": "punch-blast",
+   "name": "Punch Blast",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "blast",
+    "punch"
+   ]
+  },
+  {
+   "id": "hand-bandage",
+   "name": "Hand Bandage",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bandage",
+    "hand"
+   ]
+  },
+  {
+   "id": "bandage-roll",
+   "name": "Bandage Roll",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "bandage",
+    "roll"
+   ]
+  },
+  {
+   "id": "sword-brandish",
+   "name": "Sword Brandish",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "brandish",
+    "sword"
+   ]
+  },
+  {
+   "id": "crossed-swords",
+   "name": "Crossed Swords",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "crossed",
+    "swords"
+   ]
+  },
+  {
+   "id": "swordman",
+   "name": "Swordman",
+   "author": "Cathelineau",
+   "license": "CC BY 3.0",
+   "tags": [
+    "swordman"
+   ]
+  },
+  {
+   "id": "double-shot",
+   "name": "Double Shot",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "double",
+    "shot"
+   ]
+  },
+  {
+   "id": "crossbow",
+   "name": "Crossbow",
+   "author": "Carl Olsen",
+   "license": "CC BY 3.0",
+   "tags": [
+    "crossbow"
+   ]
+  },
+  {
+   "id": "battery-pack-alt",
+   "name": "Battery Pack Alt",
+   "author": "sbed",
+   "license": "CC BY 3.0",
+   "tags": [
+    "alt",
+    "battery",
+    "pack"
+   ]
+  },
+  {
+   "id": "batteries",
+   "name": "Batteries",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "batteries"
+   ]
+  },
+  {
+   "id": "inspiration",
+   "name": "Inspiration",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "inspiration"
+   ]
+  },
+  {
+   "id": "idea",
+   "name": "Idea",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "idea"
+   ]
+  },
+  {
+   "id": "hidden",
+   "name": "Hidden",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "hidden"
+   ]
+  },
+  {
+   "id": "cloak",
+   "name": "Cloak",
+   "author": "Lucas",
+   "license": "CC BY 3.0",
+   "tags": [
+    "cloak"
+   ]
+  },
+  {
+   "id": "cloak-dagger",
+   "name": "Cloak Dagger",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "cloak",
+    "dagger"
+   ]
+  },
+  {
+   "id": "domino-mask",
+   "name": "Domino Mask",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "domino",
+    "mask"
+   ]
+  },
+  {
+   "id": "hooded-figure",
+   "name": "Hooded Figure",
+   "author": "DarkZaitzev",
+   "license": "CC BY 3.0",
+   "tags": [
+    "figure",
+    "hooded"
+   ]
+  },
+  {
+   "id": "tear-tracks",
+   "name": "Tear Tracks",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "tear",
+    "tracks"
+   ]
+  },
+  {
+   "id": "sad-crab",
+   "name": "Sad Crab",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "crab",
+    "sad"
+   ]
+  },
+  {
+   "id": "sun-cloud",
+   "name": "Sun Cloud",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "cloud",
+    "sun"
+   ]
+  },
+  {
+   "id": "lightning-storm",
+   "name": "Lightning Storm",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "lightning",
+    "storm"
+   ]
+  },
+  {
+   "id": "thunder-struck",
+   "name": "Thunder Struck",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "struck",
+    "thunder"
+   ]
+  },
+  {
+   "id": "mighty-force",
+   "name": "Mighty Force",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "force",
+    "mighty"
+   ]
+  },
+  {
+   "id": "mighty-horn",
+   "name": "Mighty Horn",
+   "author": "Delapouite",
+   "license": "CC BY 3.0",
+   "tags": [
+    "horn",
+    "mighty"
+   ]
+  },
+  {
+   "id": "padlock",
+   "name": "Padlock",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "padlock"
+   ]
+  },
+  {
+   "id": "key",
+   "name": "Key",
+   "author": "Lorc",
+   "license": "CC BY 3.0",
+   "tags": [
+    "key"
+   ]
+  }
+ ]
+}

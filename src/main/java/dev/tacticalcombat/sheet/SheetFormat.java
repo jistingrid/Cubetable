@@ -119,8 +119,13 @@ public final class SheetFormat {
 			return type.equals("rules");
 		}
 
+		/** A status icon: stored as the icon's id (see {@link StatusIcons}), chosen from the bundled icon set. */
+		public boolean isIcon() {
+			return type.equals("icon");
+		}
+
 		public boolean isStored() {
-			return isText() || isRules() || type.equals("number") || type.equals("toggle") || type.equals("choice");
+			return isText() || isRules() || isIcon() || type.equals("number") || type.equals("toggle") || type.equals("choice");
 		}
 	}
 
@@ -363,7 +368,7 @@ public final class SheetFormat {
 			if (!col.id.matches("[a-z_][a-z0-9_]*")) throw new IllegalArgumentException("collection '" + c.id + "': bad column id '" + col.id + "'");
 			col.label = str(co, "label", col.id);
 			col.type = str(co, "type", "text").toLowerCase(Locale.ROOT);
-			if (!Set.of("text", "note", "number", "toggle", "choice", "computed", "roll", "dice", "cast", "rules", "activate").contains(col.type)) {
+			if (!Set.of("text", "note", "number", "toggle", "choice", "computed", "roll", "dice", "cast", "rules", "activate", "icon").contains(col.type)) {
 				throw new IllegalArgumentException("collection '" + c.id + "': column '" + col.id + "' has unknown type '" + col.type + "'");
 			}
 			col.width = (float) (co.has("width") ? co.get("width").getAsDouble() : (col.type.equals("text") ? 2.5 : 1.0));
@@ -445,7 +450,7 @@ public final class SheetFormat {
 				if (!po.has(col.id)) continue;
 				JsonElement v = po.get(col.id);
 				switch (col.type) {
-					case "text", "note", "rules" -> row.texts.put(col.id, v.getAsString());
+					case "text", "note", "rules", "icon" -> row.texts.put(col.id, v.getAsString());
 					case "number", "toggle" -> row.values.put(col.id, v.getAsDouble());
 					case "choice" -> {
 						if (v.getAsJsonPrimitive().isNumber()) row.values.put(col.id, v.getAsDouble());

@@ -124,3 +124,7 @@ src/client/java/dev/tacticalcombat/
 - Stairs count as full blocks, so highlights above stairs sit half a block high. Fences and walls are not walkable.
 - The walk is server-driven (one position update per tick), so it looks slightly steppy.
 - Mobs ignore walls for wide hitboxes while sliding along a path (they are moved by the server, not by pathfinding), and do not avoid being hit when choosing a square. Next: a bonus action / abilities bar, config file.
+
+## Credits
+
+Status icons are from [game-icons.net](https://game-icons.net), licensed CC BY 3.0 (a few CC0). Authors and the full list: `src/main/resources/assets/tacticalcombat/textures/status/CREDITS.md`. "Icons made by Lorc, Delapouite, Skoll, sbed and others. Available on https://game-icons.net".

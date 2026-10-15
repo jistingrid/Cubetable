@@ -394,6 +394,10 @@ fight (so "1 turn" lasts until the end of that creature's next turn); one in **s
 (it waits while time is paused). At 0 it is taken off the sheet and chat says "Name: Prone ended." This works for a
 player's Active Actor and for Actors alike.
 
+### Condition icons
+
+Add a column of type `icon` to the conditions collection (see sheet-formats.md) and set `"icon": "<id>"` on the presets. Active conditions are then drawn as icons in the top-right corner of the controlling player's screen, below Minecraft's own status effects, with the time they have left. Players pick an icon for conditions they create from the grid in the entry editor.
+
 ### Condition rules
 
 A condition can do things: give its collection a column of type `rules` and each row carries a list of rules

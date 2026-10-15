@@ -1635,6 +1635,14 @@ public final class CharacterSheetScreen extends Screen {
 				g.fill(x + 1, y + 2, x + bw - 1, y + 11, over ? 0xFF3A2A10 : ROLL_BG);
 				g.drawText(textRenderer, textRenderer.trimToWidth(t, bw - 4), x + 4, y + 3, white, false);
 			}
+			case "icon" -> {
+				String id = dev.tacticalcombat.sheet.StatusIcons.iconOf(coll, row);
+				if (!id.isEmpty()) {
+					StatusIconDraw.draw(g, id, x, y, 12);
+					var info = dev.tacticalcombat.sheet.StatusIcons.get(id);
+					if (info != null) hit(x, y, 12, 12, () -> {}, info.name());
+				}
+			}
 			default -> {
 				// "note" columns are drawn under the row
 			}
@@ -1651,6 +1659,13 @@ public final class CharacterSheetScreen extends Screen {
 	private record RowBox(SheetFormat.Col col, TextFieldWidget widget, int relY) {}
 
 	private final List<RowBox> rowBoxes = new ArrayList<>();
+
+	/** The icon chooser of a row editor ("icon" column): open flag, search box, scroll and where it hangs from. */
+	private boolean iconPickerOpen;
+	private TextFieldWidget iconSearch;
+	private float iconScroll;
+	private float iconMaxScroll;
+	private int[] iconPickerAnchor;
 
 	/** The condition rules being edited (a "rules" column) with their text boxes: "if" formula, target, value. */
 	private record RuleBox(TextFieldWidget cond, TextFieldWidget target, TextFieldWidget value) {}
@@ -1751,11 +1766,25 @@ public final class CharacterSheetScreen extends Screen {
 	private void buildRowForm() {
 		rowBoxes.clear();
 		ruleBoxes.clear();
+		iconPickerOpen = false;
+		iconSearch = null;
 		if (rowColl == null || rowDraft == null) return;
 		int relY = 0;
 		for (SheetFormat.Col col : rowColl.columns) {
 			if (!col.isStored()) continue;
 			TextFieldWidget box = null;
+			if (col.isIcon()) {
+				if (iconSearch == null) {
+					iconSearch = new TextFieldWidget(textRenderer, 0, 0, 120, 12, Text.literal("Search icons"));
+					iconSearch.setMaxLength(30);
+					iconSearch.setChangedListener(t -> iconScroll = 0);
+					iconSearch.setVisible(false);
+					addDrawableChild(iconSearch);
+				}
+				rowBoxes.add(new RowBox(col, null, relY));
+				relY += 20;
+				continue;
+			}
 			if (col.isRules()) {
 				ruleDraft = new ArrayList<>(dev.tacticalcombat.sheet.ConditionRules.parse(rowDraft.texts.getOrDefault(col.id, "")));
 				for (int i = 0; i < ruleDraft.size(); i++) {
@@ -1827,6 +1856,8 @@ public final class CharacterSheetScreen extends Screen {
 			int fx = baseX + 96;
 			if (col.isRules()) {
 				drawRuleEditor(g, col, fx, fy);
+			} else if (col.isIcon()) {
+				drawIconField(g, col, fx, fy);
 			} else if (rb.widget() != null) {
 				rb.widget().setX(fx);
 				rb.widget().setY(fy);
@@ -1881,8 +1912,96 @@ public final class CharacterSheetScreen extends Screen {
 			fy += (int) Math.ceil(ly * 0.75f) + 3;
 			if (fy > y + h - 14) break;
 		}
+		if (iconPickerOpen && iconPickerAnchor != null) drawIconPicker(g, x, y, w, h);
+		else if (iconSearch != null) iconSearch.setVisible(false);
 		boolean flashing = System.currentTimeMillis() < flashUntil;
 		if (flashing) g.drawText(textRenderer, flash, x + 8, y + h - 12, 0xFFFF6B6B, false);
+	}
+
+	/** The row editor's icon line: the chosen icon, its name, and a button that opens the chooser. */
+	private void drawIconField(DrawContext g, SheetFormat.Col col, int fx, int fy) {
+		String id = rowDraft.texts.getOrDefault(col.id, "").trim();
+		var info = dev.tacticalcombat.sheet.StatusIcons.get(id);
+		boolean over = hit(fx, fy - 2, 220, 18, () -> {
+			iconPickerOpen = !iconPickerOpen;
+			iconScroll = 0;
+			if (iconSearch != null) iconSearch.setText("");
+		}, "Choose an icon for this entry");
+		g.fill(fx, fy - 2, fx + 220, fy + 16, EDGE);
+		g.fill(fx + 1, fy - 1, fx + 219, fy + 15, over || iconPickerOpen ? PANEL_HOVER : PANEL);
+		StatusIconDraw.badge(g, textRenderer, id, "", fx + 3, fy, 14);
+		g.drawText(textRenderer, info == null ? "No icon (click to choose)" : info.name(), fx + 24, fy + 3, info == null ? DIM : 0xFFFFFFFF, false);
+		if (info != null) g.drawText(textRenderer, "by " + info.author(), fx + 220 - 6 - tw("by " + info.author()), fy + 3, DIM, false);
+		iconPickerAnchor = new int[] {fx, fy + 18};
+	}
+
+	/** The icon chooser: a search box and a grid of every bundled icon, hanging under the icon line of the row editor. */
+	private void drawIconPicker(DrawContext g, int ex, int ey, int ew, int eh) {
+		var found = dev.tacticalcombat.sheet.StatusIcons.search(iconSearch == null ? "" : iconSearch.getText());
+		int px = ex + 8;
+		int py = iconPickerAnchor[1];
+		int pw = ew - 16;
+		int ph = Math.max(60, Math.min(190, ey + eh - 20 - py));
+		hit(0, 0, width, height, () -> iconPickerOpen = false, null); // a click anywhere else closes it
+		hit(px, py, pw, ph, () -> {}, null); // ... but not one inside it
+		g.fill(px - 1, py - 1, px + pw + 1, py + ph + 1, 0xFF05060A);
+		g.fill(px, py, px + pw, py + ph, 0xFF1A1D23);
+		g.drawText(textRenderer, "Icon", px + 6, py + 5, GOLD, false);
+		if (iconSearch != null) {
+			iconSearch.setVisible(true);
+			iconSearch.setX(px + 34);
+			iconSearch.setY(py + 3);
+			iconSearch.render(g, mouseX, mouseY, 0);
+			if (iconSearch.getText().isEmpty() && !iconSearch.isFocused()) g.drawText(textRenderer, "search (poison, fire, web ...)", px + 38, py + 5, DIM, false);
+		}
+		String colId = rowBoxesIconCol();
+		int bx = px + pw - 6 - tw("No icon") - 8;
+		boolean none = hit(bx, py + 3, tw("No icon") + 8, 12, () -> {
+			rowDraft.texts.remove(colId);
+			iconPickerOpen = false;
+		}, "Use no icon (a letter badge is shown instead)");
+		g.fill(bx, py + 3, bx + tw("No icon") + 8, py + 15, none ? PANEL_HOVER : PANEL);
+		g.drawText(textRenderer, "No icon", bx + 4, py + 5, 0xFFC9CCD2, false);
+		g.drawText(textRenderer, found.size() + " icons", bx - 8 - tw(found.size() + " icons"), py + 5, DIM, false);
+
+		int gx = px + 6;
+		int gy = py + 20;
+		int gw = pw - 12;
+		int gh = ph - 24;
+		int cell = 24;
+		int cols = Math.max(1, gw / cell);
+		int rowsNeeded = (found.size() + cols - 1) / cols;
+		iconMaxScroll = Math.max(0, rowsNeeded * cell - gh);
+		iconScroll = MathHelper.clamp(iconScroll, 0, iconMaxScroll);
+		String current = rowDraft.texts.getOrDefault(colId, "").trim();
+		g.enableScissor(gx, gy, gx + gw, gy + gh);
+		boolean tipDone = false;
+		for (int i = 0; i < found.size(); i++) {
+			int cx = gx + (i % cols) * cell;
+			int cy = gy + (i / cols) * cell - (int) iconScroll;
+			if (cy + cell < gy || cy > gy + gh) continue;
+			var icon = found.get(i);
+			boolean inside = mouseY >= gy && mouseY < gy + gh;
+			boolean over = inside && mouseX >= cx && mouseX < cx + cell - 2 && mouseY >= cy && mouseY < cy + cell - 2;
+			if (inside) {
+				hit(cx, Math.max(cy, gy), cell - 2, Math.min(cy + cell - 2, gy + gh) - Math.max(cy, gy), () -> {
+					rowDraft.texts.put(colId, icon.id());
+					iconPickerOpen = false;
+				}, icon.name() + " - by " + icon.author());
+			}
+			boolean on = icon.id().equals(current);
+			g.fill(cx, cy, cx + cell - 2, cy + cell - 2, on ? GOLD : over ? 0xFF5A616C : 0xFF2A2F38);
+			g.fill(cx + 1, cy + 1, cx + cell - 3, cy + cell - 3, over ? PANEL_HOVER : 0xFF20242B);
+			StatusIconDraw.draw(g, icon.id(), cx + 2, cy + 2, cell - 6);
+		}
+		g.disableScissor();
+		if (found.isEmpty()) g.drawText(textRenderer, "No icon matches that search.", gx, gy + 4, DIM, false);
+		g.drawText(textRenderer, "Icons: game-icons.net (CC BY 3.0)", px + 6, py + ph - 9 + 0, MUTED, false);
+	}
+
+	private String rowBoxesIconCol() {
+		for (RowBox rb : rowBoxes) if (rb.col().isIcon()) return rb.col().id;
+		return "icon";
 	}
 
 	/** The rules of a condition: per rule a "when" and an "if" line, then a "do" line with its target and value. */
@@ -2625,6 +2744,10 @@ public final class CharacterSheetScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
+		if (iconPickerOpen && view == View.ROW) {
+			iconScroll = MathHelper.clamp(iconScroll - (float) vertical * 24, 0, iconMaxScroll);
+			return true;
+		}
 		if (view == View.EDITOR && editFormat != null) {
 			formScroll = MathHelper.clamp(formScroll - (float) vertical * 14, 0, formMaxScroll);
 			return true;
@@ -2660,6 +2783,10 @@ public final class CharacterSheetScreen extends Screen {
 		}
 		boolean typing = filterColl != null
 				|| (view == View.EDITOR || view == View.ROW) && getFocused() instanceof TextFieldWidget field && field.isFocused();
+		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && view == View.ROW && iconPickerOpen) {
+			iconPickerOpen = false;
+			return true;
+		}
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && view == View.ROW) {
 			cancelRow();
 			return true;

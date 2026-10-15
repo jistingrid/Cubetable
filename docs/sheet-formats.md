@@ -180,6 +180,10 @@ Any text in a format that looks like a translation key (`mygame.skill.stealth`: 
 
 When a format has more than one sheet kind, **New** lists each (e.g. "Generic d20 - NPC / monster"). A character remembers its kind in `"kind"`.
 
+## `icon` columns
+
+A collection column of type `icon` holds the id of one of the bundled status icons (`"icon": "spider-web"` in a preset). In the entry's edit panel it is a button that opens a searchable grid of every icon; in the table it shows the icon. Give the column to the collection that `combat.conditions` names and each condition shows as an icon in the top-right corner of the screen of the player (or of the Dungeon Master possessing the Actor) it is on, with its remaining time on it. A condition whose own icon is empty uses the icon of the pack's preset with the same name; one with neither shows a lettered badge. The icons and their authors are listed in `src/main/resources/assets/tacticalcombat/textures/status/CREDITS.md`.
+
 ## `rules` columns
 
 A collection column of type `rules` holds condition rules as text (see "Condition rules" in combat-rules.md). It is edited as a list in the entry's edit panel and summarised under the row in the table. Presets may set it.

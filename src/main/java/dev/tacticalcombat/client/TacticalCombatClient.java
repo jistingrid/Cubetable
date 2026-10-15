@@ -157,6 +157,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 								}))));
 
 		HudRenderCallback.EVENT.register(CombatHud::render);
+		HudRenderCallback.EVENT.register(StatusIconsHud::render);
 		HudRenderCallback.EVENT.register(DiceAnimation::render);
 		HudRenderCallback.EVENT.register(FloatingText::render);
 		HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
