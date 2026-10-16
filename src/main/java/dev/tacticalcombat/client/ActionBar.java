@@ -1119,7 +1119,7 @@ public final class ActionBar {
 		int mineId = mc.player.getId();
 		List<Integer> mineTargets = new ArrayList<>();
 		for (CombatStatePayload.Target t : ClientCombatState.targets) if (t.by() == mineId) mineTargets.add(t.at());
-		if (mineTargets.size() > 1) ClientPlayNetworking.send(new dev.tacticalcombat.net.AimPayload(List.of(mineTargets.get(0))));
+		if (mineTargets.size() > 1) ClientPlayNetworking.send(new dev.tacticalcombat.net.AimPayload(List.of(mineTargets.get(0)), false));
 	}
 
 	private static void use(Slot s, boolean damage) {

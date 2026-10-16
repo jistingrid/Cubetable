@@ -52,6 +52,10 @@ public final class Combat {
 	/** Several targets picked at once (an area, or "targets 3"): player entity id -> the creatures, the first also being in {@link #targets}. */
 	private final java.util.Map<Integer, List<Integer>> aimed = new java.util.HashMap<>();
 
+	/** Players whose group is rolled pick by pick (darts, rays) and the pick being rolled just now. */
+	private final java.util.Set<Integer> separate = new java.util.HashSet<>();
+	private final java.util.Map<Integer, LivingEntity> forced = new java.util.HashMap<>();
+
 	/** Who targets whom: entity id of the targeting player -> entity id of the target. */
 	private final java.util.Map<Integer, Integer> targets = new java.util.LinkedHashMap<>();
 	private int turn = 0;
@@ -303,6 +307,7 @@ public final class Combat {
 		Entity e = world.getEntityById(entityId);
 		if (!(e instanceof LivingEntity target) || !target.isAlive() || get(target) == null) return;
 		aimed.remove(player.getId()); // a single click goes back to one target
+		separate.remove(player.getId());
 		if (Integer.valueOf(entityId).equals(targets.get(player.getId()))) targets.remove(player.getId());
 		else {
 			targets.put(player.getId(), entityId);
@@ -355,13 +360,15 @@ public final class Combat {
 	}
 
 	/** The player picked several creatures for their next rolls (an empty list clears them). Only creatures of this fight count. */
-	public void setAimed(ServerPlayerEntity player, List<Integer> ids) {
+	public void setAimed(ServerPlayerEntity player, List<Integer> ids, boolean separateRolls) {
 		if (get(player) == null && !dev.tacticalcombat.character.Roles.isDm(player.getUuid())) return;
 		List<Integer> ok = new ArrayList<>();
 		for (int id : ids) {
 			Entity e = world.getEntityById(id);
 			if (e instanceof LivingEntity le && le.isAlive() && get(le) != null && ok.size() < 32) ok.add(id); // a creature may be listed more than once (several hits)
 		}
+		if (separateRolls && ok.size() > 1) separate.add(player.getId());
+		else separate.remove(player.getId());
 		if (ok.isEmpty()) {
 			aimed.remove(player.getId());
 			targets.remove(player.getId());
@@ -375,6 +382,8 @@ public final class Combat {
 	/** Everyone this player's rolls are aimed at: the picked group, or the one target, or nobody. */
 	public List<LivingEntity> targetsOf(ServerPlayerEntity player) {
 		List<LivingEntity> out = new ArrayList<>();
+		LivingEntity only = forced.get(player.getId());
+		if (only != null) return List.of(only);
 		List<Integer> group = aimed.get(player.getId());
 		if (group != null && group.size() > 1) {
 			for (int id : group) {
@@ -390,10 +399,27 @@ public final class Combat {
 	/** How many times the player picked this creature (several hits, as with darts); 1 for a single target. */
 	public int hitsOn(ServerPlayerEntity player, LivingEntity target) {
 		List<Integer> group = aimed.get(player.getId());
-		if (group == null || group.size() < 2) return 1;
+		if (group == null || group.size() < 2 || separate.contains(player.getId()) || forced.containsKey(player.getId())) return 1;
 		int n = 0;
 		for (int id : group) if (id == target.getId()) n++;
 		return Math.max(1, n);
+	}
+
+	/** Every pick of a group that is rolled one by one (a creature once for each time it was picked); empty when the group shares its rolls. */
+	public List<LivingEntity> separatePicks(ServerPlayerEntity player) {
+		List<LivingEntity> out = new ArrayList<>();
+		List<Integer> group = aimed.get(player.getId());
+		if (group == null || group.size() < 2 || !separate.contains(player.getId()) || forced.containsKey(player.getId())) return out; // (a pick being rolled is not split again)
+		for (int id : group) {
+			if (world.getEntityById(id) instanceof LivingEntity le && le.isAlive() && get(le) != null) out.add(le);
+		}
+		return out;
+	}
+
+	/** Makes {@link #targetsOf} answer with just this creature (null: back to the group) while one pick is rolled. */
+	public void forceTarget(ServerPlayerEntity player, LivingEntity pick) {
+		if (pick == null) forced.remove(player.getId());
+		else forced.put(player.getId(), pick);
 	}
 
 	/** The creature this player is aiming at, or null. */
@@ -427,6 +453,7 @@ public final class Combat {
 	public void endTurn() {
 		clearOpportunity();
 		aimed.clear();
+		separate.clear();
 		Combatant cur = current();
 		cur.path = null;
 		cur.anchor = cur.entity.getPos();
@@ -1533,6 +1560,8 @@ public final class Combat {
 	public void end() {
 		clearOpportunity();
 		aimed.clear();
+		separate.clear();
+		forced.clear();
 		for (ServerPlayerEntity p : notified) {
 			sendInactive(p);
 		}

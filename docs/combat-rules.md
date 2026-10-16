@@ -636,7 +636,8 @@ Give a source (`combat.actions.sources`) an `area` column and write the shape on
 | `cone 15` | from you, toward the square you pick, widening to half its length on each side |
 | `line 30x5` | from you toward the square you pick, 30 long and 5 wide (width optional) |
 | `targets 3` | up to 3 different creatures you click, allies included; clicking one again takes it back |
-| `targets 3 repeat` | up to 3 picks, and the same creature may be picked several times (also written `darts 3`, `missiles 3`, `rays 3`). A creature picked twice takes the one damage roll twice, as a single prompt for the sum |
+| `targets 3 repeat` | up to 3 picks, and the same creature may be picked several times (also written `darts 3`, `missiles 3`, `rays 3`). Every pick is rolled on its own (own attack roll and own damage roll, its own damage prompt) |
+| `targets 3 separate` | different creatures, but each rolled on its own (Scorching Ray style). Without `separate` the attack and damage are rolled once and shared by everyone |
 
 Using such an entry from the action bar first opens the aim: the area follows the pointer on the ground and is fixed with a
 click (click another square to move it); for `targets N` you click creatures. A panel lists everyone affected with a tick

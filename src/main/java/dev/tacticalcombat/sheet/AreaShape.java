@@ -8,7 +8,7 @@ import java.util.Locale;
  * {@code targets 3}. Sizes are in the game's unit and are divided by the size of one grid square. Pure maths on grid
  * cells, no Minecraft.
  */
-public record AreaShape(String kind, double length, double width, int count, boolean repeat) {
+public record AreaShape(String kind, double length, double width, int count, boolean repeat, boolean separate) {
 	public static final String SPHERE = "sphere", CUBE = "cube", CONE = "cone", LINE = "line", TARGETS = "targets";
 
 	/** The shape written in {@code text}, or null when it is blank or not understood. {@code square}: the unit length of one grid square. */
@@ -27,6 +27,7 @@ public record AreaShape(String kind, double length, double width, int count, boo
 		};
 		if (kind == null || w.length < 2) return null;
 		// "targets 3": up to 3 different creatures. "targets 3 repeat" (or darts / missiles / rays): the same creature may be picked again
+		boolean separate = w[1].contains("separate") || w[1].contains("each") || w[1].contains("own");
 		boolean repeat = w[0].equals("darts") || w[0].equals("missiles") || w[0].equals("rays")
 				|| w[1].contains("repeat") || w[1].contains("again") || w[1].contains("same");
 		double sq = square <= 0 ? 1 : square;
@@ -34,9 +35,9 @@ public record AreaShape(String kind, double length, double width, int count, boo
 		try {
 			double a = Double.parseDouble(size[0].replaceAll("[^0-9.]", ""));
 			if (a <= 0) return null;
-			if (kind.equals(TARGETS)) return new AreaShape(kind, 0, 0, Math.min(32, (int) Math.round(a)), repeat);
+			if (kind.equals(TARGETS)) return new AreaShape(kind, 0, 0, Math.min(32, (int) Math.round(a)), repeat, separate || repeat); // darts are rolled one by one
 			double width = size.length > 1 ? Double.parseDouble(size[1].replaceAll("[^0-9.]", "")) / sq : 1;
-			return new AreaShape(kind, Math.max(1, Math.round(a / sq)), Math.max(1, width), 0, false);
+			return new AreaShape(kind, Math.max(1, Math.round(a / sq)), Math.max(1, width), 0, false, false);
 		} catch (NumberFormatException e) {
 			return null;
 		}
@@ -89,7 +90,7 @@ public record AreaShape(String kind, double length, double width, int count, boo
 		double sq = square <= 0 ? 1 : square;
 		String u = unit == null ? "" : " " + unit;
 		return switch (kind) {
-			case TARGETS -> count + (repeat ? " hits, creatures may be picked again" : count == 1 ? " target" : " targets");
+			case TARGETS -> count + (repeat ? " hits, creatures may be picked again" : count == 1 ? " target" : " targets") + (separate ? ", rolled separately" : "");
 			case LINE -> Math.round(length * sq) + u + " line";
 			default -> Math.round(length * sq) + u + " " + kind;
 		};

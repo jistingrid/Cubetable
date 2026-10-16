@@ -260,7 +260,7 @@ public final class AreaAim {
 		if (ids.isEmpty()) return;
 		Runnable run = go;
 		stop();
-		ClientPlayNetworking.send(new AimPayload(ids));
+		ClientPlayNetworking.send(new AimPayload(ids, shape.separate()));
 		if (run != null) run.run();
 	}
 

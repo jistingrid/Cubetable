@@ -85,6 +85,19 @@ public final class Strikes {
 			combat.sync();
 		}
 
+		// darts and rays: every pick gets its own attack and damage roll (the cost was paid once, above)
+		java.util.List<LivingEntity> picks = combat == null || kind == PLAIN ? java.util.List.of() : combat.separatePicks(player);
+		if (picks.size() > 1) {
+			try {
+				for (LivingEntity pick : picks) {
+					combat.forceTarget(player, pick);
+					roll(player, label, type, count, modifier, mode, kind, "", critText, force, rules, ref);
+				}
+			} finally {
+				combat.forceTarget(player, null);
+			}
+			return;
+		}
 		final java.util.List<LivingEntity> group = combat == null || kind == PLAIN ? java.util.List.of() : combat.targetsOf(player);
 		LivingEntity target = group.isEmpty() ? null : group.get(0);
 		int now = player.getServer() == null ? 0 : player.getServer().getTicks();

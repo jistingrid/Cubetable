@@ -211,10 +211,10 @@ public final class CombatManager {
 	}
 
 	/** A player picked several creatures (an area, or a number of targets) for their next rolls. */
-	public static void requestAim(ServerPlayerEntity player, java.util.List<Integer> ids) {
+	public static void requestAim(ServerPlayerEntity player, java.util.List<Integer> ids, boolean separate) {
 		Combat combat = get(player);
 		if (combat == null && dev.tacticalcombat.character.Roles.isDm(player.getUuid())) combat = primary();
-		if (combat != null) combat.setAimed(player, ids);
+		if (combat != null) combat.setAimed(player, ids, separate);
 	}
 
 	/** A player clicked an enemy to attack it. */
