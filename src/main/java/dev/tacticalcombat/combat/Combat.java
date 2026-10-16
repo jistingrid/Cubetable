@@ -360,7 +360,7 @@ public final class Combat {
 		List<Integer> ok = new ArrayList<>();
 		for (int id : ids) {
 			Entity e = world.getEntityById(id);
-			if (e instanceof LivingEntity le && le.isAlive() && get(le) != null && !ok.contains(id)) ok.add(id);
+			if (e instanceof LivingEntity le && le.isAlive() && get(le) != null && ok.size() < 32) ok.add(id); // a creature may be listed more than once (several hits)
 		}
 		if (ok.isEmpty()) {
 			aimed.remove(player.getId());
@@ -378,13 +378,22 @@ public final class Combat {
 		List<Integer> group = aimed.get(player.getId());
 		if (group != null && group.size() > 1) {
 			for (int id : group) {
-				if (world.getEntityById(id) instanceof LivingEntity le && le.isAlive() && get(le) != null) out.add(le);
+				if (world.getEntityById(id) instanceof LivingEntity le && le.isAlive() && get(le) != null && !out.contains(le)) out.add(le);
 			}
 			if (!out.isEmpty()) return out;
 		}
 		LivingEntity one = targetOf(player);
 		if (one != null) out.add(one);
 		return out;
+	}
+
+	/** How many times the player picked this creature (several hits, as with darts); 1 for a single target. */
+	public int hitsOn(ServerPlayerEntity player, LivingEntity target) {
+		List<Integer> group = aimed.get(player.getId());
+		if (group == null || group.size() < 2) return 1;
+		int n = 0;
+		for (int id : group) if (id == target.getId()) n++;
+		return Math.max(1, n);
 	}
 
 	/** The creature this player is aiming at, or null. */

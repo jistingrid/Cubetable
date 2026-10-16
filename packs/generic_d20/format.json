@@ -1338,14 +1338,14 @@
         },
         {
           "id": "area",
-          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3)",
+          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3, darts 3)",
           "type": "text",
           "width": 1.4,
           "detail": true
         },
         {
           "id": "area",
-          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3)",
+          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3, darts 3)",
           "type": "text",
           "width": 1.4,
           "detail": true
@@ -1488,7 +1488,7 @@
         },
         {
           "id": "area",
-          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3)",
+          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3, darts 3)",
           "type": "text",
           "width": 1.4,
           "detail": true

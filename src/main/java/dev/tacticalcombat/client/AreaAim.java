@@ -42,7 +42,7 @@ public final class AreaAim {
 
 	private static BlockPos hover; // the square under the pointer (area shapes)
 	private static BlockPos fixed; // the square the area was fixed on
-	private static final Set<Integer> PICKED = new LinkedHashSet<>(); // creatures clicked ("targets N")
+	private static final List<Integer> PICKED = new ArrayList<>(); // creatures clicked ("targets N"), more than once when the entry allows it
 	private static final Set<Integer> UNTICKED = new LinkedHashSet<>(); // creatures taken out of an area
 
 	private static final int W = 196;
@@ -99,6 +99,9 @@ public final class AreaAim {
 			boolean in;
 			if (shape.isCount()) {
 				in = PICKED.contains(e.entityId());
+				if (in) {
+					for (int i = 0; i < java.util.Collections.frequency(PICKED, e.entityId()) - 1 && shape.repeat(); i++) out.add(en);
+				}
 			} else {
 				BlockPos a = aim();
 				if (a == null || caster == null || (shape.fromCaster() && en == caster)) continue;
@@ -116,7 +119,7 @@ public final class AreaAim {
 		List<Entity> out = new ArrayList<>();
 		if (shape == null || mc.world == null) return out;
 		if (shape.isCount()) {
-			for (int id : PICKED) {
+			for (int id : new LinkedHashSet<>(PICKED)) { // each creature once in the list, its repeats are shown as a number
 				Entity en = mc.world.getEntityById(id);
 				if (en != null) out.add(en);
 			}
@@ -158,7 +161,8 @@ public final class AreaAim {
 		List<Btn> out = new ArrayList<>();
 		int y = Y + 30;
 		for (Entity e : list) {
-			out.add(new Btn(X + 4, y, W - 8, ROW - 1, nameOf(e), true, 0, e.getId()));
+			int times = shape.isCount() ? java.util.Collections.frequency(PICKED, e.getId()) : 1;
+			out.add(new Btn(X + 4, y, W - 8, ROW - 1, nameOf(e) + (times > 1 ? " x" + times : ""), true, 0, e.getId()));
 			y += ROW;
 		}
 		int by = y + 4;
@@ -184,7 +188,8 @@ public final class AreaAim {
 		CardStyle.frame(ctx, X, Y, W, height(list), CardStyle.STEEL);
 		ctx.drawText(font, font.trimToWidth(title, W - 12), X + 6, Y + 7, CardStyle.WHITE, true);
 		String hint = shape.isCount()
-				? "Click up to " + shape.count() + " creatures (" + PICKED.size() + " picked)"
+				? (shape.repeat() ? "Click up to " + shape.count() + " times, the same creature may repeat" : "Click up to " + shape.count() + " creatures")
+						+ " (" + PICKED.size() + " picked)"
 				: fixed == null ? "Point at a square, click to fix the area" : "Click another square to move it";
 		CardStyle.small(ctx, font, hint, X + 6, Y + CardStyle.HEADER + 2, CardStyle.MUTED, W - 12);
 		double mx = mc.mouse.getX() * mc.getWindow().getScaledWidth() / (double) mc.getWindow().getWidth();
@@ -220,7 +225,7 @@ public final class AreaAim {
 				if (!b.enabled() || mx < b.x() || mx >= b.x() + b.w() || my < b.y() || my >= b.y() + b.h()) continue;
 				switch (b.action()) {
 					case 0 -> {
-						if (shape.isCount()) PICKED.remove(b.id());
+						if (shape.isCount()) PICKED.remove((Integer) b.id()); // one pick less (the creature is dropped with its last)
 						else if (!UNTICKED.remove(b.id())) UNTICKED.add(b.id());
 					}
 					case 1 -> confirm(mc);
@@ -232,7 +237,10 @@ public final class AreaAim {
 		}
 		if (shape.isCount()) {
 			int id = ClientGrid.hoverEntity;
-			if (id >= 0 && !PICKED.remove(id) && PICKED.size() < shape.count()) PICKED.add(id);
+			if (id >= 0 && PICKED.size() < shape.count()) {
+				if (shape.repeat() || !PICKED.contains(id)) PICKED.add(id);
+				else PICKED.remove((Integer) id); // a different creature each time: clicking it again takes it back
+			}
 		} else if (hover != null) {
 			if (fixed == null || !fixed.equals(hover)) UNTICKED.clear();
 			fixed = hover;

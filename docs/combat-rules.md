@@ -635,7 +635,8 @@ Give a source (`combat.actions.sources`) an `area` column and write the shape on
 | `cube 15` | a 15-unit square centred on the square you pick |
 | `cone 15` | from you, toward the square you pick, widening to half its length on each side |
 | `line 30x5` | from you toward the square you pick, 30 long and 5 wide (width optional) |
-| `targets 3` | up to 3 creatures you click, allies included |
+| `targets 3` | up to 3 different creatures you click, allies included; clicking one again takes it back |
+| `targets 3 repeat` | up to 3 picks, and the same creature may be picked several times (also written `darts 3`, `missiles 3`, `rays 3`). A creature picked twice takes the one damage roll twice, as a single prompt for the sum |
 
 Using such an entry from the action bar first opens the aim: the area follows the pointer on the ground and is fixed with a
 click (click another square to move it); for `targets N` you click creatures. A panel lists everyone affected with a tick

@@ -183,7 +183,10 @@ public final class Strikes {
 		}
 
 		int total = DiceService.rollNatural(player, roller, label, type, count, modifier, mode, rollMode, damageMark);
-		for (LivingEntity each : group) Damage.offer(player, asCreature ? roller : null, each, label, Math.max(0, total)); // one roll, every target gets it
+		for (LivingEntity each : group) { // one roll, every target gets it (as many times as it was picked)
+			int hits = combat == null ? 1 : combat.hitsOn(player, each);
+			Damage.offer(player, asCreature ? roller : null, each, hits > 1 ? label + " x" + hits : label, Math.max(0, total) * hits);
+		}
 		if (kind == DAMAGE && player.getServer() != null) {
 			LivingEntity self = asCreature ? actor.entity : player;
 			for (LivingEntity each : group) {
