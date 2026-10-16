@@ -17,13 +17,17 @@ import java.util.Map;
  */
 public final class TurnSetup {
 	/** One way to buy movement, with its distance already in squares. */
-	public record MoveOption(String id, String label, Map<String, Integer> cost, int grant, boolean auto, boolean keep) {}
+	public record MoveOption(String id, String label, Map<String, Integer> cost, int grant, boolean auto, boolean keep, boolean disengage) {}
 
 	/** Distance of one grid square in the game's own unit (display only) and that unit's name. */
 	public double square = 1;
 	public String unit = "";
 	/** The game allows diagonal steps (they cost one square). */
 	public boolean diagonals;
+	/** The game has attacks of opportunity ({@code engagement} block): this creature's reach in squares and the resource they spend. */
+	public boolean engages;
+	public int reach = 1;
+	public String reaction = "";
 	/** Squares available when the turn starts. */
 	public int pool;
 	/** Resource id -> how many the combatant gets each turn. */
@@ -67,6 +71,12 @@ public final class TurnSetup {
 		t.square = r.square;
 		t.unit = r.unit;
 		t.diagonals = r.diagonals;
+		if (r.engagement != null) {
+			t.engages = true;
+			t.reaction = r.engagement.reaction();
+			double reach = r.engagement.reach().isBlank() ? 1 : sc.number(r.engagement.reach());
+			t.reach = Double.isNaN(reach) ? 1 : Math.max(1, (int) Math.floor(reach + 1.0E-6));
+		}
 		t.attackResource = r.attackResourceId();
 		t.styles.putAll(r.resourceStyles);
 
@@ -83,7 +93,7 @@ public final class TurnSetup {
 		}
 		for (CombatRules.Move m : r.moves) {
 			int grant = m.grants().isBlank() ? 0 : squares(sc.number(m.grants()), r.square);
-			t.moves.add(new MoveOption(m.id(), m.label(), m.cost(), grant, m.auto(), m.keep()));
+			t.moves.add(new MoveOption(m.id(), m.label(), m.cost(), grant, m.auto(), m.keep(), m.disengage()));
 		}
 		return t;
 	}

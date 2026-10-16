@@ -198,9 +198,16 @@ public final class CombatManager {
 	}
 
 	/** A player clicked a grid square to walk to. */
-	public static void requestMove(ServerPlayerEntity player, BlockPos target) {
+	public static void requestMove(ServerPlayerEntity player, BlockPos target, boolean confirm) {
 		Combat combat = get(player);
-		if (combat != null) combat.requestMove(player, target);
+		if (combat != null) combat.requestMove(player, target, confirm);
+	}
+
+	/** A player answered an attack-of-opportunity prompt (warning, offer, or the Done button). */
+	public static void requestOpportunity(ServerPlayerEntity player, int op, String arg) {
+		Combat combat = get(player);
+		if (combat == null && dev.tacticalcombat.character.Roles.isDm(player.getUuid())) combat = primary();
+		if (combat != null) combat.opportunity(player, op, arg);
 	}
 
 	/** A player clicked an enemy to attack it. */

@@ -72,7 +72,7 @@ public final class Strikes {
 		String roller = asCreature ? Damage.nameOf(actor.entity) : null;
 
 		Map<String, Integer> costs = parseCost(cost);
-		if (!costs.isEmpty() && combat != null) {
+		if (!costs.isEmpty() && combat != null && !combat.oaActor(actor)) { // an attack of opportunity was paid for when it was offered
 			if (actor == null || combat.current() != actor) {
 				player.sendMessage(Text.translatable("tacticalcombat.msg.not_your_turn"), true);
 				return;
@@ -196,7 +196,7 @@ public final class Strikes {
 		Combatant actor = combat == null ? null : combat.actorFor(player);
 		boolean asCreature = actor != null && actor.entity != player;
 		Map<String, Integer> costs = parseCost(cost);
-		if (!costs.isEmpty() && combat != null) {
+		if (!costs.isEmpty() && combat != null && !combat.oaActor(actor)) { // an attack of opportunity was paid for when it was offered
 			if (actor == null || combat.current() != actor) {
 				player.sendMessage(Text.translatable("tacticalcombat.msg.not_your_turn"), true);
 				return;
@@ -229,7 +229,7 @@ public final class Strikes {
 	}
 
 	/** "action:1,bonus:1" to a map; anything malformed is ignored. */
-	private static Map<String, Integer> parseCost(String text) {
+	static Map<String, Integer> parseCost(String text) {
 		Map<String, Integer> out = new LinkedHashMap<>();
 		if (text == null) return out;
 		for (String part : text.split(",")) {

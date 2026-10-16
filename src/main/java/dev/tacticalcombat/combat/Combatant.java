@@ -36,6 +36,13 @@ public final class Combatant {
 	/** A bought move whose unused distance is lost: the budget is cut to what was used once the move is accepted. */
 	public boolean lostAfterMove;
 
+	/** Disengaged this turn: moving away provokes no attacks of opportunity (reset when the turn starts). */
+	public boolean disengaged;
+	/** A reaction spent before this combatant's first turn (nothing in {@link #left} to take it from yet). */
+	public boolean reactedEarly;
+	/** The attacks of opportunity the walk in progress will provoke, in the order they happen. */
+	public final java.util.ArrayDeque<Combat.Provoke> provokes = new java.util.ArrayDeque<>();
+
 	public int ticksInTurn;
 	public int ticksSinceActionUsed;
 	public int ticksSinceMoveExhausted;
@@ -95,7 +102,22 @@ public final class Combatant {
 		if (!id.isEmpty() && resource(id) > 0) left.merge(id, -1, Integer::sum);
 	}
 
+	/** Can use its reaction now (a creature that has not had a turn yet still has it). */
+	public boolean canReact(String id) {
+		if (id == null || id.isEmpty()) return true;
+		return max.containsKey(id) ? resource(id) > 0 : !reactedEarly;
+	}
+
+	public void spendReaction(String id) {
+		if (id == null || id.isEmpty()) return;
+		if (max.containsKey(id)) left.merge(id, -1, Integer::sum);
+		else reactedEarly = true;
+	}
+
 	public void resetTurnResources(TurnSetup setup) {
+		this.disengaged = false;
+		this.reactedEarly = false;
+		this.provokes.clear();
 		this.setup = setup;
 		this.moveBudget = setup.pool;
 		this.moveUsed = 0;

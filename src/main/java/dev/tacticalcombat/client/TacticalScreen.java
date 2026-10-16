@@ -48,6 +48,7 @@ public final class TacticalScreen extends Screen {
 				|| ActionBar.contains(mouseX, mouseY, width, height)
 				|| DamagePrompt.contains(mouseX, mouseY, width)
 				|| CheckPrompt.contains(mouseX, mouseY, width)
+				|| OpportunityPrompt.contains(mouseX, mouseY, width)
 				|| DownedCard.contains(mouseX, mouseY, width);
 		if (onPanel) { // the pointer is on the DM's tracker, not on the battlefield
 			ClientGrid.hover = -1;
@@ -94,6 +95,7 @@ public final class TacticalScreen extends Screen {
 		if (TrackerPanel.mouseClicked(mouseX, mouseY, button, width, height)) return true;
 		if (DamagePrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (CheckPrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
+		if (OpportunityPrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (DownedCard.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (ActionBar.mouseClicked(mouseX, mouseY, button, width, height)) return true;
 		if (Ruler.mouseClicked(button)) return true;
@@ -108,7 +110,7 @@ public final class TacticalScreen extends Screen {
 
 		if (ClientGrid.hover >= 0 && ClientGrid.hover < ClientGrid.cells.size()) {
 			BlockPos target = BlockPos.fromLong(ClientGrid.cells.get(ClientGrid.hover).pos());
-			ClientPlayNetworking.send(new MoveRequestPayload(target));
+			ClientPlayNetworking.send(new MoveRequestPayload(target, false));
 			ClientGrid.hover = -1; // the server clears the highlights while the walk is in progress
 		}
 		return true;

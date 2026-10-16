@@ -344,6 +344,7 @@ public final class Combat {
 	 * hand, the creature whose turn it is. Null when nobody.
 	 */
 	public Combatant actorFor(ServerPlayerEntity player) {
+		if (oa != null && oa.attacking && oa.owner == player) return oa.provoker; // making an attack of opportunity
 		if (planning || order.isEmpty()) return get(player);
 		if (dev.tacticalcombat.character.Roles.isDm(player.getUuid()) && manualMob(current())) return current();
 		return get(player);
@@ -378,6 +379,7 @@ public final class Combat {
 
 	/** Ends the current turn and starts the next one. */
 	public void endTurn() {
+		clearOpportunity();
 		Combatant cur = current();
 		cur.path = null;
 		cur.anchor = cur.entity.getPos();
@@ -422,7 +424,10 @@ public final class Combat {
 	// ---------------------------------------------------------------- player requests
 
 	/** The active player clicked a square. */
-	public void requestMove(ServerPlayerEntity player, BlockPos target) {
+	public void requestMove(ServerPlayerEntity player, BlockPos target, boolean confirm) {
+		if (pending != null && pending.by == player) closePrompt(player);
+		pending = null;
+		if (oa != null) return; // an attack of opportunity is being settled
 		Combatant c = get(player);
 		if (!planning && !order.isEmpty() && manualMob(current()) && dev.tacticalcombat.character.Roles.isDm(player.getUuid())) {
 			c = current(); // the Dungeon Master walks the creature whose turn it is
@@ -440,6 +445,16 @@ public final class Combat {
 			buyMove(c, buy);
 		}
 
+		// leaving a creature that is engaged with you gives it an attack of opportunity
+		List<Provoke> provoked = provokes(c, moveGrid, idx);
+		if (!provoked.isEmpty() && !confirm) {
+			pending = new Pending(c, player, target);
+			sendWarning(c, player, provoked);
+			return;
+		}
+		c.provokes.clear();
+		c.provokes.addAll(provoked);
+
 		c.path = buildPath(moveGrid, idx);
 		c.pathIdx = 0;
 		c.pathPos = c.entity.getPos();
@@ -453,6 +468,201 @@ public final class Combat {
 		threat = Set.of();
 		sendGrid(); // clears the highlights while walking
 		sync();
+	}
+
+	// ---------------------------------------------------------------- attacks of opportunity
+
+	/** An attack of opportunity a walk will provoke: who gets it, and after how many reached squares the walker has to wait. */
+	public record Provoke(Combatant attacker, int stop) {}
+
+	/** A move held back until the player answers the warning. */
+	private record Pending(Combatant mover, ServerPlayerEntity by, BlockPos target) {}
+
+	/** The attack of opportunity being settled: the walk is paused until it is done. */
+	private static final class Window {
+		final Combatant provoker;
+		final Combatant mover;
+		final ServerPlayerEntity owner;
+		final int deadline;
+		boolean attacking;
+		Integer previousTarget;
+
+		Window(Combatant provoker, Combatant mover, ServerPlayerEntity owner, int deadline) {
+			this.provoker = provoker;
+			this.mover = mover;
+			this.owner = owner;
+			this.deadline = deadline;
+		}
+	}
+
+	private Pending pending;
+	private Window oa;
+
+	/** True while this combatant is making an attack of opportunity (it is not its turn, and it has already paid). */
+	public boolean oaActor(Combatant actor) {
+		return oa != null && oa.attacking && actor != null && oa.provoker == actor;
+	}
+
+	private static boolean engaged(BlockPos cell, BlockPos other, int reach) {
+		return Math.max(Math.abs(cell.getX() - other.getX()), Math.abs(cell.getZ() - other.getZ())) <= reach
+				&& Math.abs(cell.getY() - other.getY()) <= 1;
+	}
+
+	/** The attacks of opportunity walking to node {@code idx} gives away: each opposing creature that can react, once. */
+	private List<Provoke> provokes(Combatant c, Grid.Result grid, int idx) {
+		List<Provoke> out = new ArrayList<>();
+		if (c.disengaged || planning) return out;
+		List<BlockPos> cells = new ArrayList<>();
+		for (int i = idx; i > 0; i = grid.nodes.get(i).parent) cells.add(0, BlockPos.fromLong(grid.nodes.get(i).pos));
+		cells.add(0, BlockPos.fromLong(grid.nodes.get(0).pos));
+		for (Combatant o : order) {
+			if (o == c || o.isPlayer() == c.isPlayer() || !o.entity.isAlive() || Downed.isDown(o.entity)) continue;
+			TurnSetup s = setupFor(o.entity);
+			if (!s.engages || !o.canReact(s.reaction)) continue;
+			BlockPos at = Grid.cellOf(o.entity);
+			for (int k = 0; k + 1 < cells.size(); k++) {
+				if (engaged(cells.get(k), at, s.reach) && !engaged(cells.get(k + 1), at, s.reach)) {
+					out.add(new Provoke(o, k));
+					break; // one attack of opportunity per creature, the first time it is left
+				}
+			}
+		}
+		out.sort(Comparator.comparingInt(Provoke::stop));
+		return out;
+	}
+
+	private boolean atProvokeStop(Combatant c) {
+		return oa == null && !c.provokes.isEmpty() && c.pathIdx >= c.provokes.peek().stop();
+	}
+
+	private ServerPlayerEntity ownerOf(Combatant provoker) {
+		if (provoker.entity instanceof ServerPlayerEntity p) return p;
+		List<ServerPlayerEntity> dms = dmViewers();
+		return dms.isEmpty() ? null : dms.get(0);
+	}
+
+	private static String names(List<Provoke> list) {
+		StringBuilder sb = new StringBuilder();
+		for (Provoke p : list) {
+			if (sb.length() > 0) sb.append(", ");
+			sb.append(Damage.nameOf(p.attacker().entity));
+		}
+		return sb.toString();
+	}
+
+	/** Tells the walker what the move will cost, with the ways to disengage first. */
+	private void sendWarning(Combatant c, ServerPlayerEntity to, List<Provoke> provoked) {
+		List<dev.tacticalcombat.net.OpportunityPromptPayload.Option> options = new ArrayList<>();
+		for (TurnSetup.MoveOption m : c.setup.moves()) {
+			if (!m.disengage()) continue;
+			options.add(new dev.tacticalcombat.net.OpportunityPromptPayload.Option("move:" + m.id(), m.label(), costText(m.cost()), c.canPay(m.cost())));
+		}
+		for (Conditions.DisengageEntry e : Conditions.disengageEntries(c.entity)) {
+			if (e.limited()) continue; // its uses are spent from the action bar
+			Map<String, Integer> cost = Strikes.parseCost(e.cost());
+			options.add(new dev.tacticalcombat.net.OpportunityPromptPayload.Option("feat:" + e.ref(), e.name(), costText(cost), c.canPay(cost)));
+		}
+		String who = Damage.nameOf(c.entity);
+		String text = (to.getId() == c.entity.getId() ? "" : who + ": ") + "Moving away from " + names(provoked)
+				+ " will trigger an attack of opportunity. Proceed?";
+		ServerPlayNetworking.send(to, new dev.tacticalcombat.net.OpportunityPromptPayload(0, c.entity.getId(), text, options));
+	}
+
+	private static String costText(Map<String, Integer> cost) {
+		StringBuilder sb = new StringBuilder();
+		for (Map.Entry<String, Integer> e : cost.entrySet()) {
+			if (sb.length() > 0) sb.append(", ");
+			sb.append(e.getValue()).append(' ').append(e.getKey());
+		}
+		return sb.toString();
+	}
+
+	private static void closePrompt(ServerPlayerEntity p) {
+		if (p != null && !p.isRemoved()) ServerPlayNetworking.send(p, dev.tacticalcombat.net.OpportunityPromptPayload.close());
+	}
+
+	/** The walker reached the square before leaving a creature's reach: the creature may attack now. */
+	private void offerOpportunity(Combatant c) {
+		Provoke p = c.provokes.poll();
+		if (p == null) return;
+		Combatant att = p.attacker();
+		TurnSetup s = setupFor(att.entity);
+		ServerPlayerEntity owner = ownerOf(att);
+		if (owner == null || !order.contains(att) || !att.entity.isAlive() || Downed.isDown(att.entity) || !att.canReact(s.reaction)) return;
+		oa = new Window(att, c, owner, tickCounter + 1200);
+		String text = Damage.nameOf(c.entity) + " is moving away from " + Damage.nameOf(att.entity) + ". Attack of opportunity?";
+		ServerPlayNetworking.send(owner, new dev.tacticalcombat.net.OpportunityPromptPayload(1, att.entity.getId(), text, List.of()));
+	}
+
+	/** Ends the attack of opportunity being settled; the walk goes on (the next creature may get its offer first). */
+	private void finishOpportunity() {
+		Window w = oa;
+		if (w == null) return;
+		oa = null;
+		if (w.attacking) {
+			if (w.previousTarget == null) targets.remove(w.owner.getId());
+			else targets.put(w.owner.getId(), w.previousTarget);
+		}
+		closePrompt(w.owner);
+		sync();
+	}
+
+	private void clearOpportunity() {
+		if (pending != null) closePrompt(pending.by);
+		pending = null;
+		finishOpportunity();
+	}
+
+	/** A player answered an attack-of-opportunity prompt. */
+	public void opportunity(ServerPlayerEntity player, int op, String arg) {
+		if (oa != null && oa.owner == player) {
+			if (op == dev.tacticalcombat.net.OpportunityPayload.ATTACK && !oa.attacking) {
+				TurnSetup s = setupFor(oa.provoker.entity);
+				if (!oa.provoker.canReact(s.reaction)) {
+					finishOpportunity();
+					return;
+				}
+				oa.provoker.spendReaction(s.reaction);
+				oa.attacking = true;
+				oa.previousTarget = targets.get(player.getId());
+				targets.put(player.getId(), oa.mover.entity.getId());
+				ServerPlayNetworking.send(player, new dev.tacticalcombat.net.OpportunityPromptPayload(2, oa.provoker.entity.getId(),
+						"Attack " + Damage.nameOf(oa.mover.entity) + ", then press Done.", List.of()));
+				sync();
+			} else if (op == dev.tacticalcombat.net.OpportunityPayload.DONE || op == dev.tacticalcombat.net.OpportunityPayload.CANCEL) {
+				finishOpportunity();
+			}
+			return;
+		}
+		Pending p = pending;
+		if (p == null || p.by != player) return;
+		Combatant c = p.mover;
+		switch (op) {
+			case dev.tacticalcombat.net.OpportunityPayload.PROCEED -> {
+				pending = null;
+				closePrompt(player);
+				requestMove(player, p.target, true);
+			}
+			case dev.tacticalcombat.net.OpportunityPayload.DISENGAGE -> {
+				if (arg.startsWith("move:")) {
+					requestBuyMove(player, arg.substring(5));
+				} else if (arg.startsWith("feat:")) {
+					for (Conditions.DisengageEntry e : Conditions.disengageEntries(c.entity)) {
+						if (e.limited() || !e.ref().equals(arg.substring(5))) continue;
+						pending = null;
+						Strikes.activate(player, e.name(), e.cost(), e.rules(), e.ref());
+						break;
+					}
+				}
+				pending = null;
+				closePrompt(player);
+				requestMove(player, p.target, false); // disengaged: goes without a warning; if it could not be paid, asked again
+			}
+			default -> {
+				pending = null;
+				closePrompt(player);
+			}
+		}
 	}
 
 	/** The first automatic move the combatant can pay for that makes a destination of this cost reachable. */
@@ -478,9 +688,18 @@ public final class Combat {
 	/** The active player pressed the button of a movement option (such as Dash). */
 	public void requestBuyMove(ServerPlayerEntity player, String id) {
 		Combatant c = get(player);
+		if (!planning && !order.isEmpty() && manualMob(current()) && dev.tacticalcombat.character.Roles.isDm(player.getUuid())) c = current();
 		if (planning || c == null || current() != c || c.moving()) return;
 		for (TurnSetup.MoveOption m : c.setup.moves()) {
 			if (!m.id().equals(id) || m.auto() || !c.canPay(m.cost())) continue;
+			if (m.disengage()) { // costs something, gives no distance, and leaves what is left of the movement alone
+				c.pay(m.cost());
+				c.disengaged = true;
+				if (world.getServer() != null) world.getServer().getPlayerManager().broadcast(
+						Text.literal(Damage.nameOf(c.entity) + " " + m.label().toLowerCase(java.util.Locale.ROOT) + "s, no attacks of opportunity this turn"), false);
+				sync();
+				return;
+			}
 			buyMove(c, m);
 			refreshGrid();
 			sync();
@@ -679,6 +898,7 @@ public final class Combat {
 	public void remove(LivingEntity entity) {
 		Combatant c = get(entity);
 		if (c == null) return;
+		clearOpportunity();
 		int idx = order.indexOf(c);
 		boolean wasCurrent = !planning && idx == turn;
 		order.remove(idx);
@@ -767,11 +987,16 @@ public final class Combat {
 
 	/** Slides the active combatant (player or mob) along its chosen path, one step per tick. */
 	private void tickMove(Combatant c) {
+		if (oa != null) { // waiting for an attack of opportunity to be settled
+			if (tickCounter > oa.deadline || oa.owner.isRemoved()) finishOpportunity();
+			return;
+		}
 		Vec3d before = c.pathPos;
 		Vec3d pos = before;
 		double remaining = c.isPlayer() ? CombatConfig.MOVE_SPEED : CombatConfig.MOB_MOVE_SPEED;
 
 		while (remaining > 1.0E-6 && c.pathIdx < c.path.size()) {
+			if (atProvokeStop(c)) break;
 			Vec3d target = c.path.get(c.pathIdx);
 			Vec3d delta = target.subtract(pos);
 			double len = delta.length();
@@ -803,6 +1028,10 @@ public final class Combat {
 			m.fallDistance = 0;
 		}
 
+		if (atProvokeStop(c)) {
+			offerOpportunity(c);
+			return;
+		}
 		if (c.pathIdx >= c.path.size()) {
 			if (world.getServer() != null && !planning) Conditions.fire(world.getServer(), c.entity, "moved", java.util.Map.of("moved", c.path.size()));
 			c.path = null;
@@ -1249,6 +1478,7 @@ public final class Combat {
 
 	/** Releases everyone. Call when the combat is removed. */
 	public void end() {
+		clearOpportunity();
 		for (ServerPlayerEntity p : notified) {
 			sendInactive(p);
 		}

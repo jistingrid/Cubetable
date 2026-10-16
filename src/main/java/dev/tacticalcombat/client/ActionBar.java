@@ -117,6 +117,10 @@ public final class ActionBar {
 	 */
 	private static CombatStatePayload.Entry mine(MinecraftClient mc) {
 		if (mc.player == null) return null;
+		int oa = OpportunityPrompt.attackerId(); // making an attack of opportunity: the bar of the creature that attacks
+		if (oa >= 0) {
+			for (CombatStatePayload.Entry e : ClientCombatState.entries) if (e.entityId() == oa) return e;
+		}
 		if (!ClientCombatState.isMyTurn() && ClientCombatState.canMoveActive()) {
 			int idx = ClientCombatState.activeIndex;
 			if (idx >= 0 && idx < ClientCombatState.entries.size()) return ClientCombatState.entries.get(idx);
@@ -183,7 +187,7 @@ public final class ActionBar {
 				for (SheetFormat.Col ac : coll.columns) {
 					if (ac.type.equals("activate") && ac.uses != null && row.values.getOrDefault(ac.uses, coll.column(ac.uses).def) <= 0) usable = false;
 				}
-				if (usable) {
+				if (usable && OpportunityPrompt.attackerId() < 0) { // an attack of opportunity is paid by the reaction already
 					for (Map.Entry<String, Integer> e : cost.entrySet()) {
 						if (resourceLeft(e.getKey()) < e.getValue()) usable = false;
 					}
@@ -344,7 +348,7 @@ public final class ActionBar {
 		barRect = null;
 		popRect = null;
 
-		boolean myTurn = ClientCombatState.canMoveActive();
+		boolean myTurn = canAct();
 		CombatStatePayload.Entry mine = mine(mc);
 		Built built = buildSlots(mine, myTurn);
 		hotbar = hotbarOf(built.all());
@@ -665,7 +669,7 @@ public final class ActionBar {
 			ctx.drawTextWithShadow(font, buttonText(b), bx + 5, byy + 3, b.enabled() ? TEXT : DIM);
 			final CombatStatePayload.MoveButton move = b;
 			hit(bx, byy, bw, 13, () -> {
-				if (move.enabled() && ClientCombatState.canMoveActive()) {
+				if (move.enabled() && ClientCombatState.canMoveActive() && OpportunityPrompt.attackerId() < 0) {
 					ClientPlayNetworking.send(new dev.tacticalcombat.net.BuyMovePayload(move.id()));
 				}
 			}, null, null);
@@ -1087,7 +1091,7 @@ public final class ActionBar {
 			settingsOpen = false;
 			return true;
 		}
-		if (!ClientCombatState.canMoveActive()) return false;
+		if (!canAct()) return false;
 		if (keyCode < GLFW.GLFW_KEY_1 || keyCode > GLFW.GLFW_KEY_9) return false;
 		int index = keyCode - GLFW.GLFW_KEY_1;
 		if (index >= hotbar.size() || index >= MAX_SLOTS) return false;
@@ -1099,8 +1103,13 @@ public final class ActionBar {
 	 * Uses a slot. Left click: its attack roll (aimed at your target; the cost is spent and a spell slot used), or its
 	 * dice when it has no attack. Right click: its damage dice, which cost nothing.
 	 */
+	/** Your turn (or the creature you walk), or the attack of opportunity you are making. */
+	private static boolean canAct() {
+		return ClientCombatState.canMoveActive() || OpportunityPrompt.attackerId() >= 0;
+	}
+
 	private static void use(Slot s, boolean damage) {
-		if (!ClientCombatState.canMoveActive()) return;
+		if (!canAct()) return;
 		// a greyed slot (its cost is paid, its spell slots gone) can not attack any more, but its damage is free: the
 		// attack roll that just spent the action must still be followed by a damage roll
 		if (!s.usable() && !damage) return;

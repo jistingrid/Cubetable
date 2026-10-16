@@ -435,6 +435,7 @@ them. A pack's presets can ship rules, e.g. `"rules": "turn_start||damage||1d4"`
 | `check` | check id (`str_save`) | asks the creature to roll that check against the DC in the value (a formula; blank: no DC) - see Roll requests |
 | `apply` | condition name | adds the pack's preset condition of that name to the owner |
 | `remove` | condition name (blank: this one) | removes that condition; its `expired` rules run |
+| `disengage` | - | the creature no longer provokes attacks of opportunity this turn (put it in a `used` rule of a feature) |
 | `hint` | - | `half` or `full`: marks that button on the damage prompt (see Suggesting Half or Full) |
 | `advantage` / `disadvantage` | - | on a single d20; the roll is made with two dice. One of each cancels out, as does any number of both. |
 | `bonus` | - | a number added to the roll (`-2`), or a formula |
@@ -620,6 +621,40 @@ Each entry of `moves`:
 | `grants` | Formula: distance gained (default: the speed). |
 | `auto` | `true`: bought on its own when you click a square you cannot otherwise reach (the blue area includes it). `false`: the player presses a button next to the movement bar. |
 | `unused` | `"keep"` (default): leftover distance stays usable. `"lost"`: whatever you do not walk in that move is gone. |
+| `disengage` | `true`: this button disengages instead of adding distance: it only spends the cost, and no creature gets an attack of opportunity from the walker for the rest of the turn. The movement left is untouched. |
+
+## Attacks of opportunity
+
+A pack opts in with an `engagement` block inside `combat`:
+
+```json
+"resources": { "action": "1", "bonus": "1", "reaction": "1" },
+"engagement": { "reach": "1", "reaction": "reaction" }
+```
+
+- `reach`: formula, in squares (default 1). A creature is *engaged* with an opposing one (players against creatures)
+  when they are within its reach, diagonals included. Engagement is worked out live from where everyone stands; it is not
+  a condition on the sheet, so nothing is stored or shown on cards.
+- `reaction`: the resource an attack of opportunity spends. It must be one of the `resources` (it comes back when
+  that creature's own turn starts). Leave it empty for attacks that cost nothing.
+- Without the block the game has no attacks of opportunity.
+
+What happens: the player clicks a square, and if the walk leaves the reach of a creature that can still react, a warning
+names it ("Moving away from X will trigger an attack of opportunity. Proceed?") with **Proceed**, **Stay**, and one
+button for every way to disengage that can be paid right now. The walk then stops at the square just before leaving the
+reach: the other side gets **Attack** or **Skip**. **Attack** spends the reaction and opens that creature's own action
+bar (costs are not charged again), aimed at the walker; **Done** (or a minute passing) lets the walk go on. Each creature
+gets one attack of opportunity per walk. A creature's attack is made by the Dungeon Master, who is also warned for
+creatures they walk by hand; if no Dungeon Master is on, attacks of opportunity against players are skipped, and so are
+those against creatures that walk by themselves (automatic movement).
+
+Ways to disengage:
+
+- A move with `"disengage": true` (the Disengage action in the generic pack).
+- Any entry on the sheet (a feature, a feat, a spell) with a `used` rule whose effect is **Disengage**, for example
+  `used | | disengage`. Its cost comes from the pack's `actions` for that collection, so a feat that disengages as a bonus
+  action just costs a bonus action. The warning lists them for the walker. Entries with a counted "uses" button are
+  not listed (the server cannot spend those uses): press them from the action bar first, then walk.
 
 ## Two games, same engine
 

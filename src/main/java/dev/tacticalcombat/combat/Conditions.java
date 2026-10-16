@@ -7,6 +7,7 @@ import dev.tacticalcombat.actor.ActorRecord;
 import dev.tacticalcombat.actor.ActorRegistry;
 import dev.tacticalcombat.character.CharacterStore;
 import dev.tacticalcombat.character.CharacterSync;
+import dev.tacticalcombat.sheet.ActionCosts;
 import dev.tacticalcombat.sheet.CharacterData;
 import dev.tacticalcombat.dice.DiceService;
 import dev.tacticalcombat.sheet.CombatRules;
@@ -320,10 +321,58 @@ public final class Conditions {
 					Damage.suggest(server, subject, s.name(), kind, reason);
 				}
 			}
+			case "disengage" -> {
+				Combat cb = CombatManager.get(subject);
+				Combatant cm = cb == null ? null : cb.get(subject);
+				if (cm == null) return;
+				cm.disengaged = true;
+				server.getPlayerManager().broadcast(Text.literal(prefix + "disengages, no attacks of opportunity this turn"), false);
+			}
 			case "advantage", "disadvantage", "bonus" -> {
 			}
 			default -> server.getPlayerManager().broadcast(Text.literal(prefix + sub(r.value(), vars, true)), false);
 		}
+	}
+
+	/** An entry on a sheet that disengages when used: its name, what it costs ("bonus:1"), and where it is ("collection:index"). */
+	public record DisengageEntry(String name, String cost, String ref, boolean limited, String rules) {}
+
+	/**
+	 * The entries (features, feats, spells ...) of a creature's sheet whose "used" rules disengage it. Entries with a counted
+	 * activate button are marked limited: the server cannot spend their uses, the player presses them from the action bar.
+	 */
+	public static List<DisengageEntry> disengageEntries(LivingEntity who) {
+		List<DisengageEntry> out = new java.util.ArrayList<>();
+		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+		if (entry == null || !entry.json.has("collections")) return out;
+		SheetFormat f = SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
+		CharacterData c = entry == null ? null : parsed(entry);
+		if (f == null || c == null) return out;
+		SheetContext sc = new SheetContext(f, c);
+		for (SheetFormat.Collection coll : f.collections.values()) {
+			SheetFormat.Col rulesCol = null;
+			SheetFormat.Col useCol = null;
+			for (SheetFormat.Col col : coll.columns) {
+				if (col.isRules()) rulesCol = col;
+				if (col.type.equals("activate")) useCol = col;
+			}
+			if (rulesCol == null) continue;
+			SheetFormat.Col nameCol = coll.nameCol();
+			List<CharacterData.Row> rows = c.rows(coll.id);
+			for (int i = 0; i < rows.size(); i++) {
+				CharacterData.Row row = rows.get(i);
+				boolean hit = false;
+				String rulesText = row.texts.getOrDefault(rulesCol.id, "");
+				for (ConditionRules.Rule r : ConditionRules.parse(rulesText)) {
+					if (r.when().equals("used") && r.effect().equals("disengage")) hit = true;
+				}
+				if (!hit) continue;
+				String name = nameCol == null ? coll.id : row.texts.getOrDefault(nameCol.id, coll.id);
+				out.add(new DisengageEntry(name, ActionCosts.of(f, coll, sc, row), coll.id + ":" + i,
+						useCol != null && (useCol.uses != null || useCol.usesMax != null), rulesText));
+			}
+		}
+		return out;
 	}
 
 	/** The format and the conditions collection of a creature's sheet, or null when it has none. */

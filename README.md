@@ -126,6 +126,8 @@ src/client/java/dev/tacticalcombat/
 - The walk is server-driven (one position update per tick), so it looks slightly steppy.
 - Mobs ignore walls for wide hitboxes while sliding along a path (they are moved by the server, not by pathfinding), and do not avoid being hit when choosing a square. Next: a bonus action / abilities bar, config file.
 
+- **Attacks of opportunity** (a pack opts in with `combat.engagement`): walking away from an opposing creature asks first, the creature may attack, and the walk goes on after. A Disengage move, or any feature with a `used | | disengage` rule (a bonus-action Disengage feat), avoids it. See `docs/combat-rules.md`.
+
 ## Credits
 
 Status icons are from [game-icons.net](https://game-icons.net), licensed CC BY 3.0 (a few CC0). Authors and the full list: `src/main/resources/assets/tacticalcombat/textures/status/CREDITS.md`. "Icons made by Lorc, Delapouite, Skoll, sbed and others. Available on https://game-icons.net".

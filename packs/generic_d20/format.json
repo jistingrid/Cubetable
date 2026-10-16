@@ -249,11 +249,13 @@
   },
   "combat": {
     "grid": { "square": 5, "unit": "ft", "diagonals": "free" },
-    "resources": { "action": "1", "bonus": "1" },
+    "resources": { "action": "1", "bonus": "1", "reaction": "1" },
+    "engagement": { "reach": "1", "reaction": "reaction" },
     "attackResource": "action",
     "resourceStyles": {
       "action": { "label": "Action", "color": "#e0b84c", "shape": "circle" },
-      "bonus": { "label": "Bonus", "color": "#5fb7a8", "shape": "diamond" }
+      "bonus": { "label": "Bonus", "color": "#5fb7a8", "shape": "diamond" },
+      "reaction": { "label": "Reaction", "color": "#c07ad8", "shape": "circle" }
     },
     "hp": { "now": "hp", "max": "hp_max", "temp": "hp_temp" },
     "initiative": { "roll": "d20 + init", "mob": "d20", "order": "high", "tiebreak": "init" },
@@ -309,7 +311,8 @@
       "speed": "speed",
       "pool": "speed",
       "moves": [
-        { "id": "dash", "label": "Dash", "cost": { "action": 1 }, "grants": "speed", "auto": false, "unused": "keep" }
+        { "id": "dash", "label": "Dash", "cost": { "action": 1 }, "grants": "speed", "auto": false, "unused": "keep" },
+        { "id": "disengage", "label": "Disengage", "cost": { "action": 1 }, "grants": "0", "auto": false, "unused": "keep", "disengage": true }
       ]
     }
   },
