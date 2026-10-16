@@ -81,7 +81,8 @@ public final class ActionBar {
 	public record Slot(String name, ItemStack icon, int level, Map<String, Integer> cost, String costText,
 					   int left, int max, boolean usable,
 					   SheetContext sc, SheetFormat.Collection coll, CharacterData.Row row, boolean own, String store,
-					   String key, String character, String tray, String group, int groupOrder, String info, boolean pinned) {}
+					   String key, String character, String tray, String group, int groupOrder, String info, boolean pinned,
+					   dev.tacticalcombat.sheet.AreaShape area) {}
 
 	/** An entry is used (not rolled) when it has an activate column, or "I use it" rules and nothing to attack with. */
 	private static boolean activates(SheetFormat.Collection coll, CharacterData.Row row) {
@@ -214,7 +215,8 @@ public final class ActionBar {
 				String mode = s.show().isEmpty() ? rules.showCost : s.show();
 				out.add(new Slot(name, iconFor(s.icon()), level, cost, costText(cost, main, mode), left, max, usable,
 						sc, coll, row, own && !c.remote, s.slotStore(), key, character, s.tray(), group, groupOrder, info,
-						ActionBarConfig.pinned(character, key)));
+						ActionBarConfig.pinned(character, key),
+						s.area().isEmpty() ? null : dev.tacticalcombat.sheet.AreaShape.parse(row.texts.getOrDefault(s.area(), ""), rules.square)));
 			}
 		}
 		return new Built(out, rules.trays);
@@ -1108,6 +1110,18 @@ public final class ActionBar {
 		return ClientCombatState.canMoveActive() || OpportunityPrompt.attackerId() >= 0;
 	}
 
+	/** True while an entry that was aimed first goes through its normal click. */
+	private static boolean aimedOnce;
+
+	/** More than one creature is targeted and an ordinary entry is used: it is aimed at the first one only. */
+	private static void narrowToOne(MinecraftClient mc) {
+		if (mc.player == null) return;
+		int mineId = mc.player.getId();
+		List<Integer> mineTargets = new ArrayList<>();
+		for (CombatStatePayload.Target t : ClientCombatState.targets) if (t.by() == mineId) mineTargets.add(t.at());
+		if (mineTargets.size() > 1) ClientPlayNetworking.send(new dev.tacticalcombat.net.AimPayload(List.of(mineTargets.get(0))));
+	}
+
 	private static void use(Slot s, boolean damage) {
 		if (!canAct()) return;
 		// a greyed slot (its cost is paid, its spell slots gone) can not attack any more, but its damage is free: the
@@ -1116,6 +1130,26 @@ public final class ActionBar {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		if (mc.player == null) return;
 		if (!ClientPlayNetworking.canSend(DiceRequestPayload.ID)) return;
+		if (AreaAim.active()) return;
+
+		if (!damage) {
+			if (s.area() != null && !aimedOnce) {
+				// several targets or an area: aim first, the click goes on once the group is confirmed
+				CombatStatePayload.Entry who = mine(mc);
+				final Slot slot = s;
+				AreaAim.begin(s.area(), s.name() + ": " + s.area().describe(ClientCombatState.unit, ClientCombatState.square),
+						who == null ? mc.player.getId() : who.entityId(), () -> {
+							aimedOnce = true;
+							try {
+								use(slot, false);
+							} finally {
+								aimedOnce = false;
+							}
+						});
+				return;
+			}
+			if (s.area() == null) narrowToOne(mc); // an ordinary entry after an area one: back to a single target
+		}
 
 		// a feature that is used rather than rolled (Second Wind): its cost, one of its uses, and its rules
 		if (!damage && activates(s.coll(), s.row())) {

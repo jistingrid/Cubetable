@@ -45,6 +45,7 @@ public final class TacticalScreen extends Screen {
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 		boolean onPanel = TrackerPanel.contains(mouseX, mouseY, width, height)
+				|| AreaAim.contains(mouseX, mouseY)
 				|| ActionBar.contains(mouseX, mouseY, width, height)
 				|| DamagePrompt.contains(mouseX, mouseY, width)
 				|| CheckPrompt.contains(mouseX, mouseY, width)
@@ -57,6 +58,7 @@ public final class TacticalScreen extends Screen {
 			MousePicker.update(mc, mouseX, mouseY);
 		}
 
+		AreaAim.update(mc, mouseX, mouseY, onPanel);
 		Ruler.update(mc, mouseX, mouseY, onPanel);
 		Ruler.drawLabels(ctx, mc.textRenderer);
 
@@ -92,6 +94,7 @@ public final class TacticalScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (AreaAim.mouseClicked(mouseX, mouseY, button)) return true;
 		if (TrackerPanel.mouseClicked(mouseX, mouseY, button, width, height)) return true;
 		if (DamagePrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
 		if (CheckPrompt.mouseClicked(mouseX, mouseY, button, width)) return true;
@@ -161,6 +164,7 @@ public final class TacticalScreen extends Screen {
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
 		MinecraftClient mc = MinecraftClient.getInstance();
 
+		if (AreaAim.keyPressed(keyCode)) return true;
 		if (DamagePrompt.keyPressed(keyCode)) return true;
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE && ActionBar.keyPressed(keyCode)) return true;
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {

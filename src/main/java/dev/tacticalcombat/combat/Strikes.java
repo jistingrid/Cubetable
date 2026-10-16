@@ -85,7 +85,8 @@ public final class Strikes {
 			combat.sync();
 		}
 
-		LivingEntity target = combat == null || kind == PLAIN ? null : combat.targetOf(player);
+		final java.util.List<LivingEntity> group = combat == null || kind == PLAIN ? java.util.List.of() : combat.targetsOf(player);
+		LivingEntity target = group.isEmpty() ? null : group.get(0);
 		int now = player.getServer() == null ? 0 : player.getServer().getTicks();
 
 		RollMode rollMode = RollModes.of(asCreature ? actor.entity : player);
@@ -140,6 +141,11 @@ public final class Strikes {
 		}
 		String name = Damage.nameOf(target);
 
+		if (kind == ATTACK && group.size() > 1) {
+			attackMany(player, asCreature ? actor.entity : player, roller, label, type, count, modifier, mode, rollMode, spec, group, ref, rules, now);
+			return;
+		}
+
 		if (kind == ATTACK) {
 			CombatRules.Defense rule = defenseRule(target);
 			Double against = rule == null ? null : defenseValue(target, rule);
@@ -177,10 +183,65 @@ public final class Strikes {
 		}
 
 		int total = DiceService.rollNatural(player, roller, label, type, count, modifier, mode, rollMode, damageMark);
-		Damage.offer(player, asCreature ? roller : null, target, label, Math.max(0, total));
+		for (LivingEntity each : group) Damage.offer(player, asCreature ? roller : null, each, label, Math.max(0, total)); // one roll, every target gets it
 		if (kind == DAMAGE && player.getServer() != null) {
 			LivingEntity self = asCreature ? actor.entity : player;
-			Conditions.runEntry(player.getServer(), self, target, target, player, null, ref, rules, entryName(label), "used", java.util.Map.of());
+			for (LivingEntity each : group) {
+				Conditions.runEntry(player.getServer(), self, each, each, player, null, ref, rules, entryName(label), "used", java.util.Map.of());
+			}
+		}
+	}
+
+	/** One attack roll against several targets: each is compared with its own defense, hits and misses are told in one line. */
+	private static void attackMany(ServerPlayerEntity player, LivingEntity self, String roller, String label, DiceType type, int count,
+								   int modifier, int mode, RollMode rollMode, CritSpec spec, java.util.List<LivingEntity> group,
+								   String ref, String rules, int now) {
+		int n = group.size();
+		CombatRules.Defense[] rule = new CombatRules.Defense[n];
+		Double[] against = new Double[n];
+		for (int i = 0; i < n; i++) {
+			rule[i] = defenseRule(group.get(i));
+			against[i] = rule[i] == null ? null : defenseValue(group.get(i), rule[i]);
+		}
+		PENDING.remove(player.getUuid());
+		final boolean[] hit = new boolean[n];
+		final boolean[] known = new boolean[n];
+		DiceService.rollNatural(player, roller, label, type, count, modifier, mode, rollMode, (total, natural) -> {
+			int crit = spec.check(natural);
+			StringBuilder sb = new StringBuilder();
+			boolean any = false, anyKnown = false;
+			for (int i = 0; i < n; i++) {
+				String name = Damage.nameOf(group.get(i));
+				if (crit == 1) {
+					hit[i] = true;
+					known[i] = true;
+				} else if (crit == 2) {
+					hit[i] = false;
+					known[i] = true;
+				} else if (rule[i] != null && against[i] != null) {
+					hit[i] = rule[i].hits(total, against[i]);
+					known[i] = true;
+				}
+				if (sb.length() > 0) sb.append("; ");
+				if (!known[i]) sb.append(name).append(" (no defense to check)");
+				else sb.append(hit[i] ? "hits " : "misses ").append(name)
+						.append(against[i] == null ? "" : " (" + rule[i].label() + " " + SheetContext.format(against[i], false) + ")");
+				any |= known[i] && hit[i];
+				anyKnown |= known[i];
+			}
+			if (crit == 1 && spec.attack()) PENDING.put(player.getUuid(), new Pending(group.get(0).getUuid(), now));
+			String head = crit == 1 ? "critical hit: " : crit == 2 ? "fumble: " : total + ": ";
+			return new DiceService.Verdict(!anyKnown ? 0 : any ? 1 : 2, head + sb, crit);
+		});
+		if (player.getServer() == null) return;
+		for (int i = 0; i < n; i++) {
+			if (!known[i]) continue;
+			LivingEntity t = group.get(i);
+			java.util.Map<String, Integer> vars = java.util.Map.of("distance",
+					Math.max(Math.abs(self.getBlockX() - t.getBlockX()), Math.abs(self.getBlockZ() - t.getBlockZ())));
+			Conditions.fire(player.getServer(), self, hit[i] ? "hit" : "miss", vars);
+			Conditions.fire(player.getServer(), t, hit[i] ? "struck" : "dodged", vars);
+			Conditions.runEntry(player.getServer(), self, t, t, player, null, ref, rules, entryName(label), hit[i] ? "hit" : "miss", vars);
 		}
 	}
 
@@ -209,13 +270,20 @@ public final class Strikes {
 			combat.sync();
 		}
 		LivingEntity self = asCreature ? actor.entity : player;
-		LivingEntity target = combat == null ? null : combat.targetOf(player);
-		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(self) + " uses " + entryName(label) + "."), false);
+		java.util.List<LivingEntity> group = combat == null ? java.util.List.of() : combat.targetsOf(player);
+		server.getPlayerManager().broadcast(Text.literal(Damage.nameOf(self) + " uses " + entryName(label)
+				+ (group.size() > 1 ? " on " + group.size() + " targets" : "") + "."), false);
 		// what is left of this turn's resources can be used in formulas ("action + 1"), and resource effects change them
 		boolean mine = combat != null && actor != null && combat.current() == actor;
 		java.util.Map<String, Integer> vars = new java.util.HashMap<>();
 		if (mine) vars.putAll(actor.left);
-		Conditions.runEntry(server, self, self, target, player, mine ? actor : null, ref, rules, entryName(label), "used", vars);
+		if (group.isEmpty()) {
+			Conditions.runEntry(server, self, self, null, player, mine ? actor : null, ref, rules, entryName(label), "used", vars);
+		} else {
+			for (LivingEntity each : group) { // the rules run once for each target (a saving throw is asked of every one)
+				Conditions.runEntry(server, self, self, each, player, mine ? actor : null, ref, rules, entryName(label), "used", new java.util.HashMap<>(vars));
+			}
+		}
 		if (mine) combat.sync();
 	}
 

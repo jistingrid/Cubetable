@@ -300,11 +300,11 @@
         { "id": "features", "label": "Features", "icon": "minecraft:nether_star" }
       ],
       "sources": [
-        { "collection": "weapons", "cost": { "action": "1" }, "icon": "minecraft:iron_sword" },
+        { "collection": "weapons", "cost": { "action": "1" }, "area": "area", "icon": "minecraft:iron_sword" },
         { "collection": "spells", "when": "max(row.prepared, 1 - min(row.level, 1))", "cost": { "action": "1" },
           "slot": { "store": "slots_", "level": "level" }, "icon": "minecraft:enchanted_book",
-          "tray": "spells", "group": "level" },
-        { "collection": "features", "cost": { "action": "row.action_cost", "bonus": "row.bonus_cost" }, "icon": "minecraft:nether_star", "tray": "features" }
+          "tray": "spells", "group": "level", "area": "area" },
+        { "collection": "features", "cost": { "action": "row.action_cost", "bonus": "row.bonus_cost" }, "icon": "minecraft:nether_star", "tray": "features", "area": "area" }
       ]
     },
     "movement": {
@@ -1337,6 +1337,20 @@
           "hidden": true
         },
         {
+          "id": "area",
+          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3)",
+          "type": "text",
+          "width": 1.4,
+          "detail": true
+        },
+        {
+          "id": "area",
+          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3)",
+          "type": "text",
+          "width": 1.4,
+          "detail": true
+        },
+        {
           "id": "notes",
           "label": "Notes",
           "type": "note"
@@ -1470,6 +1484,13 @@
           "label": "Costs a bonus action",
           "type": "toggle",
           "default": 0,
+          "detail": true
+        },
+        {
+          "id": "area",
+          "label": "Area / targets (sphere 20, cone 15, line 30x5, targets 3)",
+          "type": "text",
+          "width": 1.4,
           "detail": true
         },
         {

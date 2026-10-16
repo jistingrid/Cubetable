@@ -124,6 +124,7 @@ The slots and trays come from the `actions` block:
 | `tray` | Tray id: the rows go in that tray instead of on the bar. Empty: on the bar. |
 | `group` | Column whose value heads the sections of the tray (`level` gives "Level 1", "Level 2" ...). |
 | `info` | Column shown as the description in the tooltip. |
+| `area` | Text column that says what the entry affects: `sphere 20`, `cube 15`, `cone 15`, `line 30x5` (length x width) or `targets 3`. Sizes are in the game's unit. Empty = one target. See Several targets and areas. |
 | `showCost` | `auto`, `always` or `never` - here for every source, or inside a source to override. |
 
 `auto` writes a cost only when it is not the plain default: one of the first resource (an attack costing one
@@ -622,6 +623,33 @@ Each entry of `moves`:
 | `auto` | `true`: bought on its own when you click a square you cannot otherwise reach (the blue area includes it). `false`: the player presses a button next to the movement bar. |
 | `unused` | `"keep"` (default): leftover distance stays usable. `"lost"`: whatever you do not walk in that move is gone. |
 | `disengage` | `true`: this button disengages instead of adding distance: it only spends the cost, and no creature gets an attack of opportunity from the walker for the rest of the turn. The movement left is untouched. |
+
+## Several targets and areas
+
+Give a source (`combat.actions.sources`) an `area` column and write the shape on the entry itself (the generic pack has an
+"Area / targets" field on weapons, spells and features, so players can also type it by hand on any entry):
+
+| Text | Affects |
+|---|---|
+| `sphere 20` | everyone within 20 (unit) of the square you pick (also `circle`, `radius`, `burst`) |
+| `cube 15` | a 15-unit square centred on the square you pick |
+| `cone 15` | from you, toward the square you pick, widening to half its length on each side |
+| `line 30x5` | from you toward the square you pick, 30 long and 5 wide (width optional) |
+| `targets 3` | up to 3 creatures you click, allies included |
+
+Using such an entry from the action bar first opens the aim: the area follows the pointer on the ground and is fixed with a
+click (click another square to move it); for `targets N` you click creatures. A panel lists everyone affected with a tick
+each, so anyone, an ally or yourself, can be taken out, then **Confirm** sends the group and carries out the click that
+started it (roll, cast, use). Right click or Esc cancels. Cones and lines never include their caster.
+
+The group stays your target until you click a single creature, use an entry without an area, or the turn ends. Resolution:
+
+- An **attack roll** is rolled once and compared with each target's own defense; chat tells who hits and who misses, and the
+  entry's `hit` / `miss` rules run per target.
+- A **damage roll** is rolled once (as in the SRD) and every target gets its own damage prompt, with the Half / Full hint
+  of its own save or resistance.
+- An entry that is only **used** (a spell with a `check` rule, a feature) runs its `used` rules once per target, so a
+  saving throw is asked of every target. A rule that rolls its own damage (`damage` effect) rolls separately for each target.
 
 ## Attacks of opportunity
 

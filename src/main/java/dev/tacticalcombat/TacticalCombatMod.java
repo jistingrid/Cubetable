@@ -125,6 +125,9 @@ public class TacticalCombatMod implements ModInitializer {
 				(payload, context) -> CombatManager.requestEndTurn(context.player()));
 		ServerPlayNetworking.registerGlobalReceiver(MoveRequestPayload.ID,
 				(payload, context) -> CombatManager.requestMove(context.player(), payload.target(), payload.confirm()));
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.AimPayload.ID, dev.tacticalcombat.net.AimPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.AimPayload.ID,
+				(payload, context) -> context.server().execute(() -> CombatManager.requestAim(context.player(), payload.ids())));
 		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.OpportunityPromptPayload.ID, dev.tacticalcombat.net.OpportunityPromptPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.OpportunityPayload.ID, dev.tacticalcombat.net.OpportunityPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.OpportunityPayload.ID,

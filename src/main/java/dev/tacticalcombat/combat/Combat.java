@@ -49,6 +49,9 @@ public final class Combat {
 
 	private final ServerWorld world;
 	private List<Combatant> order = new ArrayList<>();
+	/** Several targets picked at once (an area, or "targets 3"): player entity id -> the creatures, the first also being in {@link #targets}. */
+	private final java.util.Map<Integer, List<Integer>> aimed = new java.util.HashMap<>();
+
 	/** Who targets whom: entity id of the targeting player -> entity id of the target. */
 	private final java.util.Map<Integer, Integer> targets = new java.util.LinkedHashMap<>();
 	private int turn = 0;
@@ -299,6 +302,7 @@ public final class Combat {
 		if (get(player) == null && !dev.tacticalcombat.character.Roles.isDm(player.getUuid())) return; // a Dungeon Master may target too
 		Entity e = world.getEntityById(entityId);
 		if (!(e instanceof LivingEntity target) || !target.isAlive() || get(target) == null) return;
+		aimed.remove(player.getId()); // a single click goes back to one target
 		if (Integer.valueOf(entityId).equals(targets.get(player.getId()))) targets.remove(player.getId());
 		else {
 			targets.put(player.getId(), entityId);
@@ -350,6 +354,39 @@ public final class Combat {
 		return get(player);
 	}
 
+	/** The player picked several creatures for their next rolls (an empty list clears them). Only creatures of this fight count. */
+	public void setAimed(ServerPlayerEntity player, List<Integer> ids) {
+		if (get(player) == null && !dev.tacticalcombat.character.Roles.isDm(player.getUuid())) return;
+		List<Integer> ok = new ArrayList<>();
+		for (int id : ids) {
+			Entity e = world.getEntityById(id);
+			if (e instanceof LivingEntity le && le.isAlive() && get(le) != null && !ok.contains(id)) ok.add(id);
+		}
+		if (ok.isEmpty()) {
+			aimed.remove(player.getId());
+			targets.remove(player.getId());
+		} else {
+			aimed.put(player.getId(), ok);
+			targets.put(player.getId(), ok.get(0));
+		}
+		sync();
+	}
+
+	/** Everyone this player's rolls are aimed at: the picked group, or the one target, or nobody. */
+	public List<LivingEntity> targetsOf(ServerPlayerEntity player) {
+		List<LivingEntity> out = new ArrayList<>();
+		List<Integer> group = aimed.get(player.getId());
+		if (group != null && group.size() > 1) {
+			for (int id : group) {
+				if (world.getEntityById(id) instanceof LivingEntity le && le.isAlive() && get(le) != null) out.add(le);
+			}
+			if (!out.isEmpty()) return out;
+		}
+		LivingEntity one = targetOf(player);
+		if (one != null) out.add(one);
+		return out;
+	}
+
 	/** The creature this player is aiming at, or null. */
 	public LivingEntity targetOf(ServerPlayerEntity player) {
 		Integer id = targets.get(player.getId());
@@ -380,6 +417,7 @@ public final class Combat {
 	/** Ends the current turn and starts the next one. */
 	public void endTurn() {
 		clearOpportunity();
+		aimed.clear();
 		Combatant cur = current();
 		cur.path = null;
 		cur.anchor = cur.entity.getPos();
@@ -1438,6 +1476,12 @@ public final class Combat {
 		});
 		List<CombatStatePayload.Target> targetList = new ArrayList<>();
 		targets.forEach((by, at) -> targetList.add(new CombatStatePayload.Target(by, at)));
+		aimed.forEach((by, ids) -> {
+			for (int i = 1; i < ids.size(); i++) { // the first one is in targets already
+				Entity at = world.getEntityById(ids.get(i));
+				if (targets.containsKey(by) && at != null && at.isAlive() && get(at) != null) targetList.add(new CombatStatePayload.Target(by, ids.get(i)));
+			}
+		});
 		CombatStatePayload payload = new CombatStatePayload(true, planning, round, turn,
 				(float) cur.moveUsed, (float) cur.moveBudget, (float) cur.setup.square, cur.setup.unit, cur.setup.diagonals,
 				resources, buttons, entries, targetList);
@@ -1479,6 +1523,7 @@ public final class Combat {
 	/** Releases everyone. Call when the combat is removed. */
 	public void end() {
 		clearOpportunity();
+		aimed.clear();
 		for (ServerPlayerEntity p : notified) {
 			sendInactive(p);
 		}

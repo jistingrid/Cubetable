@@ -133,6 +133,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			DamagePrompt.clear();
 			CheckPrompt.clear();
 			OpportunityPrompt.clear();
+			AreaAim.stop();
 			DownedCard.clear();
 			DmState.clear();
 			CodexClient.clear();
@@ -192,6 +193,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 				DamagePrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
 				CheckPrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
 				OpportunityPrompt.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
+				AreaAim.render(ctx, mc, mc.textRenderer);
 				DownedCard.render(ctx, mc, mc.textRenderer, ctx.getScaledWindowWidth());
 			}
 		});
@@ -200,6 +202,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 						(s, ctx, mouseX, mouseY, delta) -> ShareCardHud.drawOverScreen(ctx, delta, mouseX, mouseY)));
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(GridRenderer::render);
 		WorldRenderEvents.AFTER_TRANSLUCENT.register(Ruler::render);
+		WorldRenderEvents.AFTER_TRANSLUCENT.register(AreaAim::renderWorld);
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ClientCombatState.tick(client);

@@ -221,10 +221,12 @@ public final class CombatRules {
 	 * @param tray       id of a tray: its rows are listed there (and can be pinned to the bar) instead of filling the bar; empty = on the bar
 	 * @param group      id of a column whose value heads the rows in the tray (a spell's level); empty = no headings
 	 * @param info       id of a column whose text is the slot's tooltip (default: "notes" when the collection has one)
+	 * @param area       id of a text column that says how many creatures or what area the entry affects
+	 *                   ("sphere 20", "cone 15", "line 30x5", "targets 3"); empty = one target
 	 */
 	public record Source(String collection, String label, Map<String, String> cost, String when,
 						 String slotStore, String slotLevel, String show, String icon,
-						 String tray, String group, String info) {}
+						 String tray, String group, String info, String area) {}
 
 	/** How this game decides who goes first; null = no initiative roll (the Dungeon Master orders the turns). */
 	public Initiative initiative;
@@ -427,7 +429,8 @@ public final class CombatRules {
 							so.has("icon") ? so.get("icon").getAsString() : "",
 							so.has("tray") ? so.get("tray").getAsString().toLowerCase(Locale.ROOT) : "",
 							so.has("group") ? so.get("group").getAsString().toLowerCase(Locale.ROOT) : "",
-							so.has("info") ? so.get("info").getAsString().toLowerCase(Locale.ROOT) : ""));
+							so.has("info") ? so.get("info").getAsString().toLowerCase(Locale.ROOT) : "",
+							so.has("area") ? so.get("area").getAsString().toLowerCase(Locale.ROOT) : ""));
 				}
 			}
 			// a source may name a tray the block did not declare: it gets one called after its id
