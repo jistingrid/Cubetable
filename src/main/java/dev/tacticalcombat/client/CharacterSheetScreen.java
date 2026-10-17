@@ -2066,7 +2066,7 @@ public final class CharacterSheetScreen extends Screen {
 				String hint = switch (r.effect()) {
 					case "damage", "heal" -> "e.g. 1d4";
 					case "message" -> "text for chat";
-					case "advantage", "disadvantage", "apply", "remove" -> "nothing needed";
+					case "advantage", "disadvantage", "apply", "remove", "disengage", "concentrate", "drop" -> "nothing needed";
 					case "check" -> "DC, e.g. 8 + prof + str_mod";
 					case "bonus" -> "e.g. -2";
 					case "hint" -> "half or full";

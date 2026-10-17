@@ -167,6 +167,10 @@ public final class Damage {
 		// condition rules: "I take damage", "I'm healed", "I go down"
 		if (n > 0) Conditions.fire(server, target, signed < 0 ? "damaged" : "healed", java.util.Map.of("damage", n));
 		if (!wasDown && Downed.isDown(target)) Conditions.fire(server, target, "downed", java.util.Map.of());
+		if (signed < 0 && n > 0) {
+			if (Downed.isDown(target)) Concentration.onDown(server, target);
+			else Concentration.onDamaged(server, target, n);
+		}
 		Combat combat = CombatManager.get(target);
 		if (combat != null) combat.sync();
 	}

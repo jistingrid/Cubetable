@@ -119,6 +119,17 @@ public final class CombatRules {
 	/** What happens at 0 hit points; null = nothing special (the sheet just shows 0). */
 	public Downed downed;
 
+	/**
+	 * Concentration: what a creature that concentrates on an effect rolls when it is damaged.
+	 * @param condition the quick condition (by name) shown on the sheet while it concentrates; empty = none
+	 * @param check     id of the check it rolls (from {@code checks}), e.g. "con_save"
+	 * @param dc        formula for the number to beat; {@code damage} is the damage just taken
+	 */
+	public record Concentration(String condition, String check, String dc) {}
+
+	/** Null: the game has no concentration. */
+	public Concentration concentration;
+
 	/** Which collection is the list of conditions and how its durations count down; null = nothing counts down. */
 	public Conditions conditions;
 
@@ -369,6 +380,12 @@ public final class CombatRules {
 				String id = co.get("id").getAsString().toLowerCase(Locale.ROOT);
 				r.checks.add(new Check(id, co.has("label") ? co.get("label").getAsString() : capitalise(id), co.get("roll").getAsString()));
 			}
+		}
+		if (o.has("concentration") && o.get("concentration").isJsonObject()) {
+			JsonObject k = o.getAsJsonObject("concentration");
+			r.concentration = new Concentration(k.has("condition") ? k.get("condition").getAsString() : "",
+					k.has("check") ? k.get("check").getAsString() : "",
+					k.has("dc") ? k.get("dc").getAsString() : "max(10, floor(damage / 2))");
 		}
 		if (o.has("downed") && o.get("downed").isJsonObject()) {
 			JsonObject d = o.getAsJsonObject("downed");

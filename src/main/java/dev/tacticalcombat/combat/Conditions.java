@@ -35,6 +35,7 @@ public final class Conditions {
 
 	/** Every second: the second-based conditions of everyone in the world. */
 	public static void tick(MinecraftServer server) {
+		Concentration.tick(server);
 		if (server.getTicks() % 20 != 0 || TimePause.paused) return;
 		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
 			if (!p.isSpectator()) advance(server, p, false);
@@ -104,7 +105,6 @@ public final class Conditions {
 			if (left > 0) had.put(n, left - 1);
 			else added.add(r);
 		}
-		if (added.isEmpty()) return;
 		LivingEntity who = null;
 		for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
 			CharacterStore.Entry e = dev.tacticalcombat.character.Actors.entryOf(p.getUuid());
@@ -118,6 +118,11 @@ public final class Conditions {
 			}
 		}
 		if (who == null) return;
+		// the concentration condition was taken off the sheet by hand: the concentration is over
+		CombatRules.Concentration conc = f.combat.concentration;
+		if (conc != null && !conc.condition().isEmpty() && had.getOrDefault(conc.condition(), 0) > 0 && Concentration.isConcentrating(who)) {
+			Concentration.end(server, who, "removed by hand");
+		}
 		for (CharacterData.Row r : added) {
 			Floaters.status(who, r.texts.getOrDefault(nameCol.id, ""), true);
 			runRules(server, who, "applied", null, r, java.util.Map.of());
@@ -241,14 +246,17 @@ public final class Conditions {
 	}
 
 	private static void executeRules(MinecraftServer server, LivingEntity subject, Src s, String when, java.util.Map<String, Integer> vars) {
-		for (ConditionRules.Rule r : s.rules()) {
-			if (!r.when().equals(when)) continue;
-			if (!r.cond().isEmpty()) {
-				double on = s.num(sub(r.cond(), vars, false));
-				if (Double.isNaN(on)) warn(server, s.name() + ": the formula '" + r.cond() + "' does not work.");
-				if (Double.isNaN(on) || on == 0) continue;
+		// the rules that start a concentration go first, so what the other rules add is tied to it whatever their order
+		for (int pass = 0; pass < 2; pass++) {
+			for (ConditionRules.Rule r : s.rules()) {
+				if (!r.when().equals(when) || r.effect().equals("concentrate") != (pass == 0)) continue;
+				if (!r.cond().isEmpty()) {
+					double on = s.num(sub(r.cond(), vars, false));
+					if (Double.isNaN(on)) warn(server, s.name() + ": the formula '" + r.cond() + "' does not work.");
+					if (Double.isNaN(on) || on == 0) continue;
+				}
+				effect(server, subject, s, r, vars);
 			}
-			effect(server, subject, s, r, vars);
 		}
 	}
 
@@ -296,7 +304,15 @@ public final class Conditions {
 				double square = s.f().combat.square <= 0 ? 1 : s.f().combat.square;
 				s.turn().moveBudget = Math.max(0, Math.floor(v / square + 1.0E-6));
 			}
-			case "apply" -> addCondition(server, subject, r.target(), s.name());
+			case "apply" -> {
+				addCondition(server, subject, r.target(), s.name());
+				if (!s.selfCondition() && s.owner() != null) Concentration.track(s.owner(), s.name(), subject, r.target());
+			}
+			case "concentrate" -> {
+				LivingEntity who = s.owner() != null ? s.owner() : subject;
+				Concentration.begin(server, who, s.name());
+			}
+			case "drop" -> Concentration.end(server, s.owner() != null ? s.owner() : subject, "dropped");
 			case "remove" -> removeCondition(server, subject, r.target().isEmpty() && s.selfCondition() ? s.name() : r.target());
 			case "check" -> {
 				if (r.target().isEmpty()) return;
@@ -385,6 +401,30 @@ public final class Conditions {
 		CombatRules.Conditions rule = f == null || f.combat == null ? null : f.combat.conditions;
 		SheetFormat.Collection coll = rule == null ? null : f.collections.get(rule.collection());
 		return coll == null ? null : new Conds(entry, f, coll);
+	}
+
+	/** The pack's concentration rule for this creature's sheet, or null. */
+	static CombatRules.Concentration concentrationRule(LivingEntity who) {
+		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+		SheetFormat f = entry == null ? null : SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
+		return f == null || f.combat == null ? null : f.combat.concentration;
+	}
+
+	/** A formula of the creature's sheet, with {@code vars} (such as the damage) replaced by their numbers; NaN when it does not work. */
+	static double formula(LivingEntity who, String text, java.util.Map<String, Integer> vars) {
+		CharacterStore.Entry entry = SheetHealth.entryOf(who);
+		SheetFormat f = entry == null ? null : SheetLibrary.FORMATS.get(entry.json.has("format") ? entry.json.get("format").getAsString() : "");
+		CharacterData c = entry == null ? null : parsed(entry);
+		if (f == null || c == null) return Double.NaN;
+		return new SheetContext(f, c).number(sub(text, vars, false));
+	}
+
+	static void applyCondition(MinecraftServer server, LivingEntity who, String name, String source) {
+		addCondition(server, who, name, source);
+	}
+
+	static void dropCondition(MinecraftServer server, LivingEntity who, String name) {
+		removeCondition(server, who, name);
 	}
 
 	/** Adds the pack's preset condition of that name to {@code who}'s sheet; its own "applied" rules then run. */

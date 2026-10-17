@@ -130,6 +130,8 @@ src/client/java/dev/tacticalcombat/
 
 - **Several targets and areas** (an `area` column on the pack's action sources: `sphere 20`, `cone 15`, `line 30x5`, `targets 3`): aim on the grid, untick anyone, confirm; one attack/damage roll, a save and a damage prompt for each target. See `docs/combat-rules.md`.
 
+- **Concentration** (pack `combat.concentration`, rule effects Concentrate / Stop concentrating): conditions a spell adds are tied to its caster; a new concentration spell, a failed damage save (pack DC formula), going down, or removing the "Concentrating" condition ends them all. See `docs/combat-rules.md`.
+
 ## Credits
 
 Status icons are from [game-icons.net](https://game-icons.net), licensed CC BY 3.0 (a few CC0). Authors and the full list: `src/main/resources/assets/tacticalcombat/textures/status/CREDITS.md`. "Icons made by Lorc, Delapouite, Skoll, sbed and others. Available on https://game-icons.net".

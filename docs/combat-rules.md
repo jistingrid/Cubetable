@@ -624,6 +624,32 @@ Each entry of `moves`:
 | `unused` | `"keep"` (default): leftover distance stays usable. `"lost"`: whatever you do not walk in that move is gone. |
 | `disengage` | `true`: this button disengages instead of adding distance: it only spends the cost, and no creature gets an attack of opportunity from the walker for the rest of the turn. The movement left is untouched. |
 
+## Concentration (effects tied to their source)
+
+A pack opts in with a `concentration` block inside `combat`:
+
+```json
+"concentration": { "condition": "Concentrating", "check": "con_save", "dc": "max(10, floor(damage / 2))" }
+```
+
+- `check`: id of one of the pack's `checks` that a concentrating creature rolls when it is damaged.
+- `dc`: formula for the number to beat, on the caster's sheet; `damage` is the damage just taken (SRD: the greater of 10 or half).
+- `condition`: the quick condition (by name) put on the caster's sheet for as long as it concentrates (empty: none).
+
+An entry (a spell, a feature) concentrates when one of its `used` rules has the effect **Concentrate**. Every condition the
+entry's rules then add, to anyone (**Add condition**), is remembered as tied to that concentration, whatever order the
+rules are written in. The concentration, and everything it added, ends when:
+
+- the caster concentrates on another entry (chat says why);
+- the caster fails the check after taking damage (it is asked of the caster, or the Dungeon Master for a creature, with the DC shown);
+- the caster goes down or dies;
+- a rule with the effect **Stop concentrating** runs;
+- the pack's concentration condition is removed from the caster's sheet by hand (so players and the DM can always end it
+  with the normal Remove button).
+
+Casting the same entry again restarts it. Concentration is kept in memory: after a server restart the conditions stay on
+the sheets but are no longer tied to anything.
+
 ## Several targets and areas
 
 Give a source (`combat.actions.sources`) an `area` column and write the shape on the entry itself (the generic pack has an

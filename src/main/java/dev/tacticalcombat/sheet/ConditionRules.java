@@ -40,8 +40,8 @@ public final class ConditionRules {
 	public static final List<String> WHEN_LABEL = List.of("Turn starts", "Turn ends", "Ends", "I roll", "I attack", "I'm attacked",
 			"Round starts", "I finish moving", "My attack hits", "My attack misses", "I'm hit", "An attack misses me", "I take damage",
 			"I'm healed", "I go down", "Applied", "I use it", "Check passed", "Check failed", "Damage is offered to me");
-	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus", "apply", "remove", "check", "hint", "disengage");
-	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition", "Ask for a roll", "Suggest half / full", "Disengage");
+	public static final List<String> DO = List.of("damage", "heal", "resource", "speed", "message", "advantage", "disadvantage", "bonus", "apply", "remove", "check", "hint", "disengage", "concentrate", "drop");
+	public static final List<String> DO_LABEL = List.of("Damage", "Heal", "Set resource", "Set speed", "Message", "Advantage", "Disadvantage", "Bonus", "Add condition", "Remove condition", "Ask for a roll", "Suggest half / full", "Disengage", "Concentrate", "Stop concentrating");
 
 	/** One rule; every field is plain text as typed. */
 	public record Rule(String when, String cond, String effect, String target, String value, String who) {
@@ -160,6 +160,8 @@ public final class ConditionRules {
 			case "check" -> "ask for " + r.target + (r.value.isEmpty() ? "" : " vs DC " + r.value);
 			case "remove" -> "remove " + (r.target.isEmpty() ? "itself" : r.target);
 			case "disengage" -> "disengage (no attacks of opportunity this turn)";
+			case "concentrate" -> "concentrate on it (the conditions it adds end with the concentration)";
+			case "drop" -> "stop concentrating";
 			case "hint" -> "suggest " + (r.value.isEmpty() ? "half" : r.value) + " damage";
 			default -> "\"" + r.value + "\"";
 		};

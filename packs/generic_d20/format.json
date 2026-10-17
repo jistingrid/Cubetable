@@ -285,6 +285,7 @@
       { "id": "skill_stealth", "label": "Stealth (skill)", "roll": "d20 + skill_stealth" },
       { "id": "skill_survival", "label": "Survival (skill)", "roll": "d20 + skill_survival" }
     ],
+    "concentration": { "condition": "Concentrating", "check": "con_save", "dc": "max(10, floor(damage / 2))" },
     "conditions": { "collection": "conditions", "duration": "duration", "unit": "unit", "turns": "turns", "seconds": "seconds" },
     "downed": {
       "label": "Downed",
@@ -1696,6 +1697,13 @@
       "quickRemove": true,
       "share": true,
       "presets": [
+        {
+          "name": "Concentrating",
+          "effect": "Keeping a spell going. Taking damage asks for a Constitution save; casting another concentration spell, going down, or removing this ends it and everything it added.",
+          "duration": 0,
+          "unit": "turns",
+          "icon": "meditation"
+        },
         {
           "name": "Blinded",
           "effect": "Can't see. Fails checks that need sight. Attacks against it have advantage, its attacks have disadvantage.",
