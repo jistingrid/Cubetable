@@ -493,6 +493,7 @@ public final class EncounterScreen extends Screen {
 		ry += choices(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Weather",
 				"Hold the weather: it stays until you click the lit button again (clear weather ends held rain; then the weather changes by itself again).",
 				new String[] {"Clear", "Rain", "Storm"}, DmState.weatherMode, 7);
+		ry += restTool(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH);
 		ry += opener(g, x + pad, ry, w - pad * 2 - 4, areaTop, areaTop + areaH, "Stage",
 				"Click an Actor in the world to select it, drag it to walk it, possess it, and take control of it in a fight. Also G or /stage.",
 				() -> {
@@ -588,6 +589,42 @@ public final class EncounterScreen extends Screen {
 				g.fill(bx, y + TOOL_H, bx + bw, y + TOOL_H + 14, on ? 0xFF3CB84A : 0xFF3B414C);
 				g.fill(bx + 1, y + TOOL_H + 1, bx + bw - 1, y + TOOL_H + 13, over ? panelHover : on ? 0xFF1E4A25 : panel);
 				g.drawCenteredTextWithShadow(textRenderer, labels[i], bx + bw / 2, y + TOOL_H + 3, 0xFFFFFFFF);
+				bx += bw + 4;
+			}
+		}
+		return h + 3;
+	}
+
+	/** The kinds of rest the loaded game packs describe (id -> label), in the order found. */
+	private static java.util.Map<String, String> restTypes() {
+		java.util.Map<String, String> out = new java.util.LinkedHashMap<>();
+		for (dev.tacticalcombat.sheet.SheetFormat f : dev.tacticalcombat.sheet.SheetLibrary.FORMATS.values()) {
+			if (f.combat == null || f.combat.rest == null) continue;
+			for (dev.tacticalcombat.sheet.CombatRules.RestType t : f.combat.rest.types()) out.putIfAbsent(t.id(), t.label());
+		}
+		return out;
+	}
+
+	/** The Rest tool: one button per kind of rest; it applies to every player (their hit dice prompt opens on their screen). */
+	private int restTool(DrawContext g, int x, int y, int w, int clipTop, int clipBottom) {
+		java.util.Map<String, String> types = restTypes();
+		if (types.isEmpty()) return 0;
+		int h = TOOL_H + 18;
+		g.fill(x, y, x + w, y + h, panel);
+		g.fill(x, y, x + 2, y + h, 0xFF7A1C27);
+		toolHead(g, x, y, clipTop, clipBottom, "Rest",
+				"Every player takes the rest: counters and hit points come back as their game says, conditions that last until a rest end, concentration ends, short rests let players spend hit dice, and the time of day may move on. Also /tbc rest <type>.",
+				0xFF7A1C27);
+		if (y + h > clipTop && y < clipBottom) {
+			int bx = x + 8;
+			for (java.util.Map.Entry<String, String> t : types.entrySet()) {
+				String label = t.getValue();
+				int bw = Math.max(40, tw(label) + 12);
+				boolean over = hit(bx, y + TOOL_H, bw, 14, () -> ClientPlayNetworking.send(new dev.tacticalcombat.net.RestPayload(dev.tacticalcombat.net.RestPayload.PARTY, t.getKey())),
+						"Everyone takes this rest");
+				g.fill(bx, y + TOOL_H, bx + bw, y + TOOL_H + 14, 0xFF3B414C);
+				g.fill(bx + 1, y + TOOL_H + 1, bx + bw - 1, y + TOOL_H + 13, over ? panelHover : panel);
+				g.drawCenteredTextWithShadow(textRenderer, label, bx + bw / 2, y + TOOL_H + 3, 0xFFFFFFFF);
 				bx += bw + 4;
 			}
 		}

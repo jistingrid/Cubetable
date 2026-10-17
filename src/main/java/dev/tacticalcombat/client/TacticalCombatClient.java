@@ -89,6 +89,8 @@ public class TacticalCombatClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.DamagePromptPayload.ID,
 				(payload, context) -> context.client().execute(() -> DamagePrompt.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.RestPromptPayload.ID,
+				(payload, context) -> context.client().execute(() -> RestScreen.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.OpportunityPromptPayload.ID,
 				(payload, context) -> context.client().execute(() -> OpportunityPrompt.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.CheckPromptPayload.ID,
@@ -134,6 +136,7 @@ public class TacticalCombatClient implements ClientModInitializer {
 			CheckPrompt.clear();
 			OpportunityPrompt.clear();
 			AreaAim.stop();
+			RestScreen.clear();
 			DownedCard.clear();
 			DmState.clear();
 			CodexClient.clear();

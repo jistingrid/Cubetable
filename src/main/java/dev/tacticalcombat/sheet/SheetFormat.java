@@ -234,6 +234,8 @@ public final class SheetFormat {
 		public String buttonsFrom;
 		/** Widget "button": stored values to set when pressed, name -> formula (a rest: slots back to their maximum). */
 		public final Map<String, String> set = new LinkedHashMap<>();
+		/** Widget "button": the id of a rest type of {@code combat.rest} this button takes (the server does it, with hit dice). */
+		public String rest = "";
 		/** Widget "button": entries of a collection whose counter goes back to its maximum (uses per rest). */
 		public final List<Refill> refill = new ArrayList<>();
 		/** "" (plain row), "pips", "counter", "cycle", "rollmode" or "table". */
@@ -533,6 +535,7 @@ public final class SheetFormat {
 		i.rollLabel = str(o, "rollLabel", i.label);
 		i.enabled = str(o, "enabled", null);
 		i.widget = str(o, "widget", "").toLowerCase(Locale.ROOT);
+		i.rest = str(o, "rest", "").toLowerCase(Locale.ROOT);
 		i.collection = str(o, "collection", null);
 		i.buttonsFrom = str(o, "buttonsFrom", null);
 		if (i.buttonsFrom != null) i.buttonsFrom = i.buttonsFrom.toLowerCase(Locale.ROOT);
@@ -543,17 +546,8 @@ public final class SheetFormat {
 		}
 		if (o.has("refill") && o.get("refill").isJsonArray()) {
 			for (JsonElement re : o.getAsJsonArray("refill")) {
-				if (!re.isJsonObject()) continue;
-				JsonObject ro = re.getAsJsonObject();
-				String coll = str(ro, "collection", "").toLowerCase(Locale.ROOT);
-				String column = str(ro, "column", "").toLowerCase(Locale.ROOT);
-				String to = str(ro, "to", "");
-				if (coll.isEmpty() || column.isEmpty() || to.isEmpty()) continue;
-				List<String> values = new ArrayList<>();
-				if (ro.has("values") && ro.get("values").isJsonArray()) {
-					for (JsonElement v : ro.getAsJsonArray("values")) values.add(v.getAsString().trim().toLowerCase(Locale.ROOT));
-				}
-				i.refill.add(new Refill(coll, column, to, str(ro, "match", "").toLowerCase(Locale.ROOT), values));
+				Refill r = re.isJsonObject() ? parseRefill(re.getAsJsonObject()) : null;
+				if (r != null) i.refill.add(r);
 			}
 		}
 		if (i.collection != null) i.collection = i.collection.toLowerCase(Locale.ROOT);
@@ -582,6 +576,19 @@ public final class SheetFormat {
 			i.buttons.add(btn);
 		}
 		return i;
+	}
+
+	/** One refill entry of a rest button or rest type, or null when it is incomplete. */
+	static Refill parseRefill(JsonObject ro) {
+		String coll = str(ro, "collection", "").toLowerCase(Locale.ROOT);
+		String column = str(ro, "column", "").toLowerCase(Locale.ROOT);
+		String to = str(ro, "to", "");
+		if (coll.isEmpty() || column.isEmpty() || to.isEmpty()) return null;
+		List<String> values = new ArrayList<>();
+		if (ro.has("values") && ro.get("values").isJsonArray()) {
+			for (JsonElement v : ro.getAsJsonArray("values")) values.add(v.getAsString().trim().toLowerCase(Locale.ROOT));
+		}
+		return new Refill(coll, column, to, str(ro, "match", "").toLowerCase(Locale.ROOT), values);
 	}
 
 	private static String str(JsonObject o, String key, String fallback) {

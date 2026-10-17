@@ -125,6 +125,10 @@ public class TacticalCombatMod implements ModInitializer {
 				(payload, context) -> CombatManager.requestEndTurn(context.player()));
 		ServerPlayNetworking.registerGlobalReceiver(MoveRequestPayload.ID,
 				(payload, context) -> CombatManager.requestMove(context.player(), payload.target(), payload.confirm()));
+		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.RestPayload.ID, dev.tacticalcombat.net.RestPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(dev.tacticalcombat.net.RestPromptPayload.ID, dev.tacticalcombat.net.RestPromptPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.RestPayload.ID,
+				(payload, context) -> context.server().execute(() -> dev.tacticalcombat.combat.Rests.request(context.player(), payload)));
 		PayloadTypeRegistry.playC2S().register(dev.tacticalcombat.net.AimPayload.ID, dev.tacticalcombat.net.AimPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(dev.tacticalcombat.net.AimPayload.ID,
 				(payload, context) -> context.server().execute(() -> CombatManager.requestAim(context.player(), payload.ids(), payload.separate())));
@@ -175,6 +179,15 @@ public class TacticalCombatMod implements ModInitializer {
 	private static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher) {
 		dev.tacticalcombat.actor.ActorCommands.register(dispatcher);
 		dispatcher.register(CommandManager.literal("tbc")
+				.then(CommandManager.literal("rest")
+						.requires(src -> src.hasPermissionLevel(2))
+						.then(CommandManager.argument("type", com.mojang.brigadier.arguments.StringArgumentType.word())
+								.executes(ctx -> {
+									String report = dev.tacticalcombat.combat.Rests.party(ctx.getSource().getServer(),
+											com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "type").toLowerCase());
+									ctx.getSource().sendFeedback(() -> Text.literal(report), false);
+									return 1;
+								})))
 				.then(CommandManager.literal("start")
 						.requires(src -> src.hasPermissionLevel(2))
 						.executes(ctx -> {

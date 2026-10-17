@@ -46,6 +46,30 @@ public final class Ambience {
 		});
 	}
 
+	/**
+	 * Moves the clock to the next time of day with that name ("morning", "day", "sunset", "night") once and lets it run on:
+	 * nothing is held. A time the DM holds is left alone. Returns false when the name is not one of them.
+	 */
+	public static boolean skipTo(MinecraftServer server, String name) {
+		int mode = switch (name) {
+			case "morning" -> MORNING;
+			case "day" -> DAY;
+			case "sunset" -> SUNSET;
+			case "night" -> NIGHT;
+			default -> NATURAL;
+		};
+		if (mode == NATURAL) return false;
+		if (time != NATURAL) return true; // held by the DM: the rest does not touch it
+		ServerWorld world = server.getOverworld();
+		long now = world.getTimeOfDay();
+		long want = TIME_OF_DAY[mode];
+		long day = Math.floorDiv(now, 24000L);
+		long target = day * 24000L + want;
+		if (target <= now) target += 24000L;
+		world.setTimeOfDay(target);
+		return true;
+	}
+
 	public static void setTime(MinecraftServer server, int mode) {
 		if (mode < 0 || mode >= TIME_OF_DAY.length) return;
 		time = mode;

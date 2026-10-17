@@ -419,6 +419,28 @@ public final class Conditions {
 		return new SheetContext(f, c).number(sub(text, vars, false));
 	}
 
+	/** Ends the conditions of {@code who} whose duration unit reads one of {@code units} (lower case: "short rest"). Returns how many ended. */
+	static int endByUnit(MinecraftServer server, LivingEntity who, java.util.Collection<String> units) {
+		Conds k = condsOf(who);
+		CombatRules.Conditions rule = k == null || k.f().combat == null ? null : k.f().combat.conditions;
+		CharacterData c = k == null ? null : parsed(k.entry());
+		SheetFormat.Col nameCol = k == null ? null : k.coll().nameCol();
+		SheetFormat.Col unitCol = rule == null ? null : k.coll().column(rule.unit());
+		if (c == null || nameCol == null || unitCol == null || unitCol.options.isEmpty() || units.isEmpty()) return 0;
+		List<String> names = new java.util.ArrayList<>();
+		for (CharacterData.Row r : c.rows(k.coll().id)) {
+			int i = (int) Math.round(r.values.getOrDefault(unitCol.id, unitCol.def));
+			if (i < 0 || i >= unitCol.options.size()) continue;
+			if (units.contains(unitCol.options.get(i).trim().toLowerCase(java.util.Locale.ROOT))) names.add(r.texts.getOrDefault(nameCol.id, ""));
+		}
+		for (String n : names) removeCondition(server, who, n);
+		return names.size();
+	}
+
+	static void saveSheet(MinecraftServer server, CharacterStore.Entry entry, CharacterData c) {
+		save(server, entry, c);
+	}
+
 	static void applyCondition(MinecraftServer server, LivingEntity who, String name, String source) {
 		addCondition(server, who, name, source);
 	}

@@ -130,6 +130,40 @@ public final class CombatRules {
 	/** Null: the game has no concentration. */
 	public Concentration concentration;
 
+	/**
+	 * Hit dice: a stored number of dice left that a short rest lets the player spend.
+	 * @param store the stored value holding the dice left
+	 * @param max   formula for the most dice there can be (the level)
+	 * @param die   formula for the sides of one die
+	 * @param heal  formula rolled for one die; {@code {die}} is replaced by the sides ("d{die} + con_mod")
+	 * @param bar   the bar healed (blank: the main health bar)
+	 */
+	public record HitDice(String store, String max, String die, String heal, String bar) {}
+
+	/**
+	 * One kind of rest.
+	 * @param set            stored values set from formulas, as a sheet button does (hp back to its maximum ...)
+	 * @param refill         counters of collections that go back to their maximum
+	 * @param spendHitDice   the player may spend hit dice (a prompt opens after the rest)
+	 * @param regainHitDice  formula: hit dice given back (blank: none)
+	 * @param clearUnits     conditions whose duration unit reads one of these (lower case) end with this rest
+	 * @param endConcentration resting ends any concentration
+	 * @param clock          when a Dungeon Master calls the rest for the party, the time of day it moves to ("morning", "day", "sunset", "night"); blank: unchanged
+	 */
+	public record RestType(String id, String label, Map<String, String> set, List<SheetFormat.Refill> refill, boolean spendHitDice,
+						   String regainHitDice, List<String> clearUnits, boolean endConcentration, String clock) {}
+
+	/** @param inCombat true: resting is allowed in the middle of a fight */
+	public record Rest(boolean inCombat, HitDice hitDice, List<RestType> types) {
+		public RestType type(String id) {
+			for (RestType t : types) if (t.id().equalsIgnoreCase(id)) return t;
+			return null;
+		}
+	}
+
+	/** Null: the game has no rests of its own. */
+	public Rest rest;
+
 	/** Which collection is the list of conditions and how its durations count down; null = nothing counts down. */
 	public Conditions conditions;
 
@@ -380,6 +414,47 @@ public final class CombatRules {
 				String id = co.get("id").getAsString().toLowerCase(Locale.ROOT);
 				r.checks.add(new Check(id, co.has("label") ? co.get("label").getAsString() : capitalise(id), co.get("roll").getAsString()));
 			}
+		}
+		if (o.has("rest") && o.get("rest").isJsonObject()) {
+			JsonObject ro = o.getAsJsonObject("rest");
+			HitDice hd = null;
+			if (ro.has("hitDice") && ro.get("hitDice").isJsonObject()) {
+				JsonObject h = ro.getAsJsonObject("hitDice");
+				if (h.has("store") && h.has("die")) {
+					hd = new HitDice(h.get("store").getAsString().toLowerCase(Locale.ROOT), h.has("max") ? h.get("max").getAsString() : "0",
+							h.get("die").getAsString(), h.has("heal") ? h.get("heal").getAsString() : "d{die}",
+							h.has("bar") ? h.get("bar").getAsString() : "");
+				}
+			}
+			List<RestType> types = new ArrayList<>();
+			if (ro.has("types") && ro.get("types").isJsonArray()) {
+				for (JsonElement te : ro.getAsJsonArray("types")) {
+					if (!te.isJsonObject() || !te.getAsJsonObject().has("id")) continue;
+					JsonObject t = te.getAsJsonObject();
+					String id = t.get("id").getAsString().toLowerCase(Locale.ROOT);
+					Map<String, String> set = new LinkedHashMap<>();
+					if (t.has("set") && t.get("set").isJsonObject()) {
+						for (Map.Entry<String, JsonElement> e : t.getAsJsonObject("set").entrySet()) set.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().getAsString());
+					}
+					List<SheetFormat.Refill> refill = new ArrayList<>();
+					if (t.has("refill") && t.get("refill").isJsonArray()) {
+						for (JsonElement re : t.getAsJsonArray("refill")) {
+							SheetFormat.Refill rf = re.isJsonObject() ? SheetFormat.parseRefill(re.getAsJsonObject()) : null;
+							if (rf != null) refill.add(rf);
+						}
+					}
+					List<String> units = new ArrayList<>();
+					if (t.has("clearUnits") && t.get("clearUnits").isJsonArray()) {
+						for (JsonElement u : t.getAsJsonArray("clearUnits")) units.add(u.getAsString().trim().toLowerCase(Locale.ROOT));
+					}
+					types.add(new RestType(id, t.has("label") ? t.get("label").getAsString() : capitalise(id), set, refill,
+							t.has("spendHitDice") && t.get("spendHitDice").getAsBoolean(),
+							t.has("regainHitDice") ? t.get("regainHitDice").getAsString() : "", units,
+							t.has("endConcentration") && t.get("endConcentration").getAsBoolean(),
+							t.has("clock") ? t.get("clock").getAsString().toLowerCase(Locale.ROOT) : ""));
+				}
+			}
+			if (!types.isEmpty()) r.rest = new Rest(!ro.has("inCombat") || ro.get("inCombat").getAsBoolean(), hd, types);
 		}
 		if (o.has("concentration") && o.get("concentration").isJsonObject()) {
 			JsonObject k = o.getAsJsonObject("concentration");

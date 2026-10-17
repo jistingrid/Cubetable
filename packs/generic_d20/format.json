@@ -61,6 +61,12 @@
       "default": 1
     },
     {
+      "id": "hit_die",
+      "label": "Hit die (sides)",
+      "group": "Level and defense",
+      "default": 8
+    },
+    {
       "id": "prof",
       "label": "Proficiency bonus",
       "group": "Level and defense",
@@ -235,6 +241,7 @@
     "death_f": 0,
     "inspiration": 0,
     "exhaustion": 0,
+    "hit_dice": 1,
     "slots_1": 0,
     "slots_2": 0,
     "slots_3": 0,
@@ -285,6 +292,49 @@
       { "id": "skill_stealth", "label": "Stealth (skill)", "roll": "d20 + skill_stealth" },
       { "id": "skill_survival", "label": "Survival (skill)", "roll": "d20 + skill_survival" }
     ],
+    "rest": {
+      "inCombat": false,
+      "hitDice": { "store": "hit_dice", "max": "level", "die": "hit_die", "heal": "d{die} + con_mod" },
+      "types": [
+        {
+          "id": "short",
+          "label": "Short rest",
+          "refill": [
+            { "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest"] }
+          ],
+          "spendHitDice": true,
+          "clearUnits": ["short rest"],
+          "endConcentration": true,
+          "clock": ""
+        },
+        {
+          "id": "long",
+          "label": "Long rest",
+          "set": {
+            "hp": "hp_max",
+            "death_s": "0",
+            "death_f": "0",
+            "exhaustion": "max(0, exhaustion - 1)",
+            "slots_1": "slots_1_max",
+            "slots_2": "slots_2_max",
+            "slots_3": "slots_3_max",
+            "slots_4": "slots_4_max",
+            "slots_5": "slots_5_max",
+            "slots_6": "slots_6_max",
+            "slots_7": "slots_7_max",
+            "slots_8": "slots_8_max",
+            "slots_9": "slots_9_max"
+          },
+          "refill": [
+            { "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest", "Long rest"] }
+          ],
+          "regainHitDice": "max(1, floor(level / 2))",
+          "clearUnits": ["short rest", "long rest"],
+          "endConcentration": true,
+          "clock": "morning"
+        }
+      ]
+    },
     "concentration": { "condition": "Concentrating", "check": "con_save", "dc": "max(10, floor(damage / 2))" },
     "conditions": { "collection": "conditions", "duration": "duration", "unit": "unit", "turns": "turns", "seconds": "seconds" },
     "downed": {
@@ -796,34 +846,22 @@
                       "max": "6"
                     },
                     {
+                      "label": "Hit dice",
+                      "widget": "counter",
+                      "store": "hit_dice",
+                      "max": "level"
+                    },
+                    {
                       "widget": "button",
                       "label": "Short rest",
-                      "sub": "Features that come back on a short rest get their uses back",
-                      "refill": [
-                        { "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest"] }
-                      ]
+                      "sub": "Short-rest features get their uses back, and you can spend hit dice to heal",
+                      "rest": "short"
                     },
                     {
                       "widget": "button",
                       "label": "Long rest",
-                      "sub": "Hit points, spell slots and short-rest abilities back to full; death saves cleared",
-                      "set": {
-                        "hp": "hp_max",
-                        "death_s": "0",
-                        "death_f": "0",
-                        "slots_1": "slots_1_max",
-                        "slots_2": "slots_2_max",
-                        "slots_3": "slots_3_max",
-                        "slots_4": "slots_4_max",
-                        "slots_5": "slots_5_max",
-                        "slots_6": "slots_6_max",
-                        "slots_7": "slots_7_max",
-                        "slots_8": "slots_8_max",
-                        "slots_9": "slots_9_max"
-                      },
-                      "refill": [
-                        { "collection": "features", "column": "uses", "to": "uses_max", "match": "recharge", "values": ["Short rest", "Long rest"] }
-                      ]
+                      "sub": "Hit points, spell slots and short and long rest abilities back; half your hit dice back; exhaustion down by one",
+                      "rest": "long"
                     }
                   ]
                 }
@@ -1684,7 +1722,9 @@
           "width": 0.9,
           "options": [
             "turns",
-            "seconds"
+            "seconds",
+            "short rest",
+            "long rest"
           ]
         },
         {
@@ -1907,7 +1947,9 @@
           "width": 0.9,
           "options": [
             "turns",
-            "seconds"
+            "seconds",
+            "short rest",
+            "long rest"
           ]
         },
         {

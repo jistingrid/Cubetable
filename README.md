@@ -132,6 +132,8 @@ src/client/java/dev/tacticalcombat/
 
 - **Concentration** (pack `combat.concentration`, rule effects Concentrate / Stop concentrating): conditions a spell adds are tied to its caster; a new concentration spell, a failed damage save (pack DC formula), going down, or removing the "Concentrating" condition ends them all. See `docs/combat-rules.md`.
 
+- **Resting** (pack `combat.rest`): any rest types a game wants, with hit dice spent in a popup, counters and hit points restored by formula, conditions that last until a rest, concentration ended, and a Dungeon Master tool (or `/tbc rest <type>`) to rest the whole party and move the clock. See `docs/combat-rules.md`.
+
 ## Credits
 
 Status icons are from [game-icons.net](https://game-icons.net), licensed CC BY 3.0 (a few CC0). Authors and the full list: `src/main/resources/assets/tacticalcombat/textures/status/CREDITS.md`. "Icons made by Lorc, Delapouite, Skoll, sbed and others. Available on https://game-icons.net".

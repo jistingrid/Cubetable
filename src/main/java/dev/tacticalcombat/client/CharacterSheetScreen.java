@@ -2119,30 +2119,18 @@ public final class CharacterSheetScreen extends Screen {
 	}
 
 	private static void applySet(SheetContext sc, SheetFormat.Item it) {
-		int changed = 0;
-		for (Map.Entry<String, String> e : it.set.entrySet()) {
-			double v = sc.number(e.getValue());
-			if (Double.isNaN(v)) continue;
-			v = Math.max(0, v);
-			if (sc.character.values.getOrDefault(e.getKey(), Double.NaN) != v) changed++;
-			sc.character.values.put(e.getKey(), v);
+		dev.tacticalcombat.sheet.CombatRules.RestType type = it.rest.isEmpty() || sc.format.combat == null || sc.format.combat.rest == null
+				? null : sc.format.combat.rest.type(it.rest);
+		// a rest of the game's own (combat.rest): the server does it when it can (hit dice, conditions, concentration ...)
+		if (type != null && ClientPlayNetworking.canSend(dev.tacticalcombat.net.RestPayload.ID) && MinecraftClient.getInstance().player != null) {
+			ClientPlayNetworking.send(new dev.tacticalcombat.net.RestPayload(dev.tacticalcombat.net.RestPayload.REQUEST, type.id()));
+			return;
 		}
-		for (SheetFormat.Refill rf : it.refill) {
-			SheetFormat.Collection coll = sc.format.collections.get(rf.collection());
-			if (coll == null) continue;
-			SheetFormat.Col match = rf.matchColumn().isEmpty() ? null : coll.column(rf.matchColumn());
-			for (CharacterData.Row row : sc.character.rows(coll.id)) {
-				if (match != null) {
-					int k = (int) Math.round(row.values.getOrDefault(match.id, match.def));
-					if (match.options.isEmpty() || k < 0 || k >= match.options.size()) continue;
-					if (!rf.values().contains(match.options.get(k).trim().toLowerCase(java.util.Locale.ROOT))) continue;
-				}
-				double v = sc.number(coll, row, rf.to());
-				if (Double.isNaN(v)) continue;
-				v = Math.max(0, v);
-				if (row.values.getOrDefault(rf.column(), 0.0) != v) changed++;
-				row.values.put(rf.column(), v);
-			}
+		int changed = type != null
+				? dev.tacticalcombat.sheet.RestMath.apply(sc, type.set(), type.refill())
+				: dev.tacticalcombat.sheet.RestMath.apply(sc, it.set, it.refill);
+		if (type != null && sc.format.combat.rest.hitDice() != null) {
+			changed += dev.tacticalcombat.sheet.RestMath.regainHitDice(sc, sc.format.combat.rest.hitDice(), type);
 		}
 		store(sc.character);
 		say(tr(it.label) + (changed == 0 ? ": nothing to restore" : ": done"));

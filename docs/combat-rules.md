@@ -624,6 +624,42 @@ Each entry of `moves`:
 | `unused` | `"keep"` (default): leftover distance stays usable. `"lost"`: whatever you do not walk in that move is gone. |
 | `disengage` | `true`: this button disengages instead of adding distance: it only spends the cost, and no creature gets an attack of opportunity from the walker for the rest of the turn. The movement left is untouched. |
 
+## Resting
+
+A pack describes its rests in a `rest` block inside `combat`; the sheet's rest buttons (`"rest": "short"` on a `button`
+widget), the Dungeon Master's **Rest** tool and `/tbc rest <type>` all take them. Nothing in the engine says "short" or
+"long": a game may have any rests, e.g. a Breather or a Camp.
+
+```json
+"rest": {
+  "inCombat": false,
+  "hitDice": { "store": "hit_dice", "max": "level", "die": "hit_die", "heal": "d{die} + con_mod", "bar": "" },
+  "types": [
+    { "id": "short", "label": "Short rest", "refill": [ ... ], "spendHitDice": true,
+      "clearUnits": ["short rest"], "endConcentration": true },
+    { "id": "long", "label": "Long rest", "set": { "hp": "hp_max", "exhaustion": "max(0, exhaustion - 1)" },
+      "refill": [ ... ], "regainHitDice": "max(1, floor(level / 2))",
+      "clearUnits": ["short rest", "long rest"], "endConcentration": true, "clock": "morning" }
+  ]
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `inCombat` | `false`: a creature in a running fight cannot rest. Default `true`. |
+| `hitDice` | `store`: the stored number of dice left (it must be in `defaults`); `max`: formula for the most; `die`: formula for the sides of one; `heal`: formula rolled for one die, `{die}` is replaced by the sides; `bar`: the bar it heals (blank: the main health bar). |
+| `set`, `refill` | the same as on a sheet button: stored values set from formulas, counters of a collection's rows set to a formula (uses back to their maximum). |
+| `spendHitDice` | `true`: after the rest a popup lets the player spend hit dice one at a time. Each is rolled (everyone sees the dice) and heals the bar, down to 0 dice. |
+| `regainHitDice` | formula: dice given back, up to `max`. |
+| `clearUnits` | conditions whose duration **unit** reads one of these end with the rest. Add the unit to the conditions collection's `unit` choice ("short rest", "long rest") and a player can make any condition last until a rest. |
+| `endConcentration` | resting ends any concentration (and what it added). |
+| `clock` | for a rest the Dungeon Master calls: moves the time of day to the next `morning`, `day`, `sunset` or `night`, once. A time the DM holds is left alone. |
+
+Who takes one: a player presses the rest button on their own sheet (the server does it on their Active Actor and sends the
+result back to the sheet; without the mod on the server the button just sets the numbers on the sheet), or the Dungeon
+Master uses the **Rest** tool / `/tbc rest short` for every player at once. Chat tells who rested, how many dice came back
+and how many effects ended. Players always keep the free-form route: a number on the sheet can be edited by hand.
+
 ## Concentration (effects tied to their source)
 
 A pack opts in with a `concentration` block inside `combat`:
